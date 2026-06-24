@@ -1,9 +1,11 @@
 /**
- * 認証アクション用共有フック
+ * 認証アクション用共有フック（Web/Native 共通・Amplify Cognito / Email OTP）
  *
- * Web/Native間で共有される認証操作
+ * UI 非依存の認証操作を提供する。Web は `apps/web/features/auth` の Server-less
+ * クライアント関数を、Mobile はこのフックを利用できる。
  */
 
+import { confirmSignIn, resendSignInCode, signIn, signOut } from 'aws-amplify/auth'
 import { useCallback, useState } from 'react'
 
 /**
@@ -14,134 +16,74 @@ export interface AuthActionState {
   error: string | null
 }
 
-/**
- * サインイン用の認証情報
- */
-export interface SignInCredentials {
-  email: string
-  password: string
+type Result = { success: true; error: null } | { success: false; error: string }
+
+function toMessage(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error occurred'
 }
 
 /**
- * サインアップ用の認証情報
- */
-export interface SignUpCredentials {
-  email: string
-  password: string
-  displayName?: string
-}
-
-/**
- * 認証アクション用フック（プラットフォーム非依存のロジック）
+ * 認証アクション用フック（プラットフォーム非依存）
  *
  * @example
  * ```tsx
- * const { state, handleSignIn, handleSignOut, resetError } = useAuthActions(supabase)
+ * const { state, requestOtp, confirmOtp, handleSignOut } = useAuthActions()
  *
- * const onSubmit = async (data: SignInCredentials) => {
- *   const result = await handleSignIn(data)
- *   if (result.success) {
- *     // Navigate to home
- *   }
- * }
+ * await requestOtp('user@example.com')
+ * await confirmOtp('123456') // メールで届いたコード
  * ```
  */
-export function useAuthActions(supabase: {
-  auth: {
-    signInWithPassword: (credentials: { email: string; password: string }) => Promise<{
-      data: { user: unknown } | null
-      error: Error | null
-    }>
-    signUp: (credentials: {
-      email: string
-      password: string
-      options?: { data?: Record<string, unknown> }
-    }) => Promise<{
-      data: { user: unknown } | null
-      error: Error | null
-    }>
-    signOut: () => Promise<{ error: Error | null }>
-  }
-}) {
+export function useAuthActions() {
   const [state, setState] = useState<AuthActionState>({
     isLoading: false,
     error: null,
   })
 
-  const handleSignIn = useCallback(
-    async (credentials: SignInCredentials) => {
-      setState({ isLoading: true, error: null })
-
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        })
-
-        if (error) {
-          setState({ isLoading: false, error: error.message })
-          return { success: false, error: error.message }
-        }
-
-        setState({ isLoading: false, error: null })
-        return { success: true, error: null }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-        setState({ isLoading: false, error: errorMessage })
-        return { success: false, error: errorMessage }
-      }
-    },
-    [supabase.auth]
-  )
-
-  const handleSignUp = useCallback(
-    async (credentials: SignUpCredentials) => {
-      setState({ isLoading: true, error: null })
-
-      try {
-        const { error } = await supabase.auth.signUp({
-          email: credentials.email,
-          password: credentials.password,
-          options: credentials.displayName
-            ? { data: { display_name: credentials.displayName } }
-            : undefined,
-        })
-
-        if (error) {
-          setState({ isLoading: false, error: error.message })
-          return { success: false, error: error.message }
-        }
-
-        setState({ isLoading: false, error: null })
-        return { success: true, error: null }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-        setState({ isLoading: false, error: errorMessage })
-        return { success: false, error: errorMessage }
-      }
-    },
-    [supabase.auth]
-  )
-
-  const handleSignOut = useCallback(async () => {
+  const run = useCallback(async (fn: () => Promise<void>): Promise<Result> => {
     setState({ isLoading: true, error: null })
-
     try {
-      const { error } = await supabase.auth.signOut()
-
-      if (error) {
-        setState({ isLoading: false, error: error.message })
-        return { success: false, error: error.message }
-      }
-
+      await fn()
       setState({ isLoading: false, error: null })
       return { success: true, error: null }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      setState({ isLoading: false, error: errorMessage })
-      return { success: false, error: errorMessage }
+      const error = toMessage(err)
+      setState({ isLoading: false, error })
+      return { success: false, error }
     }
-  }, [supabase.auth])
+  }, [])
+
+  /** メールに OTP を送信（サインイン開始） */
+  const requestOtp = useCallback(
+    (email: string) =>
+      run(async () => {
+        await signIn({
+          username: email,
+          options: { authFlowType: 'USER_AUTH', preferredChallenge: 'EMAIL_OTP' },
+        })
+      }),
+    [run]
+  )
+
+  /** OTP コードを検証してサインイン完了 */
+  const confirmOtp = useCallback(
+    (code: string) =>
+      run(async () => {
+        await confirmSignIn({ challengeResponse: code })
+      }),
+    [run]
+  )
+
+  /** OTP コードを再送信 */
+  const resendOtp = useCallback(
+    (email: string) =>
+      run(async () => {
+        await resendSignInCode({ username: email })
+      }),
+    [run]
+  )
+
+  /** サインアウト */
+  const handleSignOut = useCallback(() => run(async () => signOut()), [run])
 
   const resetError = useCallback(() => {
     setState((prev) => ({ ...prev, error: null }))
@@ -149,8 +91,9 @@ export function useAuthActions(supabase: {
 
   return {
     state,
-    handleSignIn,
-    handleSignUp,
+    requestOtp,
+    confirmOtp,
+    resendOtp,
     handleSignOut,
     resetError,
   }

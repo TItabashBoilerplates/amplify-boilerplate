@@ -8,15 +8,16 @@
   "exports": {
     ".": "./index.ts",
     "./entities/*": "./entities/*/index.ts",
-    "./features/*": "./features/*/index.ts",
-    "./hooks/*": "./hooks/*.ts"
+    "./features/*": "./features/*/index.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@workspace/auth": "workspace:*",
+    "@workspace/data-client": "workspace:*",
     "@workspace/types": "workspace:*",
+    "aws-amplify": "^6.18.0",
     "zustand": "^5.0.7"
   },
   "devDependencies": {

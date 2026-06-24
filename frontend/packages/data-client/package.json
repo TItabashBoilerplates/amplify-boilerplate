@@ -1,6 +1,7 @@
 {
-  "name": "@workspace/types",
+  "name": "@workspace/data-client",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",
@@ -10,7 +11,10 @@
   "scripts": {
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@workspace/backend": "workspace:*",
+    "aws-amplify": "^6.18.0"
+  },
   "devDependencies": {
     "typescript": "^5.8.0"
   }

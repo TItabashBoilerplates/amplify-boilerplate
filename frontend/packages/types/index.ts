@@ -1,6 +1,10 @@
-export type { Database } from './schema'
+/**
+ * @workspace/types - 共通型定義
+ *
+ * アプリ全体で共有する汎用型。データモデルの型は Amplify Data の `Schema`
+ * （`@workspace/backend` / `@workspace/data-client`）を使う。
+ */
 
-// 共通型定義
 export interface User {
   id: string
   email: string

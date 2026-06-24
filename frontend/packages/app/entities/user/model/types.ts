@@ -1,10 +1,10 @@
 /**
  * ユーザーエンティティの型定義
  *
- * Web/Native間で共有されるユーザー関連の型
+ * Web/Native 間で共有されるユーザー関連の型
  */
 
-import type { User as SupabaseUser } from '@supabase/supabase-js'
+import type { AuthUser } from '@workspace/auth'
 
 /**
  * アプリケーション内で使用するユーザー型
@@ -14,18 +14,19 @@ export interface AppUser {
   email: string | undefined
   displayName: string | null
   avatarUrl: string | null
-  createdAt: Date
 }
 
 /**
- * SupabaseユーザーからAppUserへの変換
+ * 認証ユーザー（Cognito / Amplify Auth）から AppUser への変換。
+ *
+ * displayName / avatarUrl は Amplify Data の `User` プロフィールモデルや
+ * Cognito のカスタム属性から後段で補完する想定。
  */
-export function toAppUser(supabaseUser: SupabaseUser): AppUser {
+export function toAppUser(user: AuthUser): AppUser {
   return {
-    id: supabaseUser.id,
-    email: supabaseUser.email,
-    displayName: supabaseUser.user_metadata?.display_name ?? null,
-    avatarUrl: supabaseUser.user_metadata?.avatar_url ?? null,
-    createdAt: new Date(supabaseUser.created_at),
+    id: user.userId,
+    email: user.email,
+    displayName: null,
+    avatarUrl: null,
   }
 }
