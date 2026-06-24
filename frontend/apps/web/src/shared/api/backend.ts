@@ -1,10 +1,19 @@
 /**
- * バックエンドAPI（FastAPI）クライアント
+ * バックエンドAPI（FastAPI on Lambda）クライアント
  *
  * @module shared/api/backend
  */
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_PY_URL || 'http://localhost:4040'
+import outputs from 'amplify-outputs'
+
+/**
+ * FastAPI Lambda の Function URL。`amplify/backend.ts` が
+ * `amplify_outputs.json` の `custom.backendApiUrl` に出力する。
+ * 未生成（ローカル）時は uvicorn のローカルポートにフォールバック。
+ */
+const BACKEND_URL =
+  (outputs as { custom?: { backendApiUrl?: string } }).custom?.backendApiUrl ??
+  'http://localhost:4040'
 
 /**
  * バックエンドAPIレスポンスの型

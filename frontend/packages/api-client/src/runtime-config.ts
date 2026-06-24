@@ -7,12 +7,13 @@
 import type { CreateClientConfig } from './generated/client.gen'
 
 /**
- * クライアント設定を作成する関数
+ * クライアント設定を作成する関数（デフォルト baseUrl）。
  *
- * 環境変数 NEXT_PUBLIC_BACKEND_PY_URL からベースURLを取得し、
- * フォールバックとして http://127.0.0.1:4040 を使用する。
+ * 本番の baseUrl は FastAPI Lambda の Function URL（`amplify_outputs.json` の
+ * `custom.backendApiUrl`）。利用側で `client.setConfig({ baseUrl })` を呼んで上書きする。
+ * ここではローカル開発（uvicorn）のフォールバックのみを定義する。
  */
 export const createClientConfig: CreateClientConfig = (config) => ({
   ...config,
-  baseUrl: process.env.NEXT_PUBLIC_BACKEND_PY_URL ?? 'http://127.0.0.1:4040',
+  baseUrl: 'http://127.0.0.1:4040',
 })

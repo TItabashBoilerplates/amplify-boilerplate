@@ -1,15 +1,19 @@
 /**
  * @workspace/api-client
  *
- * backend-py (FastAPI) の型安全な API クライアント
+ * backend-py (FastAPI on Lambda) の型安全な API クライアント
+ *
+ * baseUrl は FastAPI Lambda の Function URL。`amplify_outputs.json` の
+ * `custom.backendApiUrl`（`amplify/backend.ts` が出力）から取得する。
  *
  * @example
  * ```typescript
  * // クライアント設定
  * import { client } from '@workspace/api-client'
+ * import outputs from 'amplify-outputs'
  *
  * client.setConfig({
- *   baseUrl: process.env.NEXT_PUBLIC_BACKEND_PY_URL,
+ *   baseUrl: outputs.custom?.backendApiUrl,
  *   headers: { Authorization: `Bearer ${accessToken}` },
  * })
  *
