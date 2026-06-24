@@ -1,64 +1,63 @@
 # `env/` ディレクトリ
 
-環境変数の置き場所。**シークレットは Doppler、非機密 config はファイル**で分離し、読み込みは
-環境変数 `ENV` で切り替える。Doppler 連携の詳細は `.claude/skills/doppler/SKILL.md`。
+環境変数の置き場所。**シークレットは AWS（Amplify secrets / SSM Parameter Store）、
+非機密 config はファイル**で分離する。
 
 ## 方針: シークレット vs 非機密
 
 | 種類 | 例 | 置き場所 |
 |---|---|---|
-| **シークレット** | API キー / トークン / DB パスワード / service_role | **Doppler のみ**（ファイルフォールバックは廃止） |
-| **非機密 config** | ローカル Supabase URL / backend URL / port / publishable key | **このディレクトリのファイル**（`<svc>/.env.<ENV>`） |
+| **シークレット** | API キー / トークン / OAuth secret / 外部サービスのキー | **Amplify secrets**（SSM Parameter Store） |
+| **非機密 config（frontend）** | `amplify_outputs.json` の値、`NEXT_PUBLIC_*` | `apps/web/.env*`（生成物 `amplify_outputs.json` は gitignore） |
+| **非機密 config（backend Lambda）** | Cognito ID 等の環境変数 | `amplify/backend.ts` の `addEnvironment(...)` で注入 |
 
-「漏れても害がない設定値」だけをファイルに置く。機密はすべて Doppler。
+> `.env.local` などの実ファイルは **追跡しない**（`.gitignore` 済み）。秘密の混入を防ぐ。
 
-## 構成
+## シークレット（Amplify secrets / SSM Parameter Store）
 
-```
-env/
-├── README.md              # このファイル
-├── .env.secrets           # 旧シークレット（gitignore・読み込まれない）。doppler-import 用に
-│                          #   一時保持し、Doppler 投入が済んだら削除してよい。
-├── backend/.env.<ENV>     # backend 非機密 config（.env.local は commit）
-├── frontend/.env.<ENV>    # frontend 非機密 config（.env.local は commit）
-└── migration/.env.<ENV>   # migration 非機密 config（.env.local は commit）
-```
-
-`<ENV>` = `local` / `dev` / `staging` / `production`。
-
-## 読み込み（ENV 駆動）
-
-`devenv.nix` が `ENV`（既定 `local`）に従って読み込む:
-
-1. `loadEnvFilesForEnv`: 各サービスの `env/<svc>/.env.$ENV` を source（**非機密 config のみ**）。
-2. `loadDopplerByEnv`: `$ENV` 対応の Doppler config からシークレットを取得して注入。
-   **Doppler が唯一のシークレットソース**。取得できなければファイルフォールバックは無いので
-   警告を出す（`.env.secrets` はもう読まれない）。
+Amplify Gen2 のシークレットは SSM Parameter Store に保存され、バックエンド定義から
+型安全に参照できる。
 
 ```bash
-devenv shell                      # ENV=local: .env.local（config）+ Doppler local（secrets）
-ENV=staging devenv shell          # ENV=staging: .env.staging（config）+ Doppler stg（secrets）
-devenv shell -P staging -- <cmd>  # profile が ENV=staging を export（同上）
+# ローカル sandbox にシークレットを登録（per-developer）
+cd frontend/packages/backend
+npx ampx sandbox secret set GOOGLE_CLIENT_ID
+npx ampx sandbox secret set GOOGLE_CLIENT_SECRET
+
+# 一覧 / 削除
+npx ampx sandbox secret list
+npx ampx sandbox secret remove GOOGLE_CLIENT_ID
 ```
 
-シークレットを使うには **`doppler login` → `doppler setup`** が必要（CI は `DOPPLER_TOKEN`）。
+ブランチ（dev/staging/prod）のシークレットは **Amplify コンソール → Hosting → Secrets**、
+または `ampx pipeline-deploy` 環境で管理する。
 
-## Git 追跡
+バックエンド定義での参照:
 
-commit されるのは **`.env.local`（非機密）と `README.md` のみ**。`.env.secrets` と
-`.env.<dev|staging|production>` は機密・環境固有値のため gitignore。
+```ts
+import { secret } from '@aws-amplify/backend'
 
-## Doppler への移行（一度だけ）
-
-```bash
-doppler login
-doppler setup                 # doppler.yaml の project/config に紐付け
-doppler-import --config dev    # 旧 env/.env.secrets を Doppler に一括投入
-# 確認後、env/.env.secrets は削除してよい
+export const auth = defineAuth({
+  loginWith: {
+    externalProviders: {
+      google: {
+        clientId: secret('GOOGLE_CLIENT_ID'),
+        clientSecret: secret('GOOGLE_CLIENT_SECRET'),
+      },
+    },
+  },
+})
 ```
 
-## 新しい環境を追加する
+## 非機密 config
 
-1. `env/{backend,frontend,migration}/.env.<name>` を作成（非機密 config）。
-2. `devenv.nix` の `profiles` に profile を 1 つ追加（`export ENV="<name>"` + 各ローダ）。
-3. シークレットは Doppler の対応 config に投入。
+| サービス | 方法 |
+|---|---|
+| **frontend (web)** | `apps/web/.env.local` に `NEXT_PUBLIC_*` を置く。Amplify バックエンドの値は `amplify_outputs.json`（`ampx sandbox` / `ampx generate outputs` で生成）から取得 |
+| **frontend (mobile)** | `apps/mobile` の Expo 設定 + `amplify_outputs.json` |
+| **backend (Lambda)** | `amplify/backend.ts` で `fn.addEnvironment('KEY', value)`。Cognito ID 等は backend 内で配線済み |
+
+## 参考
+
+- Amplify secrets: https://docs.amplify.aws/nextjs/deploy-and-host/fullstack-branching/secrets-and-vars/
+- 生成物 `amplify_outputs.json` は環境ごとに生成し、git 管理しない。

@@ -1,0 +1,37 @@
+# AWS Amplify Hosting build spec (Gen2 monorepo)
+#
+# appRoot=frontend（Bun ワークスペース）。backend フェーズで Amplify バックエンド
+# （Cognito/AppSync/DynamoDB/S3/Lambda）を pipeline-deploy し、frontend フェーズで
+# Next.js(web) をビルドする。バックエンド定義は packages/backend/amplify。
+#
+# 参考: https://docs.amplify.aws/nextjs/deploy-and-host/fullstack-branching/monorepos/
+version: 1
+applications:
+  - appRoot: frontend
+    backend:
+      phases:
+        build:
+          commands:
+            - npm install -g bun
+            - bun install --frozen-lockfile
+            # Amplify バックエンドをこのブランチにデプロイ（amplify_outputs.json 生成）
+            - cd packages/backend && npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm install -g bun
+            - bun install --frozen-lockfile
+            # backend の出力を web アプリへ生成（amplify-outputs エイリアスが解決される）
+            - cd packages/backend && npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID --out-dir ../../apps/web && cd ../..
+        build:
+          commands:
+            - bun run --filter @workspace/web build
+      artifacts:
+        baseDirectory: apps/web/.next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - apps/web/.next/cache/**/*
