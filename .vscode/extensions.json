@@ -1,7 +1,6 @@
 {
 	"recommendations": [
 		"biomejs.biome",
-		"denoland.vscode-deno",
 		"bradlc.vscode-tailwindcss",
 		"IronGeek.vscode-env",
 		"mhutchie.git-graph",

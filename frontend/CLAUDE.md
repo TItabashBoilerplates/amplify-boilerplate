@@ -15,8 +15,8 @@ This is a Next.js frontend application following Feature-Sliced Design (FSD) met
 - **Package Manager**: Bun for fast package management and script execution
 - **Build System**: Next.js built-in build system with Turbopack (default in Next.js 16)
 - **Internationalization**: next-intl for multi-language support (English & Japanese)
-- **State Management**: Zustand for client-side state
-- **Integration**: Supabase client for backend services
+- **State Management**: Zustand for client-side state, TanStack Query for server state
+- **Integration**: AWS Amplify (Cognito auth, AppSync + DynamoDB data, S3 storage) via `@workspace/auth` / `@workspace/data-client` / `@workspace/backend`
 
 ### FSD Layer Structure
 
@@ -54,13 +54,17 @@ frontend/
 すべて devenv の **scripts** (PATH 直結) または **tasks** (`devenv tasks run <name>`) を使用する。Makefile は **deprecated**（削除済み）。直接 `cd frontend && bun run X` での実行は禁止。
 
 ```bash
-# Services（軽量 default = supabase + backend + storybook）
-devenv up               # 軽量セット起動 (TUI 付き)
-dev-web                 # 軽量 + Next.js (web)
-dev-mobile              # 軽量 + Expo Metro (mobile, non-interactive)
-dev-all                 # 全部入り
-devenv up backend web   # 任意組み合わせ
-stop                    # devenv プロセス + Supabase 全停止
+# Amplify backend（Supabase ローカル Docker の代替、AWS 認証情報が必要）
+sandbox                 # ampx sandbox（per-dev クラウド sandbox + amplify_outputs.json 生成、watch）
+sandbox-once            # 1 回デプロイして終了
+sandbox-delete          # sandbox 破棄
+
+# Services
+dev-web                 # Next.js (web)
+dev-mobile              # Expo Metro (mobile, non-interactive)
+storybook               # Storybook
+devenv up <names...>    # 任意組み合わせ
+stop                    # devenv プロセス停止
 
 # Quality
 lint-frontend           # Biome lint (auto-fix)
@@ -197,37 +201,38 @@ bunx shadcn@latest add form
 
 For detailed guidelines, see `docs/rendering-strategy.md`
 
-### Supabase Integration Guidelines
+### AWS Amplify Integration Guidelines
 
-This project uses Supabase for backend services with strict adherence to both Next.js and Supabase official best practices.
+This project uses **AWS Amplify** for backend services (Cognito auth, AppSync + DynamoDB data, S3 storage),
+following both Next.js and Amplify official best practices.
 
-#### Client Types
+#### Clients
 
-| Client Type | Usage | Import | When to Use |
-|------------|-------|--------|-------------|
-| **Server Client** | Server Components, Server Actions, Route Handlers | `@/shared/lib/supabase/server` | Authentication checks, protected data fetching |
-| **Browser Client** | Client Components | `@/shared/lib/supabase/client` | Real-time subscriptions, client interactions |
+| Concern | Where | Import / API |
+|---------|-------|--------------|
+| **Auth (server)** | Server Components, Server Actions, Route Handlers | `runWithAmplifyServerContext` (`@/shared/lib/amplify/server`) + `getCurrentUser` / `fetchAuthSession` (`aws-amplify/auth/server`) |
+| **Auth (client)** | Client Components | `aws-amplify/auth` (`signIn`, `confirmSignIn`, `resendSignInCode`, `signOut`) and `@workspace/auth` (`useAuthUser`, `useIsAuthenticated`) |
+| **Data** | Server & Client | `getDataClient()` (`@workspace/data-client`) → `models.X.list()/get()/create()/update()/delete()`; type via `import type { Schema } from '@workspace/backend'` |
 
 #### Authentication Best Practices
 
 **🔒 CRITICAL SECURITY REQUIREMENT:**
 
-Always use `supabase.auth.getUser()` to protect pages. **NEVER** trust `supabase.auth.getSession()` in server code.
+In server code, always resolve the user via `runWithAmplifyServerContext` + `getCurrentUser`.
+Authorization is enforced by Cognito + the per-model rules in `amplify/data/resource.ts`
+(`allow.owner()` / `allow.authenticated()` / `allow.guest()`), which replace RLS.
 
-**Reason:**
-- `getSession()`: Cookie-based (can be spoofed) ❌
-- `getUser()`: Validated against Supabase Auth server (secure) ✅
+Auth is **passwordless Email OTP**: `signIn({ username: email, options: { authFlowType: 'USER_AUTH', preferredChallenge: 'EMAIL_OTP' } })` → `confirmSignIn({ challengeResponse: code })`.
 
 #### Implementation Patterns
 
 **Public Pages (No Authentication):**
 ```tsx
 // Server Component
-import { createClient } from '@/shared/lib/supabase/server'
+import { getDataClient } from '@workspace/data-client'
 
 export default async function BlogPage() {
-  const supabase = createClient()
-  const { data } = await supabase.from('posts').select()
+  const { data } = await getDataClient().models.Post.list()
   return <BlogList posts={data} />
 }
 ```
@@ -235,38 +240,39 @@ export default async function BlogPage() {
 **Authenticated Pages (Standard Pattern):**
 ```tsx
 // Server Component - Page wrapper
-import { createClient } from '@/shared/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { getCurrentUser } from 'aws-amplify/auth/server'
+import { runWithAmplifyServerContext } from '@/shared/lib/amplify/server'
+import { getDataClient } from '@workspace/data-client'
 
 export default async function DashboardPage() {
-  await cookies() // Disable cache for user-specific data
+  const user = await runWithAmplifyServerContext({
+    nextServerContext: { cookies },
+    operation: (contextSpec) => getCurrentUser(contextSpec),
+  }).catch(() => null)
 
-  const supabase = createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  if (error || !user) redirect('/login')
-
-  const { data } = await supabase.from('user_data').select()
+  const { data } = await getDataClient().models.UserData.list()
 
   return <Dashboard data={data} user={user} />
 }
 ```
 
-**Client Components with Supabase + Zustand:**
+**Client Components with Amplify Data + Zustand:**
 ```tsx
 // Client Component
 'use client'
 
-import { createBrowserClient } from '@/shared/lib/supabase/client'
+import { getDataClient } from '@workspace/data-client'
 import { useUserStore } from '@/entities/user/model/store'
 
 export function UserSettings({ initialData }) {
-  const supabase = createBrowserClient()
-  const updateUser = useUserStore(state => state.updateUser)
+  const updateUser = useUserStore((state) => state.updateUser)
 
   const handleUpdate = async () => {
-    const { data } = await supabase.from('profiles').update(...)
+    const { data } = await getDataClient().models.Profile.update({ id, ...changes })
     if (data) updateUser(data) // Update Zustand store
   }
 
@@ -278,44 +284,41 @@ export function UserSettings({ initialData }) {
 ```tsx
 'use client'
 
-import { createBrowserClient } from '@/shared/lib/supabase/client'
+import { getDataClient } from '@workspace/data-client'
 
-export function RealtimeUpdates({ userId }) {
-  const supabase = createBrowserClient()
-
+export function RealtimeUpdates() {
   useEffect(() => {
-    const channel = supabase
-      .channel(`user:${userId}`)
-      .on('postgres_changes', { ... }, handler)
-      .subscribe()
-
-    return () => channel.unsubscribe()
-  }, [userId])
+    // Amplify Data observeQuery streams live updates from AppSync
+    const sub = getDataClient().models.Post.observeQuery().subscribe({
+      next: ({ items }) => setPosts(items),
+    })
+    return () => sub.unsubscribe()
+  }, [])
 }
 ```
 
 #### Usage Matrix
 
-| Feature | Component Type | Supabase Client | State Management |
-|---------|---------------|-----------------|------------------|
-| Auth check | Server Component | Server Client + `getUser()` | N/A |
-| Initial data fetch | Server Component | Server Client | Props |
-| Real-time subscriptions | Client Component | Browser Client | useState/Zustand |
-| User interactions | Client Component | Browser Client | Zustand |
-| Form submissions | Server Action | Server Client | N/A |
+| Feature | Component Type | Amplify API | State Management |
+|---------|---------------|-------------|------------------|
+| Auth check | Server Component | `runWithAmplifyServerContext` + `getCurrentUser` | N/A |
+| Initial data fetch | Server Component | `getDataClient().models.X.list()` | Props |
+| Real-time subscriptions | Client Component | `models.X.observeQuery()` | useState/Zustand |
+| User interactions | Client Component | `getDataClient().models.X` | Zustand |
+| Form submissions | Server Action | `getDataClient().models.X.create()` | N/A |
 
 #### Security Requirements
 
-1. **Authentication**: Always use Server Component with `getUser()`
-2. **Cache Control**: Call `cookies()` before Supabase operations in authenticated pages
-3. **Data Minimization**: Pass only necessary data to Client Components
-4. **Environment Variables**: Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+1. **Authentication**: Resolve the user in a Server Component via `runWithAmplifyServerContext` + `getCurrentUser`
+2. **Cache Control**: Call `cookies()` before user-specific Amplify operations in authenticated pages
+3. **Authorization**: Declare access in `amplify/data/resource.ts` (`allow.*`) — do not rely on client-side checks
+4. **Config**: `amplify_outputs.json` is generated by `ampx sandbox`; the client is configured via `ConfigureAmplifyClientSide`
 
 #### Hydration Error Prevention (CRITICAL)
 
 **⚠️ MUST AVOID HYDRATION ERRORS AT ALL COSTS**
 
-Follow these rules strictly when using Supabase with Next.js:
+Follow these rules strictly when using Amplify with Next.js:
 
 **Rule 1: Server Component = Static Data Only**
 - Only render data that is confirmed on the server
@@ -325,14 +328,17 @@ Follow these rules strictly when using Supabase with Next.js:
 ```tsx
 // ✅ GOOD
 export default async function Page() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await runWithAmplifyServerContext({
+    nextServerContext: { cookies },
+    operation: (s) => getCurrentUser(s),
+  }).catch(() => null)
   if (!user) redirect('/login') // Redirect, not conditional UI
-  return <div>Welcome {user.email}</div>
+  return <div>Welcome {user.signInDetails?.loginId}</div>
 }
 
 // ❌ BAD - Hydration risk
 export default async function Page() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUserOrNull()
   return <div>{user ? 'Logged in' : 'Not logged in'}</div>
 }
 ```
@@ -358,7 +364,7 @@ export function Component() {
 ```
 
 **Rule 3: Real-time Data = Client Component Only**
-- NEVER use Supabase Realtime in Server Components
+- NEVER use `observeQuery()` in Server Components
 - Pass initial data from Server Component to Client Component
 - Subscribe to real-time updates in Client Component only
 
@@ -366,7 +372,7 @@ export function Component() {
 // ✅ GOOD Pattern
 // Server Component
 export default async function Page() {
-  const { data: initial } = await supabase.from('posts').select()
+  const { data: initial } = await getDataClient().models.Post.list()
   return <PostsList initialData={initial} />
 }
 
@@ -378,8 +384,10 @@ export function PostsList({ initialData }) {
 
   useEffect(() => {
     setMounted(true)
-    const channel = supabase.channel('posts').on(...)
-    return () => channel.unsubscribe()
+    const sub = getDataClient().models.Post.observeQuery().subscribe({
+      next: ({ items }) => setPosts(items),
+    })
+    return () => sub.unsubscribe()
   }, [])
 
   if (!mounted) return null
@@ -411,7 +419,7 @@ For complete hydration prevention patterns, see `docs/rendering-strategy.md` - "
 **Pattern 2: Real-time Features**
 ```tsx
 // ✅ Always in Client Component
-// Supabase Realtime only works in Browser Client
+// Amplify Data observeQuery only works in the browser client
 ```
 
 **Pattern 3: Zustand Integration**
@@ -421,7 +429,7 @@ For complete hydration prevention patterns, see `docs/rendering-strategy.md` - "
 // Client Component updates Zustand store
 ```
 
-For complete examples and detailed patterns, see `docs/rendering-strategy.md` - "Next.js + Supabase ベストプラクティス" section.
+For complete examples and detailed patterns, see `docs/rendering-strategy.md`.
 
 ### Example: FSD-Compliant Implementation with SSR/CSR
 
@@ -465,68 +473,65 @@ export function LanguageSwitcher() {
   )
 }
 
-// ✅ Good example: Authenticated page (Supabase + Next.js Best Practice)
+// ✅ Good example: Authenticated page (Amplify + Next.js Best Practice)
 // views/dashboard/ui/DashboardPage.tsx
-import { createClient } from '@/shared/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { getCurrentUser } from 'aws-amplify/auth/server'
+import { runWithAmplifyServerContext } from '@/shared/lib/amplify/server'
+import { getDataClient } from '@workspace/data-client'
 import { UserSettings } from './UserSettings'
 
 /**
- * ダッシュボードページ（Server Component - Supabase + Next.js公式推奨パターン）
- * サーバーでSupabase認証チェックとデータ取得、インタラクティブ部分のみClient Component
+ * ダッシュボードページ（Server Component - Amplify + Next.js公式推奨パターン）
+ * サーバーで Cognito 認証チェックとデータ取得、インタラクティブ部分のみ Client Component
  */
 export default async function DashboardPage() {
   await cookies() // Disable cache for user-specific data
 
-  const supabase = createClient() // Supabase Server Client
+  // 🔒 Cognito authentication check (server context)
+  const user = await runWithAmplifyServerContext({
+    nextServerContext: { cookies },
+    operation: (contextSpec) => getCurrentUser(contextSpec),
+  }).catch(() => null)
 
-  // 🔒 Supabase authentication check (MUST use getUser(), not getSession())
-  const { data: { user }, error } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  if (error || !user) redirect('/login')
-
-  // Server-side data fetching with Supabase
-  const { data: userData } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  // Server-side data fetching with Amplify Data (authorization via allow.owner())
+  const { data: profiles } = await getDataClient().models.UserProfile.list()
+  const userData = profiles?.[0]
 
   return (
     <div>
       {/* Static content rendered on server */}
-      <h1>Welcome, {user.email}</h1>
-      <p>User ID: {user.id}</p>
+      <h1>Welcome, {user.signInDetails?.loginId}</h1>
+      <p>User ID: {user.userId}</p>
 
       {/* Interactive parts as Client Components */}
-      <UserSettings initialData={userData} userId={user.id} />
+      <UserSettings initialData={userData} userId={user.userId} />
     </div>
   )
 }
 
-// views/dashboard/ui/UserSettings.tsx (Client Component with Supabase + Zustand)
+// views/dashboard/ui/UserSettings.tsx (Client Component with Amplify Data + Zustand)
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@/shared/lib/supabase/client'
+import { getDataClient } from '@workspace/data-client'
 import { useUserStore } from '@/entities/user/model/store'
 
 export function UserSettings({ initialData, userId }) {
   const [settings, setSettings] = useState(initialData)
   const updateUser = useUserStore(state => state.updateUser) // Zustand
-  const supabase = createBrowserClient() // Supabase Browser Client
 
   const handleUpdate = async () => {
-    // Supabase Browser Client for client-side operations
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update(settings)
-      .eq('id', userId)
-      .select()
-      .single()
+    // Amplify Data client for client-side operations
+    const { data, errors } = await getDataClient().models.UserProfile.update({
+      id: settings.id,
+      ...settings,
+    })
 
-    if (!error && data) {
+    if (!errors && data) {
       setSettings(data)
       updateUser(data) // Update Zustand store
     }
@@ -751,7 +756,7 @@ Always use Context7 MCP when working with external libraries or frameworks:
 # Then use mcp__context7__get-library-docs for up-to-date documentation
 ```
 
-2. **Required for**: React, Next.js, TypeScript, TailwindCSS, Zustand, Supabase, and any other external dependencies
+2. **Required for**: React, Next.js, TypeScript, TailwindCSS, Zustand, AWS Amplify, and any other external dependencies
 3. **Benefits**: Ensures you have the latest API documentation and best practices
 
 ### MagicUI MCP (Primary UI Component Source)

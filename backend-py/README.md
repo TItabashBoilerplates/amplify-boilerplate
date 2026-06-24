@@ -1,6 +1,8 @@
-# Backend Python (FastAPI)
+# Backend Python (FastAPI on AWS Lambda)
 
 `backend-py/` は **uv workspace** で構成された Python モノレポ。FastAPI ベースの API サーバを最小スケルトンで、MCP サーバ用の雛形と共有パッケージ (`core`) も含む。
+
+FastAPI は **AWS Lambda** 上で動作する（Amplify Gen2 の Python custom function が `backend-py` をパッケージして Lambda にデプロイ）。Lambda アダプタは **Mangum**、認可は **Cognito JWT 検証**。外部システムは **boto3**（DynamoDB / S3）または AppSync 経由でアクセスする。
 
 ## Workspace 構造
 
@@ -10,16 +12,16 @@ backend-py/
 ├── uv.lock                 # 単一ルート lockfile（全 member の依存を解決）
 ├── .python-version         # 3.13
 ├── apps/
-│   ├── api/                # FastAPI + Supabase auth サーバ
+│   ├── api/                # FastAPI + Cognito JWT auth サーバ（Lambda 上）
 │   └── mcp/                # MCP server skeleton（未実装の雛形）
 └── packages/
-    └── core/               # 全サービスで共有: logger / Supabase client / 共通例外
+    └── core/               # 全サービスで共有: logger / 共通例外 / Cognito auth utils
 ```
 
 | Member | 役割 | 起動 |
 |---|---|---|
-| `apps/api` | FastAPI HTTP サーバ | `devenv up` の軽量セットで自動起動 (port 4040) |
-| `apps/mcp` | MCP サーバ雛形 | opt-in (`devenv up backend-mcp`) — 実装が入るまで placeholder |
+| `apps/api` | FastAPI HTTP サーバ（Lambda / ローカル） | ローカルは uvicorn (port 4040)、本番は Lambda（Mangum） |
+| `apps/mcp` | MCP サーバ雛形 | opt-in — 実装が入るまで placeholder |
 | `packages/core` | 共有ライブラリ | サービスから `from core.X import …` で import |
 
 新しいサービスを追加するときは `apps/<name>/` を 1 つ生やし、`pyproject.toml` の `[tool.uv.workspace] members` に既にマッチ済みなので、`uv lock` を走らせるだけで workspace 化される。
@@ -29,18 +31,19 @@ backend-py/
 `apps/api` は **Clean Architecture** のレイヤー分離を前提に最小構成で立ち上がる:
 
 - `GET /healthcheck` (auth 不要)
-- Supabase JWT を検証する `verify_token` 依存（`api/middleware/auth_middleware.py`）
+- Cognito JWT を検証する `verify_token` 依存（`api/middleware/auth_middleware.py`）
 - structlog ベースの構造化ロギング（dev: 色付き / prod: JSON、`core.logging`）
 - リクエストログ middleware（`api/middleware/logging_middleware.py`）
-- DB / Supabase クライアントの初期化ヘルパ（`api/infra/db_client.py` / `core.supabase_client`）
+- 外部システムアクセスの初期化ヘルパ（boto3 クライアント等、`api/infra/`）
 - 例外クラスのテンプレート（`api/domain/exceptions.py` + `core.exceptions`）
 
 ## Tech Stack
 
 - **Framework**: FastAPI
-- **Architecture**: Clean Architecture (Controller / UseCase / Gateway / Domain / Infra)
-- **ORM**: SQLModel (Sync)
-- **Database**: PostgreSQL (Supabase)
+- **Runtime**: AWS Lambda（Mangum アダプタ）。Amplify Python custom function がパッケージ・デプロイ
+- **Architecture**: Clean Architecture (Controller / UseCase / Gateway / Domain / Infra / Middleware)
+- **Auth**: Amazon Cognito（JWT 検証）
+- **External systems**: boto3（DynamoDB / S3）/ AWS AppSync
 - **Package Manager**: uv workspace（単一ルート venv + lockfile）
 - **Code Quality**: Ruff (lint+format), MyPy (strict), pytest
 
@@ -49,21 +52,21 @@ backend-py/
 ```
 backend-py/apps/api/src/api/
 ├── app.py                   # FastAPI エントリポイント（lifespan + exception handlers）
-├── main.py                  # uvicorn entrypoint（`uv run --package api api`）
+├── lambda_handler.py        # Mangum ハンドラ（Lambda エントリ: api.lambda_handler.handler）
+├── main.py                  # uvicorn entrypoint（ローカル: `uv run --package api api`）
 ├── controller/
 │   ├── __init__.py          # ルーター集約
 │   └── base_controller.py   # 現状は GET /healthcheck のみ
 ├── usecase/                 # ビジネスロジック (空)
 ├── gateway/                 # データアクセス抽象 (空)
 ├── domain/
-│   ├── entity/              # SQLModel エンティティ (空 — 必要に応じて追加)
+│   ├── entity/              # ドメインエンティティ (空 — 必要に応じて追加)
 │   ├── service/             # ドメインサービス (空)
 │   ├── const/error_messages.py
 │   └── exceptions.py        # ResourceNotFoundError + core 例外の re-export
-├── infra/
-│   └── db_client.py         # SQLModel session 管理 (Depends で注入)
+├── infra/                   # boto3 クライアント等のインフラ実装
 └── middleware/
-    ├── auth_middleware.py   # Bearer token 検証 (Supabase 経由)
+    ├── auth_middleware.py   # Cognito JWT 検証（Bearer token）
     └── logging_middleware.py
 ```
 
@@ -73,7 +76,7 @@ backend-py/apps/api/src/api/
 backend-py/packages/core/src/core/
 ├── logging.py               # structlog 設定 (dev / prod 切替)
 ├── exceptions.py            # AuthenticationError / ConfigurationError
-└── supabase_client.py       # Supabase Auth クライアント
+└── auth.py                  # Cognito JWT 検証ユーティリティ
 ```
 
 `core` の責務は「複数サービスから参照される基盤」のみ。サービス固有のドメインロジック・エンティティは入れない。
@@ -84,22 +87,23 @@ backend-py/packages/core/src/core/
 |---|---|
 | **Controller** | HTTP の入出力のみ。ビジネスロジックは持たない |
 | **UseCase** | 複数 Gateway を協調させてビジネスフローを実装 |
-| **Gateway** | データアクセスを抽象化（Sync SQLModel + 外部 API 呼び出し） |
+| **Gateway** | データアクセスを抽象化（boto3 / AppSync + 外部 API 呼び出し） |
 | **Domain** | Entity / Service / 例外 / 定数。外部依存を持たない |
-| **Infrastructure** | DB / Supabase / 外部サービスクライアント |
-| **Middleware** | 認証 / ロギング / CORS など横断的関心事 |
-| **packages/core** | サービス間で共有する基盤 (logger, Supabase client, 共通例外) |
+| **Infrastructure** | boto3（DynamoDB / S3）/ AppSync / 外部サービスクライアント |
+| **Middleware** | 認証（Cognito JWT）/ ロギング / CORS など横断的関心事 |
+| **packages/core** | サービス間で共有する基盤 (logger, Cognito auth utils, 共通例外) |
 
-エンティティを追加するときは `apps/api/src/api/domain/entity/` 配下に SQLModel を置き、`domain/entity/__init__.py` で import 順を制御する（FK 依存があるため base から順に）。
+DynamoDB / S3 へのアクセスは Gateway 経由で抽象化し、実体（boto3 クライアント）は `infra/` に置く。
 
-## Adding a New Endpoint (例)
+## Cognito JWT 認証
+
+リクエストの `Authorization: Bearer <token>` は `verify_token` Dependency で検証する。Cognito User Pool が発行した JWT を、`COGNITO_USER_POOL_ID` / `COGNITO_APP_CLIENT_ID`（Lambda 環境変数として Amplify の `backend.ts` が注入）を使って検証する。
 
 ```python
 # apps/api/src/api/controller/users_controller.py
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from supabase_auth.types import User
 
 from api.middleware.auth_middleware import verify_token
 
@@ -107,15 +111,26 @@ router = APIRouter()
 
 
 @router.get("/me")
-async def me(current_user: Annotated[User, Depends(verify_token)]) -> dict[str, str | None]:
-    return {"id": current_user.id, "email": current_user.email}
+async def me(claims: Annotated[dict, Depends(verify_token)]) -> dict[str, str | None]:
+    return {"sub": claims.get("sub"), "email": claims.get("email")}
 ```
 
-その後 `api/controller/__init__.py` で `include_router(...)` する。Bearer token は `verify_token` の Dependency で検証され、Supabase の `User` が `Depends` で受け取れる。
+その後 `api/controller/__init__.py` で `include_router(...)` する。
+
+## AWS Lambda へのデプロイ
+
+`apps/api` は Amplify Gen2 の **Python custom function** によって Lambda にパッケージ・デプロイされる。定義は frontend 側の `frontend/packages/backend/amplify/functions/api/resource.ts`:
+
+- CDK `Function`（`Runtime.PYTHON_3_13`）
+- ハンドラ: `api.lambda_handler.handler`（Mangum が ASGI の FastAPI を Lambda イベントに適合）
+- バンドル: `uv export` でサードパーティ依存を `requirements.txt` に書き出し → pip で manylinux 互換 wheel をインストール → `apps/api/src/api` と `packages/core/src/core` をコピー
+- 環境変数 `COGNITO_USER_POOL_ID` / `COGNITO_APP_CLIENT_ID` / `SNS_TOPIC_ARN` は `backend.ts` が配線
+
+ローカル開発は uvicorn で直接起動できる（下記 Development 参照）。デプロイは `ampx sandbox`（per-dev）/ `ampx pipeline-deploy`（CI）が `backend-py` をバンドルする。
 
 ## Development
 
-すべて devenv の **scripts** (PATH 直結) または **tasks** (`devenv tasks run <name>`) を使用する。Makefile は **deprecated**。直接 `uv run X` の実行は禁止。
+すべて devenv の **scripts** (PATH 直結) または **tasks** (`devenv tasks run <name>`) を使用する。直接 `uv run X` の実行は禁止。
 
 ### Getting Started
 
@@ -125,9 +140,9 @@ async def me(current_user: Annotated[User, Depends(verify_token)]) -> dict[str, 
 # `cd backend-py && uv sync --all-packages --all-groups --frozen` を自動実行する。
 # 明示的な init コマンドは不要。
 
-# Start backend services (軽量セット = Supabase + backend + storybook)
-devenv up
-# 別組み合わせ: dev-web / dev-mobile / dev-all / `devenv up backend web` 等
+# ローカルで FastAPI を起動（uvicorn）
+dev-web                      # web と合わせて起動する場合
+# または backend-py 単独の dev process（devenv up <backend-process>）
 ```
 
 ### Common Commands
@@ -176,7 +191,7 @@ uv add --dev <package>
 uv lock --upgrade                     # ロック更新（全 member 共通）
 ```
 
-LLM / ベクトル検索 / WebRTC など重い依存は最初から積まない方針。必要になった時点で対応する member に `uv add` で導入する（プロジェクト全体のポリシーは `.claude/rules/supabase-first.md` を参照: バックエンドの既定は **Edge Functions**、backend-py は LLM / 長時間処理 / 複雑実装の escalation 先）。
+LLM / ベクトル検索 など重い依存は最初から積まない方針。必要になった時点で対応する member に `uv add` で導入する。データアクセスの既定は **Amplify Data（フロント `getDataClient()`）**、backend-py（FastAPI Lambda）は LLM / 長時間処理 / 複雑実装の escalation 先。
 
 ## Code Quality
 
@@ -211,86 +226,38 @@ def test_health_check(client):
     assert response.json() == {"message": "OK"}
 ```
 
-## SQLModel Operations (MUST be Synchronous)
+## External Systems (boto3 / AppSync)
 
-SQLModel の async サポートは公式に未提供（[issue #654](https://github.com/fastapi/sqlmodel/issues/654)）。Session 操作は **同期実装**で書き、FastAPI のエンドポイントだけを async にする。
+DynamoDB / S3 などの AWS リソースには **boto3** でアクセスする。クライアントは `infra/` に置き、Gateway 経由で利用する。
 
 ```python
-# ✅ Good: 同期 SQLModel
-from sqlmodel import Session, select
+# apps/api/src/api/infra/dynamodb_client.py
+import boto3
+
+dynamodb = boto3.resource("dynamodb")
 
 
-class UserGateway:
-    def get_by_id(self, session: Session, user_id: str) -> User | None:
-        return session.exec(select(User).where(User.id == user_id)).first()
-
-
-# Endpoint は async でも内部は同期 SQLModel で OK
-@router.get("/users/{user_id}")
-async def get_user(
-    user_id: str,
-    session: Session = Depends(get_session),
-) -> UserResponse:
-    return UserResponse.from_orm(UserGateway().get_by_id(session, user_id))
+def get_table(name: str):
+    return dynamodb.Table(name)
 ```
 
-## Container / Deploy
-
-### Railway (Production — apps/api)
-
-Railpack（ゼロコンフィグビルダー）を使用。Dockerfile 不要。
-
-> **重要**: Railway のサービス設定で **Root Directory を `backend-py`**（モノレポルート）に指定する。
-> `apps/api/railway.toml` の `startCommand` は `uv run --package api uvicorn api.app:app …` で
-> workspace 解決を前提としているため、`backend-py/apps/api/` ではなく **`backend-py/` をルート**にする必要がある。
-
-```toml
-# backend-py/apps/api/railway.toml
-[build]
-builder = "RAILPACK"
-
-[deploy]
-startCommand = "uv run --package api uvicorn api.app:app --host 0.0.0.0 --port ${PORT:-8000}"
-```
-
-#### railpack.json によるカスタマイズ
-
-通常はゼロコンフィグで動作するため `railpack.json` は空（スキーマのみ）で問題ない。以下のケースで設定を追加する:
-
-| ケース | 設定例 |
-|--------|--------|
-| システムパッケージが必要（libpq, ffmpeg 等） | `"buildAptPackages": ["libpq-dev"]`, `"deploy": { "aptPackages": ["libpq5"] }` |
-| スタートコマンドのカスタマイズ（ワーカー数等） | `"deploy": { "startCommand": "..." }` |
-| ビルドステップの追加（DB migration 等） | `"steps": { "build": { "commands": ["..."] } }` |
-| ビルド時シークレットが必要 | `"secrets": ["DATABASE_URL"]` |
-| ファイナルイメージの最小化 | `"steps": { "install": { "deployOutputs": ["/app/**"] } }` |
-
-> 参考: https://railpack.com/config/file/
-
-### devenv dockerTools (Other platforms — apps/api)
-
-```bash
-devenv container build backend
-devenv container copy backend
-```
+Lambda 実行ロールに必要な IAM 権限（DynamoDB / S3 / SNS publish 等）は Amplify の `backend.ts` で付与する（例: `notificationsTopic.grantPublish(fastapi)`）。
 
 ## Environment Variables
 
-`env/backend/.env.local` で管理する。
+Lambda 上では Amplify の `backend.ts` が環境変数を注入する:
 
-```env
-POSTGRES_URL=postgresql://postgres:postgres@localhost:54322/postgres
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
-# Optional: enable verbose SQLModel query echo (default off)
-# SQL_ECHO=1
-```
+| 変数 | 用途 |
+|---|---|
+| `COGNITO_USER_POOL_ID` | Cognito JWT 検証 |
+| `COGNITO_APP_CLIENT_ID` | Cognito JWT 検証（audience） |
+| `SNS_TOPIC_ARN` | 通知（SNS publish） |
 
-LLM などの追加サービスを使うときに、対応する API key 等を都度追加する。
+シークレットは **Amplify secrets（SSM Parameter Store）** で管理する（`ampx sandbox secret set NAME` / backend 定義から `secret('NAME')`）。LLM などの追加サービスの API key もここで管理する。
 
 ## API Documentation
 
-FastAPI が自動生成する:
+FastAPI が自動生成する（ローカル uvicorn 起動時）:
 
 - **Swagger UI**: http://localhost:4040/docs
 - **ReDoc**: http://localhost:4040/redoc
@@ -298,20 +265,13 @@ FastAPI が自動生成する:
 
 ## MCP Server (apps/mcp)
 
-実装はまだ無く、`apps/mcp/src/mcp_server/__init__.py` のみ存在する雛形。devenv の `backend-mcp` process は opt-in (`start.enable = false`) で登録されており、`devenv up backend-mcp` で placeholder メッセージを print するだけ。
+実装はまだ無く、`apps/mcp/src/mcp_server/__init__.py` のみ存在する雛形。実装着手時の手順は `apps/mcp/README.md` を参照。`mcp[cli]` SDK の `FastMCP` を使う想定。
 
-実装着手時の手順は `apps/mcp/README.md` を参照。`mcp[cli]` SDK の `FastMCP` を使う想定。
+## AI / ML (LangChain / LangGraph)
+
+LLM オーケストレーションは LangChain / LangGraph を FastAPI Lambda 上で動かす想定。長時間処理は Lambda のタイムアウト（既定 30s）に注意し、必要に応じて memory / timeout を `functions/api/resource.ts` で調整する。プロバイダは OpenAI / Anthropic 等。API key は Amplify secrets で管理する。
 
 ## Troubleshooting
-
-### Database Connection
-
-```bash
-echo $POSTGRES_URL
-
-cd backend-py
-uv run --package api python -c "from api.infra.db_client import engine; print(engine)"
-```
 
 ### Type Check Failures
 
@@ -327,13 +287,22 @@ uv run mypy apps packages --show-error-codes
 cd backend-py && uv sync --all-packages --all-groups
 
 # import 検証（dev shell 内で）
-uv run --package api python -c "import api.app, core.logging, core.supabase_client; print('OK')"
+uv run --package api python -c "import api.app, api.lambda_handler, core.logging, core.auth; print('OK')"
+```
+
+### Lambda バンドルの検証
+
+```bash
+# frontend 側の Amplify sandbox でバンドル込みデプロイを検証
+sandbox-once     # = ampx sandbox --once（AWS 認証情報が必要）
 ```
 
 ## Additional Resources
 
 - [FastAPI Documentation](https://fastapi.tiangolo.com)
-- [SQLModel Documentation](https://sqlmodel.tiangolo.com)
+- [Mangum (ASGI adapter for Lambda)](https://mangum.io/)
+- [AWS SDK for Python (boto3)](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
+- [Amplify Custom Functions](https://docs.amplify.aws/nextjs/build-a-backend/functions/custom-functions/)
 - [Ruff Documentation](https://docs.astral.sh/ruff/)
 - [MyPy Documentation](https://mypy.readthedocs.io)
 - [pytest Documentation](https://docs.pytest.org)

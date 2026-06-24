@@ -40,7 +40,9 @@ frontend/
     │   ├── web/          # shadcn/ui + MagicUI (Web専用)
     │   └── mobile/       # gluestack-ui (Native専用)
     ├── tokens/           # デザイントークン (共有)
-    ├── client-supabase/  # Supabase クライアント
+    ├── backend/          # Amplify Gen2 backend (auth/data/storage/functions, @workspace/backend)
+    ├── data-client/      # Amplify Data クライアント (getDataClient / generateClient<Schema>)
+    ├── auth/             # 認証ユーティリティ (AuthProvider / useAuthUser)
     ├── query/            # TanStack Query 設定
     └── tailwind-config/  # TailwindCSS 共通設定
 ```
@@ -56,7 +58,9 @@ frontend/
 | **Web UI コンポーネント** | `packages/ui/` | Button, Card, Input (shadcn/ui) |
 | **Mobile UI コンポーネント** | `packages/native-ui/` | Button, Card (gluestack-ui) |
 | **デザイントークン** | `packages/tokens/` | colors, radius |
-| **Supabase クライアント** | `packages/client-supabase/` | createClient, types |
+| **Amplify backend 定義** | `packages/backend/` | auth/data/storage/functions, `Schema` 型 |
+| **Amplify Data クライアント** | `packages/data-client/` | `getDataClient()`, `generateClient<Schema>()` |
+| **認証ユーティリティ** | `packages/auth/` | AuthProvider, useAuthUser |
 | **TanStack Query 設定** | `packages/query/` | QueryClient, hooks |
 | **TailwindCSS 設定** | `packages/tailwind-config/` | theme, plugins |
 | **型定義** | `packages/*/types/` | 共通インターフェース |
@@ -77,13 +81,14 @@ import { Button } from '@workspace/native-ui/components/button' // Mobile
 ```
 
 ```typescript
-// ❌ Bad: Supabase クライアントを各アプリで個別定義
-// apps/web/src/shared/lib/supabase/client.ts
-// apps/mobile/lib/supabase.ts
+// ❌ Bad: Amplify Data クライアントを各アプリで個別生成
+// apps/web/src/shared/lib/dataClient.ts
+// apps/mobile/lib/dataClient.ts
 
 // ✅ Good: packages で共通化
-// packages/client-supabase/src/client.ts
-import { createBrowserClient } from '@workspace/client-supabase'
+// packages/data-client/src/client.ts → getDataClient()
+import { getDataClient } from '@workspace/data-client'
+import type { Schema } from '@workspace/backend'
 ```
 
 ```typescript
@@ -125,7 +130,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@workspace/ui/components/button' // Web
 import { Button } from '@workspace/native-ui/components/button' // Mobile
 import { colors } from '@workspace/tokens'
-import { createClient } from '@workspace/client-supabase/client'
+import { getDataClient } from '@workspace/data-client'
+import type { Schema } from '@workspace/backend'
 
 // 3. FSD layers (top to bottom)
 import { Header } from '@/widgets/header'
@@ -176,5 +182,6 @@ const formatted = new Date(utcDate).toLocaleString('ja-JP')
 ## Testing
 
 - **Framework**: Vitest with jsdom environment
-- **RLS Testing**: pgTAP via `supabase test db` — tests live in `supabase/tests/*.sql`
+- **Authorization Testing**: Amplify Data の認可ルール（`allow.owner()` / `allow.authenticated()` 等）は
+  `amplify/data/resource.ts` に宣言する。検証はサンドボックス（`ampx sandbox`）に対する統合テスト or E2E で行う
 - **TDD**: Write failing tests first, then implement

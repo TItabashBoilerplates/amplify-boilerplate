@@ -1,6 +1,6 @@
 ---
 name: debugging
-description: デバッグ手順ガイダンス。プロセスログ確認、Supabase ローカル環境のトラブルシューティングについての質問に使用。devenv 2.0 が backend + Storybook を管理し、Supabase は CLI で独立管理する。devenv の TUI を主インターフェースとする。
+description: デバッグ手順ガイダンス。プロセスログ確認、ampx sandbox / amplify_outputs.json / AWS 認証情報のトラブルシューティングについての質問に使用。devenv 2.0 が backend + Storybook を管理し、Amplify backend は ampx sandbox で独立管理する。devenv の TUI を主インターフェースとする。
 ---
 
 # デバッグスキル
@@ -11,9 +11,9 @@ description: デバッグ手順ガイダンス。プロセスログ確認、Supa
 
 **backend + Storybook の監視・ログ閲覧・再起動は、devenv 2.0 の native process manager が提供する TUI（Terminal UI）を使用する。** process-compose への依存は 2026-04 に完全撤去済み。
 
-**Supabase は devenv 管理対象外**。Docker コンテナ群の起動・停止は Supabase CLI（`supabase-start` / `supabase-stop` script、または `devenv tasks run supabase:start` / `supabase:stop`）で独立管理する。devenv プロセスにぶら下げると trap・ready probe・依存順序などの管理が複雑になるため意図的に分離している。
+**Amplify backend は devenv 管理対象外**。AppSync/DynamoDB/Cognito/S3/Lambda は per-dev のクラウド sandbox にデプロイされる。起動・破棄は `ampx sandbox`（`sandbox` / `sandbox-once` / `sandbox-delete` script）で独立管理する。`ampx sandbox` は watch モードで動き、`amplify_outputs.json` を生成・更新し続けるため、長時間動かしっぱなしにする前提で devenv プロセスにはぶら下げず別ターミナルで動かす。
 
-ただし `devenv up` は `supabase:start` task を `before = [ "devenv:processes:backend" ]` で前置しているため、この 1 コマンドで Supabase → backend + storybook の順に立ち上がる。
+> ⚠️ `ampx sandbox` / デプロイには **AWS 認証情報（プロファイル）** が必要。未設定だと sandbox 起動が失敗する。
 
 `devenv up` を対話端末で実行すると、Rust 製 native process manager の TUI が自動起動し、以下を一画面で扱える:
 
@@ -21,9 +21,9 @@ description: デバッグ手順ガイダンス。プロセスログ確認、Supa
 - 各プロセスのリアルタイムログ
 - 個別プロセスの再起動・起動・停止
 
-devenv が管理するプロセスは以下の通り（Supabase は含まれない）:
+devenv が管理するプロセスは以下の通り（Amplify sandbox は含まれない）:
 
-1. `backend` — uvicorn 起動。`/healthcheck` 200 で ready。**前提として Supabase が起動済みであること**（`supabase:start` task が自動で先行する）
+1. `backend` — uvicorn 起動。`/healthcheck` 200 で ready。**前提として `amplify_outputs.json` が生成済みであること**（`ampx sandbox` を別ターミナルで先に起動しておく）
 2. `storybook` — DB 非依存、独立起動。`/` 200 で ready
 
 > Makefile は **deprecated**。`make X` は使わず devenv のコマンド（scripts または `devenv tasks run`）を使う。
@@ -34,7 +34,7 @@ native manager は TUI が主なので、CLI サブコマンドは少ない。
 
 | コマンド | 用途 |
 |---------|------|
-| `devenv up` | フォアグラウンド起動（TUI 付き、Supabase も自動起動） |
+| `devenv up` | フォアグラウンド起動（TUI 付き、backend + storybook） |
 | `devenv up <name>` | 指定プロセスのみ起動（例: `devenv up storybook`） |
 | `devenv up -d` | バックグラウンド起動（TUI なし） |
 | `devenv up --no-tui` | TUI を明示的に無効化（プレーンログ出力） |
@@ -47,6 +47,9 @@ native manager は TUI が主なので、CLI サブコマンドは少ない。
 ### 典型的なデバッグフロー
 
 ```bash
+# 0. （別ターミナルで）Amplify backend sandbox を起動しておく
+sandbox          # = ampx sandbox（watch + amplify_outputs.json 生成）
+
 # 1. TUI で全プロセスの状態を俯瞰する
 devenv up
 
@@ -80,14 +83,14 @@ stop
 
 | サービス | 管理方法 | 起動コマンド |
 |----------|----------|-------------|
-| Supabase（Docker 群） | **devenv 外**（task で起動） | `supabase-start` script（または `devenv tasks run supabase:start`） |
+| Amplify backend（AppSync/DynamoDB/Cognito/S3/Lambda） | **devenv 外**（クラウド sandbox） | `sandbox` script（= `ampx sandbox`、別ターミナル） |
 | backend-py (FastAPI) | devenv / native process manager (start.enable=true) | `devenv up`（軽量セットに含まれる） |
 | Storybook | devenv / native process manager (start.enable=true) | `devenv up`（軽量セットに含まれる） |
 | Next.js (web) | devenv / native process manager (start.enable=**false**) | `devenv up web` または `dev-web` script |
 | Expo Metro (mobile, non-interactive) | devenv / native process manager (start.enable=**false**) | `devenv up mobile` または `dev-mobile` script |
 | Expo TUI (対話的) | **devenv 外** | `mobile` / `mobile-ios` / `mobile-android` / `mobile-web` script (別ターミナル) |
 | モノレポ全アプリ並列 | **devenv 外** | `frontend` script (`turbo dev`、重い) |
-| 軽量起動 | — | `devenv up`（Supabase + backend + storybook、`supabase:start` が `before` で自動先行起動） |
+| 軽量起動 | — | `devenv up`（backend + storybook。Amplify backend は別途 `sandbox` を先に起動） |
 | 軽量 + 個別アプリ | — | `dev-web` / `dev-mobile` / `dev-all`（preset script） |
 | 任意組み合わせ | — | `devenv up backend storybook web` のように引数で指定 |
 | 全停止 | — | `stop` script |
@@ -102,9 +105,12 @@ stop
 # 主: TUI で俯瞰
 devenv up
 
-# 副: Supabase コンテナの詳細状態
-devenv shell -- supabase status
-# direnv で local profile が有効なら直接 'supabase status' でもよい
+# 副: Amplify backend sandbox の状態（別ターミナルで動いている ampx sandbox のログを見る）
+#     amplify_outputs.json が生成されていれば backend デプロイ成功の目安
+ls -la frontend/amplify_outputs.json
+
+# AWS 認証情報が有効か（sandbox / デプロイの前提）
+aws sts get-caller-identity
 ```
 
 ---
@@ -172,9 +178,9 @@ tail -f /tmp/devenv-*/processes/logs/backend.stderr.log &
 tail -f /tmp/devenv-*/processes/logs/backend.stdout.log
 ```
 
-#### 5. Supabase コンポーネント単位
+#### 5. Amplify backend（sandbox / Lambda）単位
 
-Supabase は devenv 外なので、各コンポーネントの本体ログは Docker から取る（後述「Supabase ログ確認」を参照）。
+Amplify backend は devenv 外（クラウド sandbox）なので、デプロイ進行ログは `ampx sandbox` を動かしているターミナルで確認する。Lambda（FastAPI）の実行ログは CloudWatch Logs に出る（後述「Amplify backend ログ確認」を参照）。
 
 ### 補足: detached 起動時の確認
 
@@ -191,39 +197,36 @@ devenv up   # フォアグラウンド + TUI
 
 - **メイン**: TUI 内のキーバインドで個別再起動（backend / storybook）
 - **全体再起動**: `devenv up` を Ctrl-C で停止 → 再度 `devenv up`
-- **Supabase 再起動**: `supabase-stop && supabase-start`（devenv とは独立）
+- **Amplify backend 再デプロイ**: `ampx sandbox` を動かしていれば、`amplify/` の編集で自動再デプロイ（watch）。手動で 1 回だけなら `sandbox-once`。作り直しは `sandbox-delete` → `sandbox`（devenv とは独立）
 
-`devenv up` を Ctrl-C で停止しても **Supabase Docker コンテナは落ちない**（独立管理のため）。Supabase を完全に停止するには `supabase-stop` を明示的に実行するか、`stop`（devenv + Supabase をまとめて停止）を使う。
+`devenv up` を Ctrl-C で停止しても **クラウド sandbox は破棄されない**（独立管理のため）。sandbox を完全に破棄するには `sandbox-delete` を明示的に実行する。
 
 ---
 
-## Supabase ログ確認（Docker 個別コンテナ）
+## Amplify backend ログ確認（sandbox / Lambda / CloudWatch）
 
-`supabase:start` task は `supabase start` のラッパーなので、Supabase の各コンポーネント（DB / Auth / Edge Functions など）のログは Docker コンテナを直接参照する。
+Amplify backend は devenv 外（クラウド sandbox）なので、ログの取り方は 2 系統ある。
+
+1. **デプロイ進行ログ**: `ampx sandbox`（`sandbox` script）を動かしているターミナルにリアルタイム出力される。スキーマ反映や CDK デプロイのエラーはここで見る。
+2. **Lambda（FastAPI）実行ログ**: 関数実行時の `print` / `logger` 出力は CloudWatch Logs に出る。
 
 ```bash
-# コンテナ名を確認
-docker ps
+# Lambda 関数の CloudWatch Logs を tail（AWS CLI / プロファイル必須）
+aws logs tail "/aws/lambda/<function_name>" --follow
 
-# DB ログ
-docker logs -f supabase_db_<project_name>
-
-# Auth ログ（認証問題のデバッグ）
-docker logs -f supabase_auth_<project_name>
-
-# Edge Functions ログ
-docker logs -f supabase_edge_runtime_<project_name>
+# ロググループ名を探す
+aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/" \
+  --query "logGroups[].logGroupName"
 ```
 
-**主要な Supabase コンテナ名**:
+**主要な Amplify backend リソースと確認先**:
 
-| サービス | コンテナ名（目安） |
-|----------|-------------------|
-| Supabase DB | `supabase_db_*` |
-| Supabase Auth | `supabase_auth_*` |
-| Supabase REST | `supabase_rest_*` |
-| Supabase Edge Functions | `supabase_edge_runtime_*` |
-| Supabase Studio | `supabase_studio_*` |
+| サービス | ログ確認先 |
+|----------|-----------|
+| AppSync + DynamoDB（Data） | `ampx sandbox` ターミナル / CloudWatch（AppSync ロググループ） |
+| Cognito（Auth） | CloudWatch（認証 trigger Lambda がある場合） |
+| S3（Storage） | CloudTrail / S3 access logs |
+| FastAPI Lambda（custom function） | `/aws/lambda/<function_name>` の CloudWatch Logs |
 
 ---
 
@@ -247,17 +250,20 @@ uv run pytest apps/api/tests/ -v
 uv pip list
 ```
 
-### Supabase DB へのデバッグ接続
+### DynamoDB（Amplify Data）へのデバッグ接続
+
+Amplify Data のテーブルは DynamoDB 上にある。中身の確認は AWS CLI / コンソールから行う。
 
 ```bash
-# PostgreSQL に接続（ポート 54322）
-psql postgresql://postgres:postgres@127.0.0.1:54322/postgres
+# sandbox がデプロイしたテーブル一覧
+aws dynamodb list-tables --query "TableNames"
 
-# SQL 実行例
-SELECT * FROM auth.users LIMIT 5;
-\dt public.*
-\q
+# 特定テーブルを scan（件数は絞る）
+aws dynamodb scan --table-name <Model>-<apiId>-<env> --max-items 5
 ```
+
+> フロントからのデータアクセスは `getDataClient().models.<Model>.list()/get()`（`@workspace/data-client`）。
+> 認可は `amplify/data/resource.ts` の `allow.owner()` / `allow.authenticated()` 等で制御される（RLS の代替）。
 
 ---
 
@@ -297,41 +303,44 @@ build-frontend
 
 ---
 
-## Supabase ローカル環境デバッグ
+## Amplify backend（sandbox）デバッグ
 
 ### 状態確認・再起動
 
 ```bash
-# 状態確認
-devenv shell -- supabase status
-# direnv で local profile が active なら 'supabase status' のみで OK
+# AWS 認証情報が有効か（前提）
+aws sts get-caller-identity
 
-# 停止 → 起動
-# 1. TUI を Ctrl-C で止める
-stop                    # devenv + Supabase 全停止
-# 2. 再度起動
-devenv up
+# amplify_outputs.json が生成されているか（backend デプロイ成功の目安）
+ls -la frontend/amplify_outputs.json
+
+# sandbox を起動（watch + amplify_outputs.json 生成）
+sandbox                 # = ampx sandbox（別ターミナル）
+
+# 1 回だけデプロイして終了
+sandbox-once
 ```
 
-### DB リセット
+### sandbox リセット（作り直し）
 
 ```bash
-# ローカル DB を完全リセット（データ消失注意）
-devenv shell -- supabase db reset
+# クラウド sandbox を破棄（データ消失注意）
+sandbox-delete          # = ampx sandbox delete
 
-# マイグレーション再適用
-devenv tasks run db:migrate-deploy
+# 再作成
+sandbox
 ```
 
-### Edge Functions デバッグ
+### Lambda（FastAPI custom function）デバッグ
 
 ```bash
-# Edge Functions のログ確認
-docker logs -f supabase_edge_runtime_<project_name>
+# CloudWatch Logs を tail
+aws logs tail "/aws/lambda/<function_name>" --follow
 
-# 特定の関数を手動で呼び出し
-curl -i --location 'http://localhost:54321/functions/v1/<function_name>' \
-  --header 'Authorization: Bearer <anon_key>'
+# API Gateway / 関数 URL 経由でエンドポイントを手動で叩く
+#   Cognito JWT が必要なエンドポイントは Authorization: Bearer <idToken> を付ける
+curl -i 'https://<api-id>.execute-api.<region>.amazonaws.com/<path>' \
+  --header 'Authorization: Bearer <cognito_id_token>'
 ```
 
 ---
@@ -343,7 +352,7 @@ lint           # 全体の lint
 format         # 全体の format
 type-check     # 全体の型チェック
 ci-check       # CI チェック（lint + format + type）
-test-db        # pgTAP（DB テスト）
+unit-test      # 全 unit test（frontend + backend-py）
 e2e            # Maestro E2E（全プラットフォーム）
 e2e-web        # Maestro E2E（Web）
 e2e-mobile     # Maestro E2E（Mobile）
@@ -358,10 +367,10 @@ e2e-mobile     # Maestro E2E（Mobile）
 1. ログ確認:
    - 対話端末: TUI で `backend` を選択
    - 非対話: `tail -100 /tmp/devenv-*/processes/logs/backend.stderr.log` → `backend.stdout.log`
-2. **Supabase が起動しているか確認**（backend は Supabase に接続するため、未起動だと起動失敗する）: `devenv shell -- supabase status`
-3. Supabase が未起動なら: `supabase-start`
+2. **`amplify_outputs.json` が生成されているか確認**（backend は Cognito/AppSync 等の設定を参照するため、未生成だと起動失敗する）: `ls -la frontend/amplify_outputs.json`
+3. 未生成なら別ターミナルで: `sandbox`（= `ampx sandbox`）。AWS 認証情報が無ければ `aws sts get-caller-identity` で先に確認
 4. 個別再起動: TUI のキーバインド、または `devenv up` を一度止めてから再起動
-5. supabase の health を直接叩く: `curl -sf http://localhost:54321/rest/v1/`
+5. Lambda 側のエラーは CloudWatch で: `aws logs tail "/aws/lambda/<function_name>" --follow`
 
 ### Storybook が起動しない
 
@@ -403,22 +412,22 @@ lsof -i :4040   # backend (devenv)
 lsof -i :3000   # Next.js web (devenv up web / dev-web / frontend)
 lsof -i :6006   # Storybook (devenv)
 lsof -i :8081   # Expo Metro (devenv up mobile / dev-mobile / mobile-*)
-lsof -i :54321  # Supabase API (Docker, supabase-start)
-lsof -i :54323  # Supabase Studio
 
 kill -9 <PID>
 ```
 
+> Amplify backend はクラウド sandbox（AppSync/DynamoDB/Cognito/S3/Lambda）なので、ローカルポートを占有しない。接続先は `frontend/amplify_outputs.json` に書かれる。
+
 `devenv up --strict-ports` でポート衝突を即エラー化することも可能（デフォルトは自動で代替ポートを試す）。
 
-### マイグレーションエラー
+### スキーマ / 認可エラー（Amplify Data）
 
 ```bash
-# Drizzle スキーマ検証
-drizzle-validate
+# amplify/data/resource.ts を編集後、sandbox が watch で自動再デプロイする。
+# デプロイ失敗時は ampx sandbox を動かしているターミナルのエラーを読む。
 
-# マイグレーション状態確認
-cd drizzle && nr check
+# 型が古い場合は amplify_outputs.json と @workspace/backend の Schema 型を再生成
+sandbox-once    # = ampx sandbox（1 回デプロイして amplify_outputs.json / 型を更新）
 ```
 
 ---

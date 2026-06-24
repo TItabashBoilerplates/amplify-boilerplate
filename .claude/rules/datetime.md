@@ -6,7 +6,7 @@
 
 | レイヤー | タイムゾーン | 形式 |
 |---------|------------|------|
-| **Database** | UTC | `TIMESTAMP WITH TIME ZONE` |
+| **Database (DynamoDB)** | UTC | ISO 8601 文字列（`AWSDateTime`） |
 | **Backend** | UTC | ISO 8601 文字列 |
 | **API Request/Response** | UTC | ISO 8601 文字列 |
 | **Frontend** | 入出力時にUTC⇔ローカル変換 | `Date.toISOString()` / `Intl.DateTimeFormat` |
@@ -23,21 +23,28 @@
 DB取得(UTC) → API応答(UTC) → フロントでローカルTZ変換 → 表示
 ```
 
-## Database Layer (Drizzle)
+## Database Layer (Amplify Data / DynamoDB)
 
-**MUST**: すべてのタイムスタンプ列に `withTimezone: true` を指定。
+**MUST**: 日時フィールドは `a.datetime()`（GraphQL の `AWSDateTime`）を使う。`AWSDateTime` は
+ISO 8601（タイムゾーンオフセット付き）で保存・検証されるため、UTC（`Z`）で統一する。
 
 ```typescript
-// ✅ CORRECT
-timestamp('created_at', { withTimezone: true, precision: 3 })
-  .notNull()
-  .defaultNow()
+// ✅ CORRECT: a.datetime() を使う（AWSDateTime = ISO 8601 / TZ オフセット必須）
+const schema = a.schema({
+  Event: a
+    .model({
+      title: a.string().required(),
+      scheduledAt: a.datetime(), // "2025-01-15T10:30:00.000Z"
+    })
+    .authorization((allow) => [allow.owner()]),
+})
 
-// ❌ WRONG: タイムゾーン情報が失われる
-timestamp('created_at').notNull().defaultNow()
+// ❌ WRONG: 文字列でタイムゾーンなしの値を保存する
+scheduledAt: a.string() // 形式・TZ が検証されずデータ不整合の温床
 ```
 
-**理由**: `timestamp`（without timezone）はタイムゾーン情報を破棄し、データ損失が発生する。
+**理由**: `AWSDateTime` はタイムゾーンオフセットを必須とするため、UTC（`Z`）で統一すればデータ損失や
+TZ 取り違えを防げる。`createdAt` / `updatedAt` は Amplify Data が自動で UTC ISO 8601 として付与する。
 
 ## Backend Layer (Python)
 
@@ -123,7 +130,7 @@ export function DateDisplay({ utcDate }: { utcDate: string }) {
 - Server Componentで `toLocaleString()` を使用（ハイドレーションエラーの原因）
 - `Date` オブジェクトをprops経由でシリアライズ
 - useEffect外でブラウザのタイムゾーンAPIを使用
-- `timestamp`（without timezone）をDrizzleスキーマで使用
+- TZ オフセットなしの文字列を `AWSDateTime`（`a.datetime()`）フィールドに保存
 - Pythonで `datetime.now()` をタイムゾーン指定なしで使用
 - バックエンド/APIでローカルタイムゾーンを使用
 
@@ -132,11 +139,11 @@ export function DateDisplay({ utcDate }: { utcDate: string }) {
 1. **データ整合性**: 異なるタイムゾーンのユーザーでも同じ瞬間を正確に表現
 2. **計算の容易さ**: 時間差の計算がシンプル
 3. **DST問題の回避**: 夏時間の変更による混乱を防止
-4. **Supabaseデフォルト**: Supabaseは全データベースをUTCで設定
+4. **AWSDateTime 準拠**: AppSync の `AWSDateTime` は ISO 8601（TZ オフセット必須）であり UTC（`Z`）で統一できる
 5. **責務の明確化**: フロントエンドのみがタイムゾーン変換を担当
 
 ## 参照
 
 - 詳細な実装例: `.claude/skills/datetime/SKILL.md`
-- [PostgreSQL Date/Time Types](https://www.postgresql.org/docs/current/datatype-datetime.html)
-- [Supabase Database Configuration](https://supabase.com/docs/guides/database/postgres/configuration)
+- [AWS AppSync スカラー型（AWSDateTime）](https://docs.aws.amazon.com/appsync/latest/devguide/scalars.html)
+- [Amplify Data モデリング](https://docs.amplify.aws/nextjs/build-a-backend/data/data-modeling/)

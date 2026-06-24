@@ -35,9 +35,9 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 └── skills/         # 技術別ガイダンス（FSD / monorepo / nextjs / fastapi / tanstack-query 等）
 ```
 
-> 注: `.claude/skills/` には旧スタック（supabase / drizzle / doppler / edge-functions 等）の
-> 残存 skill があります。これらは **legacy** で、Amplify スタックには使いません。順次
-> Amplify 用（cognito / appsync-data / s3-storage / amplify-functions 等）へ置き換えます。
+> 注: 旧スタック専用の skill（supabase-config / drizzle / rls / pgtap / edge-functions-mcp /
+> hey-api / seed 等）は削除済み。汎用 skill（datetime / data-fetching / fastapi / tanstack-query /
+> monorepo / maestro 等）は Amplify スタックの例に更新済み。
 
 ## Architecture Overview
 

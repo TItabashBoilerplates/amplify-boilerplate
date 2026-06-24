@@ -21,22 +21,22 @@ backend-py/
 ├── pyrightconfig.json
 ├── README.md / AGENTS.md
 ├── apps/
-│   ├── api/                        # FastAPI サーバ
+│   ├── api/                        # FastAPI サーバ（AWS Lambda 上で Mangum 経由）
 │   │   ├── pyproject.toml          # name="api", [project.scripts] api = "api.main:main"
-│   │   ├── railway.toml            # uv run --package api uvicorn ...
-│   │   ├── railpack.json
 │   │   ├── README.md
 │   │   ├── src/api/
 │   │   │   ├── app.py              # FastAPI()
-│   │   │   ├── main.py             # uvicorn entrypoint
+│   │   │   ├── main.py             # uvicorn entrypoint（ローカル開発用）
+│   │   │   ├── lambda_handler.py   # handler = Mangum(app)（Amplify が呼ぶ handler）
 │   │   │   ├── controller/
 │   │   │   ├── usecase/
 │   │   │   ├── gateway/
 │   │   │   ├── domain/
 │   │   │   │   └── exceptions.py   # ResourceNotFoundError + core re-export
 │   │   │   ├── infra/
-│   │   │   │   └── db_client.py
+│   │   │   │   └── aws_clients.py  # boto3（DynamoDB / S3）クライアント
 │   │   │   └── middleware/
+│   │   │       └── auth_middleware.py  # Cognito JWT 検証
 │   │   └── tests/                  # __init__.py なし
 │   └── mcp/                        # MCP server skeleton（実装は未着手の雛形）
 │       ├── pyproject.toml          # name="mcp-server", dependencies = ["mcp[cli]", "core"]
@@ -44,13 +44,13 @@ backend-py/
 │       └── src/mcp_server/         # ← `mcp_server` 名で公式 mcp PyPI と shadow 回避
 │           └── __init__.py
 └── packages/
-    └── core/                       # 共有: logger / Supabase client / 共通例外
+    └── core/                       # 共有: logger / 共通例外 / 認証ユーティリティ
         ├── pyproject.toml
         ├── README.md
         ├── src/core/
-        │   ├── logging.py          # structlog setup
+        │   ├── logging.py          # structlog setup（Lambda では CloudWatch に出力）
         │   ├── exceptions.py       # AuthenticationError, ConfigurationError
-        │   └── supabase_client.py  # SupabaseClient wrapper
+        │   └── auth.py             # Cognito JWT 検証ユーティリティ（JWKS 検証ヘルパ）
         └── tests/
             └── test_logging.py
 ```
@@ -269,7 +269,7 @@ llm = { workspace = true }
 | 公式 `mcp[cli]` を依存に持つ MCP サーバ | `src/mcp/` | `src/mcp_server/` （本プロジェクトの選択） |
 | `langchain` を依存に持つラッパー | `src/langchain/` | `src/llm/` または `src/orchestration/` |
 | `openai` を依存に持つラッパー | `src/openai/` | `src/openai_client/` |
-| Supabase 関連で `supabase` 依存 | `src/supabase/` | `src/supa/` または機能名（`src/auth/`） |
+| `boto3` を依存に持つ AWS ラッパー | `src/boto3/` | `src/aws/` または機能名（`src/storage/`） |
 
 衝突した場合の症状: editable install 後、`import mcp` が自分の `src/mcp/__init__.py` を優先して解決し、外部 `mcp[cli]` SDK が `ModuleNotFoundError` で落ちる。
 
@@ -319,8 +319,8 @@ src-layout + editable install で sys.path は完備される。`pythonpath` を
 すべて devenv 経由（`.claude/rules/commands.md` 必須）:
 
 ```bash
-# 起動
-devenv up                          # backend (api) + storybook + Supabase
+# 起動（Amplify backend は別途 `sandbox` を先に起動しておく）
+devenv up                          # backend (api) + storybook
 devenv up backend-mcp              # MCP server を opt-in で起動（placeholder）
 
 # CI 確認系
@@ -408,16 +408,26 @@ class ResourceNotFoundError(Exception):   # API 固有
 
 ---
 
-## 9. デプロイ（Railway example）
+## 9. デプロイ（AWS Lambda via Amplify）
 
-`apps/api/railway.toml`:
+FastAPI サーバは Amplify Gen2 の Python custom function として **AWS Lambda** にデプロイされる
+（`frontend/packages/backend/amplify/functions/api/resource.ts`、CDK `Function` PYTHON_3_13）。
+Lambda の handler は **Mangum**（ASGI → Lambda アダプタ）:
 
-```toml
-[deploy]
-startCommand = "uv run --package api uvicorn api.app:app --host 0.0.0.0 --port ${PORT:-8000}"
+```python
+# apps/api/src/api/lambda_handler.py
+from mangum import Mangum
+
+from api.app import app  # FastAPI() インスタンス
+
+# Amplify は handler を "api.lambda_handler.handler" として配線する
+handler = Mangum(app)
 ```
 
-**Railway サービスの Root Directory を `backend-py/`**（モノレポルート）に設定する。`backend-py/apps/api/` を Root にすると workspace 解決が効かない（`uv run --package api` の参照範囲が member 単体になる）。
+デプロイは Amplify が担う（`ampx sandbox` で per-dev、`ampx pipeline-deploy` でブランチ/本番）。
+`uv run --package api uvicorn ...`（`api.main:main`）はローカル開発用。Lambda パッケージングでは
+**workspace ルート `backend-py/`** を基準に依存を解決する（`uv run --package api` の参照範囲を
+member 単体にしないため）。
 
 ---
 

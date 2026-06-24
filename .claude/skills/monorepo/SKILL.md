@@ -24,21 +24,21 @@ frontend/
 │   └── mobile/                  # Expo React Native App
 │
 └── packages/                    # 共有パッケージ（クロスプラットフォーム）
-    ├── auth/                    # @workspace/auth - 認証管理
+    ├── backend/                 # @workspace/backend - Amplify backend 定義 + Schema 型
+    ├── data-client/             # @workspace/data-client - getDataClient (AppSync/DynamoDB)
+    ├── auth/                    # @workspace/auth - Cognito 認証管理
     ├── query/                   # @workspace/query - TanStack Query
-    ├── types/                   # @workspace/types - Supabase型
     ├── ui/                      # @workspace/ui - shadcn/ui
-    ├── app/                     # @workspace/app - 共有ロジック
-    └── client/supabase/         # @workspace/client-supabase
+    └── app/                     # @workspace/app - 共有ロジック
 ```
 
 ## 責務の分担
 
 ### packages/ （モノレポ共有）
 **Web/Mobile 両方で使用**するコード:
-- 認証ストア・プロバイダー (@workspace/auth)
-- API クライアント (@workspace/client-supabase)
-- 型定義 (@workspace/types)
+- Amplify backend 定義 + `Schema` 型 (@workspace/backend)
+- データアクセスクライアント (@workspace/data-client - `getDataClient()`)
+- 認証ストア・プロバイダー (@workspace/auth - Cognito)
 - UI コンポーネント (@workspace/ui)
 - TanStack Query (@workspace/query)
 
@@ -65,19 +65,19 @@ apps/web/src/ (FSD)
         ├── @workspace/auth
         ├── @workspace/query
         ├── @workspace/ui/components
-        ├── @workspace/client-supabase
-        └── @workspace/types
+        ├── @workspace/data-client
+        └── @workspace/backend
 ```
 
 ## インポートパターン
 
 ```typescript
 // モノレポ共有パッケージ（Web/Mobile共通）
-import { useAuth, AuthProvider } from '@workspace/auth'
+import { AuthProvider, useAuthUser, useIsAuthenticated } from '@workspace/auth'
 import { useQuery, QueryProvider } from '@workspace/query'
 import { Button, Card } from '@workspace/ui/components'
-import { createClient } from '@workspace/client-supabase/server'
-import type { Tables } from '@workspace/types/schema'
+import { getDataClient } from '@workspace/data-client'
+import type { Schema } from '@workspace/backend'
 
 // FSD レイヤー（Web固有）
 import { HomePage } from '@/views/home'
@@ -91,12 +91,12 @@ import { cn } from '@/shared/lib/utils'
 
 | パッケージ | 名前 | 用途 | 利用先 |
 |-----------|------|------|--------|
-| `packages/auth/` | @workspace/auth | Zustand認証ストア | Web, Mobile |
+| `packages/backend/` | @workspace/backend | Amplify backend 定義 + `Schema` 型 | Web, Mobile, backend |
+| `packages/data-client/` | @workspace/data-client | `getDataClient()`（AppSync/DynamoDB） | Web, Mobile |
+| `packages/auth/` | @workspace/auth | Cognito 認証ストア・プロバイダー | Web, Mobile |
 | `packages/query/` | @workspace/query | TanStack Query wrapper | Web, Mobile |
-| `packages/types/` | @workspace/types | Supabase生成型 | Web, Mobile, Edge |
 | `packages/ui/` | @workspace/ui | shadcn/ui | Web |
 | `packages/app/` | @workspace/app | 共有エンティティ・機能 | Web, Mobile |
-| `packages/client/supabase/` | @workspace/client-supabase | Supabaseクライアント | Web, Mobile |
 
 ## Workspace Protocol
 

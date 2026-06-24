@@ -52,7 +52,6 @@ Using optimal package managers for each component (バージョンは devenv が
 - **Frontend**: Bun (fast, Node.js compatible)
 - **Backend Python**: uv (Rust-based, fast dependency management)
 - **Amplify CLI**: `ampx` (`@aws-amplify/backend-cli`)
-- **Edge Functions**: Deno (built-in package manager)
 
 ### ni Commands (Package Manager Abstraction)
 
@@ -74,23 +73,21 @@ The frontend monorepo (`frontend/packages/`) contains the following shared packa
 |---------|-------------|
 | `@workspace/ui-web` | shadcn/ui + MagicUI components for web |
 | `@workspace/ui-mobile` | gluestack-ui components for mobile |
-| `@workspace/types` | Supabase types (auto-generated) |
-| `@workspace/api-client` | Backend API client (Hey API + TanStack Query) |
-| `@workspace/auth` | Authentication utilities |
+| `@workspace/backend` | Amplify Gen2 backend (auth/data/storage/functions) + `Schema` type |
+| `@workspace/data-client` | Amplify Data client (`getDataClient()` / `generateClient<Schema>()`) |
+| `@workspace/auth` | Authentication utilities (Cognito, AuthProvider/useAuthUser) |
+| `@workspace/api-client` | FastAPI (Lambda) client (TanStack Query) |
 | `@workspace/tokens` | Design tokens (colors, spacing) |
 | `@workspace/query` | TanStack Query configuration |
-| `@workspace/client` | Supabase client (@supabase/ssr) |
 | `@workspace/logger` | Logging (Pino) |
-| `@workspace/onesignal` | OneSignal push notifications |
 | `@workspace/utils` | Utility functions |
 
 ### Unified Code Quality
 
 Unified code quality management across all projects:
 
-- **Frontend & Drizzle**: Biome (fast ESLint + Prettier alternative)
+- **Frontend & Amplify backend**: Biome (fast ESLint + Prettier alternative)
 - **Backend Python**: Ruff (lint) + MyPy (type check)
-- **Edge Functions**: Deno native tools
 - **Unified Commands**: `lint`, `format`, `ci-check` (devenv scripts on PATH)
 
 ## Development Environment
@@ -114,28 +111,40 @@ By adopting these environments, we can ensure efficient development and maintain
 - **Tech Stack**: React 19, TypeScript, Bun package manager
 - **Build System**: Turbo for monorepo management
 
-### Backend Architecture
+### Backend Architecture (AWS Amplify Gen2)
 
-- **Python Backend**: FastAPI application in `backend-py/` using clean architecture patterns
-- **Edge Functions**: Supabase Edge Functions using Deno's native `Deno.serve` API for lightweight serverless functions
-- **Database**: PostgreSQL with **Drizzle ORM** for schema management, includes pgvector extension for embeddings
-- **Infrastructure**: Supabase for auth/database (Docker, managed by Supabase CLI), FastAPI managed via devenv 2.0 native process manager (TUI)
+The backend is defined code-first in the shared workspace package `@workspace/backend`
+(`frontend/packages/backend/amplify/`):
+
+- **Auth**: Amazon Cognito (Amplify Auth, passwordless Email OTP) — `amplify/auth/resource.ts`
+- **Data**: AWS AppSync + DynamoDB (Amplify Data) — `amplify/data/resource.ts` via `a.schema(...)`,
+  authorization rules (`allow.owner()` / `allow.authenticated()` / `allow.guest()`) replace RLS
+- **Storage**: Amazon S3 (Amplify Storage, `defineStorage`, private path-based) — `amplify/storage/resource.ts`
+- **Compute**: FastAPI on AWS Lambda (Amplify Python custom function, Mangum handler
+  `api.lambda_handler.handler`) — `amplify/functions/api/resource.ts`; the `backend-py/` clean-architecture
+  app is packaged onto the Lambda. Auth = Cognito JWT verification middleware.
+- **Notifications**: Amazon SNS, wired in `amplify/backend.ts` (Pinpoint for mobile push is a follow-up)
+- **Wiring**: `amplify/backend.ts` = `defineBackend({ auth, data, storage, api })` + SNS configuration
 
 #### Configuration Management
 
-- **Supabase Services** (`supabase/config.toml`): Auth, Storage, API settings, service-level configurations
-- **Database Schema** (`drizzle/`): Tables, RLS policies, Realtime publications, functions, triggers managed with Drizzle ORM
+- **Backend definition** (`frontend/packages/backend/amplify/*`): auth/data/storage/functions in TypeScript (CDK)
+- **Local backend**: `ampx sandbox` provisions a per-developer cloud sandbox and generates `amplify_outputs.json`
+- **Secrets**: Amplify secrets (SSM Parameter Store) via `ampx sandbox secret set NAME` / `secret('NAME')`
+- **Schema**: data models + authorization declared in `amplify/data/resource.ts`; the frontend shares the
+  generated `Schema` type via `import type { Schema } from '@workspace/backend'`
 
 ### Key Features
 
-- Multi-client architecture with corporate users, general users, and virtual users
-- Chat system with rooms, messages, and user relationships
-- Vector embeddings for AI/ML features
-- Clean separation between user types and permissions
+- Passwordless Email OTP auth (Cognito)
+- Code-first data models with per-model authorization (AppSync + DynamoDB)
+- Private path-based file storage (S3)
+- FastAPI compute on Lambda for AI/ML and Python-specific workloads
+- Clean separation of concerns across the Amplify resources
 
 ## Requirements
 
-- [Docker Desktop](https://www.docker.com/) (Supabase ローカル環境用)
+- AWS 認証情報（`ampx sandbox` / デプロイ用のプロファイル）
 - [devenv](https://devenv.sh/getting-started/) (Nix ベースの開発環境)
 - [direnv](https://direnv.net/) + シェルフック設定
 
@@ -147,16 +156,13 @@ By adopting these environments, we can ensure efficient development and maintain
 
 | ツール | 用途 |
 |--------|------|
-| Node.js 22 | Frontend, Drizzle |
-| Python 3.13 | Backend |
-| Deno | Edge Functions |
-| Bun | Frontend パッケージ管理 |
+| Node.js 22 | Frontend, Amplify CLI (`ampx`) |
+| Python 3.13 | Backend (FastAPI on Lambda) |
+| Bun | Frontend / Amplify backend パッケージ管理 |
 | uv | Python パッケージ管理 |
-| Supabase CLI | データベース・認証 |
-| ni / nr / nlx | パッケージマネージャー抽象化 |
 | Maestro | E2E テスト |
 
-> 環境変数は devenv の **profiles** で管理する。**local が既定**（`-P` 指定なしで base enterShell が `env/<service>/.env.local` + `env/.env.secrets` をロードする）。`-P dev` / `-P staging` / `-P production` を付けると後勝ちで env を上書きする。dotenvx は不要。env ファイル (`env/<service>/.env.<profile>`) は `.env.local` 以外 gitignore 対象。配置されていなくても profile アクティベーション自体はエラーにならず（`[ -f ] && . ` ガードのため）、後で env ファイルを置けば即読み込まれる。
+> シークレットは **Amplify secrets（SSM Parameter Store）** で管理する（`ampx sandbox secret set NAME`、参照は `secret('NAME')`）。`ampx sandbox` の実行・デプロイには AWS 認証情報（プロファイル）が必要。
 
 ## Setup
 
@@ -213,7 +219,7 @@ cd shadcn-boilerplate
 # direnv: loading .envrc
 # direnv: using devenv
 # ✓ Building shell in 250ms
-# devenv: Node, Python, Deno, Bun, uv が PATH 上に揃う（バージョンは devenv.lock に固定）
+# devenv: Node, Python, Bun, uv が PATH 上に揃う（バージョンは devenv.lock に固定）
 ```
 
 - 初回のみ Nix ビルドが走るため数分かかります。2回目以降は数百ミリ秒です
@@ -222,46 +228,38 @@ cd shadcn-boilerplate
 
 > **Note**: direnv を使わない場合は `devenv shell` で手動アクティベートできます。
 
-### 4. プロジェクトの初期化
+### 4. AWS 認証情報の設定
 
-**初回のみ**、対話セットアップを実行します:
-
-```bash
-init   # Doppler login + setup（シークレット管理）等の初回セットアップ（対話）
-```
+`ampx sandbox` とデプロイには AWS 認証情報（プロファイル）が必要です。AWS CLI / SSO 等で
+プロファイルを設定しておきます（例: `aws configure sso` または `aws configure --profile <name>`）。
 
 `devenv shell` に入っただけで以下は **自動実行** される（`setup:*` task / `before = [ "devenv:enterShell" ]` + `execIfModified`）:
 
-- Doppler 紐付け（`setup:doppler` → `doppler setup --no-interactive`。ログイン済みなら project/config を idempotent に紐付け）
-- Frontend / Drizzle 依存関係のインストール（`bun install --frozen-lockfile`）
+- Frontend 依存関係のインストール（`bun install --frozen-lockfile`）
 - Backend Python 依存関係のインストール（`uv sync --frozen --group dev`）
 
-> 依存・Doppler 紐付けの**非対話**部分は setup:* task が自動同期する。`doppler login`（ブラウザ認証）のような**対話**部分は `init` コマンドで一度だけ行う（`doppler.yaml` の `<doppler-project>` を実プロジェクト名に置換してから）。詳細は `env/README.md` / `.claude/skills/doppler/SKILL.md`。Docker (Supabase ローカル用) は外部依存なので `docker info` で動作確認しておくこと。
+### 5. シークレットの設定（Amplify secrets）
 
-### 5. 環境変数の設定
-
-環境変数はコンポーネント別に `env/` ディレクトリで管理しています:
-
-```
-env/
-├── README.md                  # env/ の構成・方針（詳細はこちら）
-├── backend/.env.local         # Backend 非機密 config (Supabase URL 等)
-├── frontend/.env.local        # Frontend 非機密 config (Next.js)
-├── migration/.env.local       # Database migration 非機密 config (DATABASE_URL)
-└── .env.secrets               # 旧シークレット (.gitignore・読み込まれない・doppler-import 用)
-```
-
-**シークレットは Doppler 管理**（ファイルフォールバックは廃止）。`env/<service>/.env.<ENV>` には
-**非機密 config のみ**を置く。読み込みは環境変数 `ENV`（既定 `local`）駆動で、`env/<service>/.env.$ENV`
-を source し、シークレットは Doppler の対応 config から注入する（未接続なら警告）。詳細は
-[`env/README.md`](env/README.md) と `.claude/skills/doppler/SKILL.md`。`-P <profile>` は対応する `ENV`
-を export する。env ファイルは `.env.local` 以外すべて gitignore 対象。
-
-### 6. データベースセットアップ
+シークレットは **Amplify secrets（SSM Parameter Store）** で管理します。`amplify_outputs.json` などの
+非機密 config は `ampx sandbox` が自動生成するため、手動の env ファイルは不要です。
 
 ```bash
-devenv tasks run app:migrate-dev   # マイグレーション生成 + 適用 + 型生成（フルフロー）
+# シークレットを設定（sandbox 用）
+ampx sandbox secret set MY_SECRET
+
+# バックエンド定義からは secret('MY_SECRET') で参照
 ```
+
+### 6. Amplify backend（sandbox）の起動
+
+```bash
+sandbox        # ampx sandbox: per-dev クラウド sandbox をデプロイし amplify_outputs.json を生成（watch）
+# sandbox-once # 1 回だけデプロイして終了
+# sandbox-delete # sandbox を破棄
+```
+
+`amplify/data/resource.ts` などを編集すると watch 中の `sandbox` が差分を反映し、
+`amplify_outputs.json` と `@workspace/backend` の `Schema` 型が更新されます。
 
 ## Execution
 
@@ -269,20 +267,18 @@ After successfully completing the setup, you can start the application using one
 
 ### Light default — `devenv up`
 
-`devenv up` (profile 指定なし = local 既定) は **軽量セット** を起動します:
-
-- Supabase (Docker, `supabase:start` task が backend の `before` で自動先行)
-- backend (FastAPI, port 4040)
-- storybook (port 6006)
+`devenv up` は dev サーバ群（storybook 等）を起動します。Amplify バックエンドは別途
+`sandbox` (= `ampx sandbox`) を起動して使います（per-dev クラウド sandbox なので Docker は不要）。
 
 ```bash
-devenv up   # 軽量セット (TUI 付き)
-stop        # 全停止 (devenv processes + Supabase Docker)
+sandbox     # 別ターミナルで Amplify backend を起動（amplify_outputs.json を生成・watch）
+devenv up   # dev サーバ群 (TUI 付き)
+stop        # devenv プロセス停止
 ```
 
-TUI で各プロセスのリアルタイムログ・個別再起動が可能。Ctrl+C で TUI を終了したあと、Supabase Docker を完全に停止するには `stop` を別ターミナルで実行する。
+TUI で各プロセスのリアルタイムログ・個別再起動が可能。
 
-> Supabase は devenv 管理外（独立した Docker コンテナ群）。手動制御が必要なときは `supabase-start` / `supabase-stop` script を使う。
+> 旧 Supabase ローカル Docker は撤去済み。バックエンドは `ampx sandbox` がクラウド上に per-dev で構築する。
 
 ### モノレポのフロントエンドアプリ起動 (opt-in)
 
@@ -290,12 +286,11 @@ TUI で各プロセスのリアルタイムログ・個別再起動が可能。C
 
 | 起動内容 | コマンド |
 |---|---|
-| 軽量セット (backend + storybook のみ) | `devenv up` |
-| 軽量セット + Next.js (web) | `dev-web`（= `devenv up backend storybook web`） |
-| 軽量セット + Expo Metro (mobile, non-interactive) | `dev-mobile` |
-| 全部入り (web + mobile も含む) | `dev-all` |
+| Storybook のみ | `storybook` |
+| Next.js (web) | `dev-web` |
+| Expo Metro (mobile, non-interactive) | `dev-mobile` |
 | アプリ単独 (例: web のみ) | `devenv up web` |
-| 任意組み合わせ | `devenv up backend web` など |
+| 任意組み合わせ | `devenv up storybook web` など |
 
 > Expo の対話的 TUI（`r` でリロード、QR コード等）は devenv process では使えません。対話操作したい場合は別ターミナルで `mobile` / `mobile-ios` / `mobile-android` / `mobile-web` script を叩いてください (devenv 外で Expo TUI を直接起動)。
 
@@ -304,8 +299,7 @@ TUI で各プロセスのリアルタイムログ・個別再起動が可能。C
 `devenv.nix` の `frontendApps` attrset に **1 行追加** するだけで以下が自動連動します:
 
 - `processes.<name>` (start.enable=false で opt-in process 化)
-- `scripts.dev-<name>` (= `devenv up backend storybook <name>`)
-- `scripts.dev-all` の起動対象に自動追加
+- `scripts.dev-<name>` (= `devenv up storybook <name>`)
 
 ```nix
 # devenv.nix の let block 内
@@ -334,7 +328,7 @@ frontendApps = {
 frontend       # `cd frontend && turbo dev` (web + mobile を並列起動、重い)
 ```
 
-`dev-all` は backend + storybook + 各アプリを **devenv の TUI で個別管理**。`frontend` script は **devenv 外で turbo dev** を 1 プロセスとして起動。用途で使い分け。
+`devenv up storybook web` は storybook + 各アプリを **devenv の TUI で個別管理**。`frontend` script は **devenv 外で turbo dev** を 1 プロセスとして起動。用途で使い分け。
 
 ### Frontend Development (Mobile)
 
@@ -353,7 +347,7 @@ mobile-web      # Web 版
 
 ### Code Quality Management
 
-This project implements unified code quality management across all components (Frontend, Drizzle, Backend Python, Edge Functions).
+This project implements unified code quality management across all components (Frontend, Amplify backend, Backend Python).
 
 #### Unified Commands (Recommended)
 
@@ -376,15 +370,6 @@ type-check-frontend     # TypeScript type check
 lint-fsd                # FSD boundary check (web + mobile)
 ```
 
-#### Drizzle Specific (Biome)
-
-```bash
-lint-drizzle            # Biome lint (auto-fix)
-lint-drizzle-ci         # Biome lint (CI, no fix)
-format-drizzle          # Biome format (auto-fix)
-format-drizzle-check    # Biome format check
-```
-
 #### Backend Python Specific (Ruff + MyPy)
 
 ```bash
@@ -395,22 +380,7 @@ format-backend-py-check # Ruff format check
 type-check-backend-py   # MyPy type check (strict mode)
 ```
 
-#### Edge Functions Specific (Deno)
-
-```bash
-lint-functions          # Deno lint
-format-functions        # Deno format (auto-fix)
-format-functions-check  # Deno format check
-check-functions         # Deno type check (all functions auto-detected)
-```
-
 ### Development Tools
-
-- Check Supabase status:
-
-  ```bash
-  check
-  ```
 
 - Build frontend:
 
@@ -424,94 +394,54 @@ check-functions         # Deno type check (all functions auto-detected)
   build-storybook
   ```
 
-### Database Operations
+### Data Modeling (Amplify Data)
 
-This project manages database schema with Drizzle ORM.
+データモデルと認可は `frontend/packages/backend/amplify/data/resource.ts` にコードファーストで定義します。
 
-**Development (Local)**:
+```typescript
+// amplify/data/resource.ts
+const schema = a.schema({
+  Todo: a
+    .model({
+      content: a.string(),
+      done: a.boolean().default(false),
+    })
+    .authorization((allow) => [allow.owner()]),
+})
 
-```bash
-# Generate + Apply migration + Generate types (recommended)
-devenv tasks run app:migrate-dev
-
-# Generate + Apply migration only (no type generation)
-devenv tasks run db:migrate-dev
-
-# Push schema directly to DB (for prototyping)
-drizzle-push
-
-# Start Drizzle Studio (GUI)
-drizzle-studio
-
-# Validate schema
-drizzle-validate
+export type Schema = ClientSchema<typeof schema>
 ```
 
-**Production (Remote)**:
+- `a.model()` ごとに DynamoDB テーブル + AppSync GraphQL API が生成される
+- 認可は `allow.owner()` / `allow.authenticated()` / `allow.guest()` 等で宣言（RLS の代替）
+- フロントは `import type { Schema } from '@workspace/backend'` で型を共有し、`getDataClient()`
+  （`@workspace/data-client`）でデータアクセスする
 
 ```bash
-# Staging environment
-devenv tasks run -P staging db:migrate-deploy
-
-# Production environment
-devenv tasks run -P production db:migrate-deploy
+# 編集を sandbox に反映（amplify_outputs.json と Schema 型を更新、watch）
+sandbox
 ```
 
-**Command Usage**:
+### Deployment (Amplify Hosting)
 
-- `app:migrate-dev`: For local development. Schema changes → Generate migration → Apply → Generate types in one go
-- `db:migrate-deploy`: For remote environments. Only apply existing migration files
-- `drizzle-push`: Push schema directly without generating migration files (for experimentation/prototyping)
+ブランチ / 本番へのデプロイは **AWS Amplify Hosting** が `amplify.yml`（monorepo, appRoot=frontend）に従い
+`ampx pipeline-deploy` + Next.js build を実行します。ローカルからの手動デプロイは不要です。
 
-For details, see the "Drizzle Schema Management" section in `CLAUDE.md`.
-
-### Model Generation
-
-```bash
-# Frontend Supabase types + Hey API client
-devenv tasks run model:frontend
-
-# Edge Functions Supabase types + Drizzle schema copy
-devenv tasks run model:functions
-
-# All models (frontend + functions, ordered)
-devenv tasks run model:build
+```yaml
+# amplify.yml（抜粋）— Amplify Hosting がブランチ push を契機に実行
+# backend: ampx pipeline-deploy --branch <branch> --app-id <app-id>
+# frontend: bun install && bun run build
 ```
 
-### Edge Functions
-
-```bash
-# Deploy all Edge Functions to remote project
-devenv tasks run -P production deploy:functions
-```
-
-### Deployment (Remote)
-
-Deploy Supabase resources to remote environments (staging/production):
-
-```bash
-# 1. Supabase platform settings (Config, Buckets, Functions, Secrets)
-devenv tasks run -P staging deploy:supabase
-
-# 2. DB migration
-devenv tasks run -P staging db:migrate-deploy
-```
-
-**What `deploy:supabase` applies**:
-- Config (Auth settings, API settings) - `supabase config push`
-- Storage Buckets - `supabase seed buckets`
-- Edge Functions (all functions) - `supabase functions deploy`
-- Secrets - `supabase secrets set`
-
-For details, see `.claude/skills/supabase/deploy.md`.
+- バックエンド（auth/data/storage/functions）は `ampx pipeline-deploy` で当該ブランチ環境にデプロイ
+- シークレットは Amplify secrets（SSM Parameter Store）でブランチ環境ごとに管理
 
 # Development Guidelines
 
 ## Code Quality
 
-- **Frontend**: Biome for linting and formatting (all-in-one toolchain, replaces ESLint + Prettier), TypeScript strict mode
+- **Frontend & Amplify backend**: Biome for linting and formatting (all-in-one toolchain, replaces ESLint + Prettier), TypeScript strict mode
 - **Backend**: Ruff for linting (line length: 88), MyPy for type checking
-- **Edge Functions**: Deno native tools, `npm:` prefix for dependencies (not JSR or HTTP imports)
 - **UI Design (Web)**: shadcn/ui + MagicUI components (Radix UI) with TailwindCSS 4 and CSS variables
 - **UI Design (Mobile)**: gluestack-ui components with NativeWind 5
 - **Package Manager**: [ni](https://github.com/antfu-collective/ni) (abstraction layer using Bun internally)
@@ -519,9 +449,9 @@ For details, see `.claude/skills/supabase/deploy.md`.
 
 ## Architecture Patterns
 
-- **Frontend**: Feature-Sliced Design (FSD) with strict layer hierarchy (app → pages → widgets → features → entities → shared)
-- **Backend**: Clean architecture with Controllers, Use Cases, Gateways, and Infrastructure
-- **Database**: Multi-client architecture with proper separation of concerns
+- **Frontend**: Feature-Sliced Design (FSD) with strict layer hierarchy (app → views → widgets → features → entities → shared)
+- **Backend (Python)**: Clean architecture with Controllers, Use Cases, Gateways, and Infrastructure
+- **Backend (Amplify)**: Code-first resources (auth/data/storage/functions) with per-model authorization
 
 ## Integrated Tools
 
@@ -536,15 +466,15 @@ The project includes integrations for:
 - **[TailwindCSS 4](https://tailwindcss.com/)**: Utility-first CSS framework
 - **[TanStack Query v5](https://tanstack.com/query)**: Server state management
 - **[Zustand](https://zustand-demo.pmnd.rs/)**: Global state management
-- **[next-intl](https://next-intl-docs.vercel.app/)**: Internationalization (en, ja)
-- **[Supabase](https://supabase.com/)**: Authentication, database, and Edge Functions
-- **[Drizzle ORM](https://orm.drizzle.team/)**: TypeScript ORM with declarative schema management
-- **[FastAPI](https://fastapi.tiangolo.com/)**: Python backend framework
+- **[next-intl](https://next-intl.dev/)**: Internationalization (en, ja)
+- **[AWS Amplify Gen2](https://docs.amplify.aws/)**: Auth (Cognito), Data (AppSync + DynamoDB), Storage (S3), Functions (Lambda), Hosting
+- **[Amazon Cognito](https://aws.amazon.com/cognito/)**: Authentication (passwordless Email OTP)
+- **[FastAPI](https://fastapi.tiangolo.com/)**: Python backend framework (on AWS Lambda via Mangum)
+- **[Amazon SNS](https://aws.amazon.com/sns/)**: Notifications
 - **[Bun](https://bun.sh/)**: Fast package manager and JavaScript runtime
 - **[Turbo](https://turbo.build/)**: High-performance build system for monorepos
-- **[Docker](https://docker.com/)**: Used for Supabase local environment
-- **[devenv](https://devenv.sh/)**: Nix-based development environment with process management (replaces Docker for backend/frontend services)
-- **[OneSignal](https://onesignal.com/)**: Push notification service
+- **[devenv](https://devenv.sh/)**: Nix-based development environment with process management
+- **[Polar](https://polar.sh/)**: Payments (external SaaS)
 
 ### AI Coding Assistants
 

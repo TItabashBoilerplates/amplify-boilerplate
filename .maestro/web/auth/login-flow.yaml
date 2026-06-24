@@ -1,42 +1,39 @@
-# Web Authentication Flow - OTP Login
-# Tests the complete OTP authentication flow for Next.js web app
+# Web Authentication Flow - Cognito Email OTP Login (Template / WIP)
+# Tests the passwordless Email OTP authentication flow for the Next.js web app.
 #
-# This flow:
-# 1. Creates a unique test user via Supabase Admin API (onFlowStart)
-# 2. Performs OTP login flow
-# 3. Cleans up the test user (onFlowComplete)
+# Auth stack: Amazon Cognito (Amplify Auth, passwordless Email OTP).
+# Client: aws-amplify/auth — signIn (USER_AUTH + EMAIL_OTP) → confirmSignIn.
+#
+# IMPORTANT — why this is a template (tagged `wip`, excluded by config.yaml):
+#   Cognito delivers the one-time code by email via Amazon SES. Unlike the old
+#   Supabase local stack, there is NO local mail sink (Mailpit/Inbucket) to read
+#   the code from, so the OTP step cannot be fully automated in CI without an
+#   external mailbox-fetch step. Options to make this runnable:
+#     1. Wire up a test mailbox (e.g. SES → S3/SNS, or an inbox API like
+#        mailosaur/mailslurp) and fetch the code in scripts/get-otp-from-email.js.
+#     2. Use a Cognito pre-defined test user + a known code in a dev User Pool.
+#   Until one of those is in place, keep this flow as a documented placeholder.
+#
+# Required implementations before enabling:
+#   - scripts/setup-test-user.js   → create a Cognito user (admin API)
+#   - scripts/get-otp-from-email.js → fetch the OTP from the chosen mailbox
+#   - scripts/cleanup-test-user.js → delete the Cognito user (admin API)
 
 appId: com.example.web
-name: "Web OTP Login Flow"
+name: "Web Cognito Email OTP Login Flow"
 jsEngine: graaljs
 tags:
   - auth
   - web
   - e2e
+  - wip # Mark as work-in-progress until a mailbox sink is wired up
 
 env:
   # Environment variables are loaded from .maestro/.env
-  # Override defaults here if needed
-  SUPABASE_URL: ${SUPABASE_URL}
-  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-  MAILPIT_URL: ${MAILPIT_URL}
-
-# Setup: Create test user before flow starts
-onFlowStart:
-  - runScript:
-      file: ../../scripts/setup-test-user.js
-      env:
-        SUPABASE_URL: ${SUPABASE_URL}
-        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-
-# Cleanup: Delete test user after flow completes
-onFlowComplete:
-  - runScript:
-      file: ../../scripts/cleanup-test-user.js
-      env:
-        SUPABASE_URL: ${SUPABASE_URL}
-        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-        USER_ID: ${output.userId}
+  # COGNITO_USER_POOL_ID / AWS credentials are needed for the admin setup/cleanup
+  # scripts. The OTP mailbox source is intentionally left unconfigured (see above).
+  COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID}
+  TEST_EMAIL: ${TEST_EMAIL}
 
 ---
 # Step 1: Navigate to login page
@@ -48,42 +45,44 @@ onFlowComplete:
 - assertVisible: "Email Address"
 - assertVisible: "Send One-Time Password"
 
-# Step 3: Enter email address (from setup-test-user.js output)
+# Step 3: Enter email address
 - tapOn:
     id: "email"
-- inputText: ${output.testEmail}
+- inputText: ${TEST_EMAIL}
 
-# Step 4: Submit OTP request
+# Step 4: Submit OTP request (Cognito signIn USER_AUTH + EMAIL_OTP)
 - tapOn: "Send One-Time Password"
 
 # Step 5: Verify success message
 - assertVisible: "Check Your Email"
 
-# Step 6: Wait for OTP email and extract code
-- runScript:
-    file: ../../scripts/get-otp-from-mailpit.js
-    env:
-      MAILPIT_URL: ${MAILPIT_URL}
-      WAIT_FOR_EMAIL: "true"
-      MAX_RETRIES: "15"
+# Step 6: Fetch the Cognito OTP code from the test mailbox.
+#   NOTE: Implement scripts/get-otp-from-email.js against your mailbox provider.
+#   Cognito sends the code via Amazon SES; there is no local mail sink.
+# - runScript:
+#     file: ../../scripts/get-otp-from-email.js
+#     env:
+#       TEST_EMAIL: ${TEST_EMAIL}
+#       WAIT_FOR_EMAIL: "true"
+#       MAX_RETRIES: "15"
 
 # Step 7: Navigate to verify page
-- openLink: "http://localhost:3000/en/verify?email=${output.testEmail}"
+# - openLink: "http://localhost:3000/en/verify?email=${TEST_EMAIL}"
 
 # Step 8: Verify OTP page loaded
-- assertVisible: "Verify Your Email"
-- assertVisible: "Enter the 6-digit code"
+# - assertVisible: "Verify Your Email"
+# - assertVisible: "Enter the 6-digit code"
 
-# Step 9: Enter OTP code
-- tapOn:
-    id: "token"
-- inputText: ${output.otpCode}
+# Step 9: Enter OTP code (Cognito confirmSignIn)
+# - tapOn:
+#     id: "token"
+# - inputText: ${output.otpCode}
 
 # Step 10: Submit verification
-- tapOn: "Verify Code"
+# - tapOn: "Verify Code"
 
 # Step 11: Verify successful authentication - redirected to dashboard
-- assertVisible: "Dashboard"
+# - assertVisible: "Dashboard"
 
-# Step 12: Take screenshot of successful login
-- takeScreenshot: login-success
+# Placeholder: Take screenshot of current state
+- takeScreenshot: login-otp-requested

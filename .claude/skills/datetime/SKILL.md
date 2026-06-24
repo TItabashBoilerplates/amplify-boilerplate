@@ -1,17 +1,17 @@
 ---
 name: datetime
-description: Next.js + Supabase での日時処理ガイダンス。ハイドレーションエラー対策、タイムゾーン変換、ISO 8601形式、useEffect パターンについての質問に使用。SSR/CSR での日時表示の実装支援を提供。
+description: Next.js + Amplify Data での日時処理ガイダンス。ハイドレーションエラー対策、タイムゾーン変換、ISO 8601形式、useEffect パターンについての質問に使用。SSR/CSR での日時表示の実装支援を提供。
 ---
 
 # 日時処理スキル
 
-Next.js + Supabase での日時処理のベストプラクティスを提供します。
+Next.js + Amplify Data（AppSync + DynamoDB）での日時処理のベストプラクティスを提供します。
 
 ## 基本原則
 
 | 場所 | タイムゾーン | 形式 |
 |------|------------|------|
-| **データベース** | UTC | `TIMESTAMP WITH TIME ZONE` |
+| **データベース（DynamoDB）** | UTC | `AWSDateTime`（ISO 8601 / TZ オフセット必須） |
 | **サーバー** | UTC | ISO 8601 文字列 |
 | **クライアント表示** | ユーザーのローカル | `Intl.DateTimeFormat` |
 
@@ -85,36 +85,41 @@ const DateDisplay = dynamic(() => import('@/components/DateDisplay'), {
 })
 ```
 
-## Supabase へのデータ保存
+## Amplify Data へのデータ保存
 
 ```typescript
-// ✅ 正しい: ISO 8601 形式で保存
+import { getDataClient } from '@workspace/data-client'
+
+// ✅ 正しい: ISO 8601 形式（AWSDateTime）で保存
 const saveEvent = async (eventDate: Date) => {
-  await supabase.from('events').insert({
-    event_date: eventDate.toISOString(),
+  await getDataClient().models.Event.create({
+    eventDate: eventDate.toISOString(),  // "2025-01-15T10:30:00.000Z"
   })
 }
 
-// ❌ 間違い: Unix タイムスタンプ
-await supabase.from('events').insert({
-  event_date: Date.now(),  // エラーになる
+// ❌ 間違い: Unix タイムスタンプ（AWSDateTime のバリデーションで弾かれる）
+await getDataClient().models.Event.create({
+  eventDate: Date.now(),  // 数値は AWSDateTime として不正
 })
 ```
 
-## Drizzle Schema での定義
+## Amplify Data Schema での定義
+
+日時フィールドは `a.datetime()`（GraphQL の `AWSDateTime`）を使う。`AWSDateTime` は
+ISO 8601（タイムゾーンオフセット必須）で保存・検証されるため、常に UTC（`Z`）で統一する。
+`createdAt` / `updatedAt` は Amplify Data が自動で UTC ISO 8601 として付与する。
 
 ```typescript
-import { pgTable, timestamp } from 'drizzle-orm/pg-core'
+// frontend/packages/backend/amplify/data/resource.ts
+import { a } from '@aws-amplify/backend'
 
-export const events = pgTable('events', {
-  eventDate: timestamp('event_date', {
-    withTimezone: true,  // TIMESTAMP WITH TIME ZONE
-    precision: 3,        // ミリ秒精度
-  }).notNull(),
-  createdAt: timestamp('created_at', {
-    withTimezone: true,
-    precision: 3,
-  }).notNull().defaultNow(),
+const schema = a.schema({
+  Event: a
+    .model({
+      eventDate: a.datetime().required(), // AWSDateTime: "2025-01-15T10:30:00.000Z"
+      // createdAt / updatedAt は自動付与（UTC ISO 8601）
+    })
+    .authorization((allow) => [allow.owner()]),
 })
 ```
 
@@ -164,4 +169,4 @@ export function InternationalizedDateDisplay({ utcDate }: { utcDate: string }) {
 - [ ] タイムゾーン変換は `useEffect` 内で実行
 - [ ] 初回レンダリングでは空またはプレースホルダーを表示
 - [ ] データベース保存時は `toISOString()` を使用
-- [ ] Drizzle Schema で `withTimezone: true, precision: 3` を設定
+- [ ] Amplify Data Schema で日時フィールドは `a.datetime()`（AWSDateTime）を使用

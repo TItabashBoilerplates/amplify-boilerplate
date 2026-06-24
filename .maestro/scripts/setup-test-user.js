@@ -1,127 +1,67 @@
 /**
- * Maestro Test User Setup Script
+ * Maestro Test User Setup Script (Cognito — テンプレート / 要実装)
  *
- * Creates a test user via Supabase Auth Admin API.
- * This script uses the same REST endpoints that supabase-js uses internally.
+ * Amazon Cognito User Pool にテストユーザーを作成する。
+ * 認証スタックは Amplify Auth（passwordless Email OTP）。
  *
- * Required environment variables:
- *   - SUPABASE_URL: Supabase project URL (e.g., http://localhost:54321)
- *   - SUPABASE_SERVICE_ROLE_KEY: Service role key for admin operations
+ * IMPORTANT:
+ *   Cognito の Admin API（cognito-idp: AdminCreateUser など）は AWS SigV4 署名が必要で、
+ *   Maestro の graaljs `http` からは直接呼べない。実運用では次のいずれかを推奨する:
+ *     1. CI 側で AWS CLI / SDK を使って事前にテストユーザーを作成し、その email を
+ *        TEST_EMAIL として Maestro に渡す（このスクリプトは email の受け渡しのみ担う）。
+ *     2. SigV4 署名を行う薄いプロキシ（Lambda 等）を用意し、その HTTP エンドポイントを叩く。
  *
- * Optional environment variables:
- *   - TEST_EMAIL: Specific email to use (default: auto-generated)
- *   - TEST_PASSWORD: Password for the user (default: TestPass123!)
+ * 必要な環境変数:
+ *   - COGNITO_USER_POOL_ID: 対象 User Pool ID
+ *   - TEST_EMAIL: 作成するテストユーザーの email（未指定なら自動生成）
  *
  * Output:
- *   - output.testEmail: Created user's email
- *   - output.testPassword: User's password
- *   - output.userId: User's UUID
- *   - output.accessToken: Access token for authenticated requests
+ *   - output.testEmail: テストユーザーの email
  */
 
-// Maestro injects the following as globals via `runScript` env: SUPABASE_URL,
-// SUPABASE_SERVICE_ROLE_KEY, TEST_EMAIL, TEST_PASSWORD. Use `typeof` guards so
-// the script also works when invoked outside Maestro for debugging.
-const supabaseUrl =
-	(typeof SUPABASE_URL !== "undefined" && SUPABASE_URL) ||
-	"http://localhost:54321";
-const SERVICE_ROLE_KEY =
-	(typeof SUPABASE_SERVICE_ROLE_KEY !== "undefined" &&
-		SUPABASE_SERVICE_ROLE_KEY) ||
-	"";
+// Maestro injects env vars (COGNITO_USER_POOL_ID, TEST_EMAIL) via `runScript`.
+// Use `typeof` guards so the script also works when invoked outside Maestro.
+const userPoolId =
+	(typeof COGNITO_USER_POOL_ID !== "undefined" && COGNITO_USER_POOL_ID) || "";
 
-// Generate unique test email if not provided
+// Generate a unique test email if not provided
 const timestamp = Date.now();
 const testEmail =
 	(typeof TEST_EMAIL !== "undefined" && TEST_EMAIL) ||
 	`e2e_test_${timestamp}@test.local`;
-const testPassword =
-	(typeof TEST_PASSWORD !== "undefined" && TEST_PASSWORD) || "TestPass123!";
 
-if (!SERVICE_ROLE_KEY) {
-	throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
+if (!userPoolId) {
+	console.log(
+		"COGNITO_USER_POOL_ID is not set; assuming the test user is provisioned externally.",
+	);
 }
 
 /**
- * Create user via Supabase Auth Admin API
- * Equivalent to: supabase.auth.admin.createUser()
+ * Cognito にテストユーザーを作成する。
  *
- * @see https://supabase.com/docs/reference/javascript/auth-admin-createuser
+ * TODO: SigV4 署名付きで cognito-idp AdminCreateUser を呼ぶ HTTP プロキシを実装し、
+ *       ここから叩く。例（プロキシ前提）:
+ *
+ *   const response = http.post(`${COGNITO_ADMIN_PROXY}/users`, {
+ *     headers: { "Content-Type": "application/json" },
+ *     body: JSON.stringify({ userPoolId, email: testEmail }),
+ *   })
+ *   if (response.code !== 200) throw new Error(`Failed: ${response.body}`)
+ *
+ * 現状はユーザー作成を行わず、email の受け渡しのみ行う（フローは wip タグで除外）。
  */
 function createTestUser() {
-	const response = http.post(`${supabaseUrl}/auth/v1/admin/users`, {
-		headers: {
-			Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-			apikey: SERVICE_ROLE_KEY,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			email: testEmail,
-			password: testPassword,
-			email_confirm: true, // Auto-confirm email for E2E testing
-			user_metadata: {
-				created_by: "maestro_e2e",
-				created_at: new Date().toISOString(),
-			},
-		}),
-	});
-
-	if (response.code !== 200 && response.code !== 201) {
-		console.log("Create user response:", response.body);
-		throw new Error(
-			`Failed to create user: ${response.code} - ${response.body}`,
-		);
-	}
-
-	const userData = json(response.body);
-	console.log("Test user created:", testEmail);
-
-	return {
-		id: userData.id,
-		email: userData.email,
-	};
-}
-
-/**
- * Sign in as the created user to get access token
- * Equivalent to: supabase.auth.signInWithPassword()
- */
-function signInUser() {
-	const response = http.post(
-		`${supabaseUrl}/auth/v1/token?grant_type=password`,
-		{
-			headers: {
-				apikey: SERVICE_ROLE_KEY,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				email: testEmail,
-				password: testPassword,
-			}),
-		},
+	console.log(
+		"setup-test-user.js is a template: provision the Cognito user via CI/SDK and pass TEST_EMAIL.",
 	);
-
-	if (response.code !== 200) {
-		console.log("Sign in response:", response.body);
-		throw new Error(`Failed to sign in: ${response.code}`);
-	}
-
-	const session = json(response.body);
-	return session.access_token;
+	return { email: testEmail };
 }
 
 // Execute setup
 try {
 	const user = createTestUser();
-	const accessToken = signInUser();
-
-	// Export to Maestro output
-	output.testEmail = testEmail;
-	output.testPassword = testPassword;
-	output.userId = user.id;
-	output.accessToken = accessToken;
-
-	console.log("Setup complete. User ID:", user.id);
+	output.testEmail = user.email;
+	console.log("Setup complete. Test email:", user.email);
 } catch (error) {
 	console.log("Setup failed:", error.message);
 	throw error;

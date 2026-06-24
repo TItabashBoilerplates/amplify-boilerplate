@@ -5,7 +5,7 @@
 ## 対話環境（推奨）
 
 ```bash
-devenv up                # 軽量セット起動 → TUI が自動起動
+devenv up                # dev サーバ群起動 → TUI が自動起動
 # TUI 内で:
 #   - プロセス一覧表示
 #   - 個別プロセスのリアルタイムログ閲覧
@@ -16,7 +16,7 @@ devenv up                # 軽量セット起動 → TUI が自動起動
 
 | プロセス名 | サービス | ポート |
 |-----------|----------|-------|
-| `backend` | FastAPI バックエンド | 4040 |
+| `backend` | FastAPI バックエンド（ローカル実行） | 4040 |
 | `storybook` | Storybook | 6006 |
 | `web` | Next.js (opt-in、`devenv up web` 必須) | 3000 |
 | `mobile` | Expo Metro (opt-in、`devenv up mobile` 必須) | 8081 |
@@ -37,20 +37,36 @@ devenv up -d
 devenv processes down
 ```
 
+## Amplify Backend のトラブルシューティング（ampx sandbox）
+
+ローカルの Docker スタックは無い。バックエンドはクラウド上の per-dev sandbox。問題切り分けは以下:
+
+```bash
+# sandbox を watch 起動（デプロイログがそのまま流れる）。エラーはここに出る
+sandbox
+
+# sandbox を作り直したいとき
+sandbox-delete
+sandbox
+```
+
+よくある詰まりどころ:
+
+| 症状 | 確認ポイント |
+|------|-------------|
+| `sandbox` がデプロイに失敗 / 権限エラー | **AWS 認証情報（プロファイル）** が有効か。`sandbox` / deploy には AWS creds が必須 |
+| フロントが Cognito / AppSync / S3 に繋がらない | `amplify_outputs.json` が生成・最新化されているか（`sandbox` 実行で再生成）。手動編集しない |
+| スキーマ変更が反映されない | `frontend/packages/backend/amplify/data/resource.ts` を保存後、`sandbox` の watch が再デプロイしたか |
+| 認可エラー（403 等） | `a.model(...).authorization(...)` の宣言と、クライアントの認証状態（Cognito サインイン）が一致しているか |
+| Lambda（FastAPI）が 5xx | CloudWatch Logs を確認（Amplify Console / AWS Console 経由） |
+
 ## 全停止
 
 ```bash
-stop          # devenv プロセス + Supabase Docker を両方停止
-supabase-stop # Supabase Docker のみ停止
+stop          # devenv プロセスを停止
 ```
 
-## Supabase ログ（Docker）
-
-```bash
-docker logs -f supabase_db_<project_name>
-docker logs -f supabase_auth_<project_name>
-docker logs -f supabase_edge_runtime_<project_name>
-```
+> per-dev sandbox はクラウド上に残るため、不要になったら `sandbox-delete` で明示的に破棄する。
 
 ## 品質チェック
 
@@ -59,7 +75,7 @@ devenv の **scripts** (PATH 直結) を使用する。Makefile は **deprecated
 ```bash
 lint
 type-check
-test
+unit-test
 ci-check
 ```
 

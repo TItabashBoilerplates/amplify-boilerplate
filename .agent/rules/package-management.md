@@ -6,45 +6,48 @@
 
 Each component uses the optimal package manager for its purpose:
 
-### Frontend (`frontend/`): Bun 1.2.8
+### Frontend (`frontend/`): Bun
 
 - Fast JavaScript runtime & package manager
 - Fully compatible with Node.js, npm alternative
-- Monorepo management with Bun workspace
+- Monorepo management with Bun workspace + Turborepo
 - Dependencies managed in `frontend/package.json`
+- Includes the Amplify backend package `@workspace/backend`
+  (`frontend/packages/backend/`), driven by the **`ampx`** Amplify CLI
 
 ### Backend Python (`backend-py/`): uv
 
 - Rust-based ultra-fast Python package manager
-- Reliable tool from Ruff (linter) developers
-- Dependencies managed in `backend-py/app/pyproject.toml`
+- Reliable tool from the Ruff (linter) developers
+- uv workspace: `apps/api` (FastAPI), `apps/mcp`, `packages/core`
+- Dependencies managed per member `pyproject.toml`, single root `uv.lock`
 
-### Drizzle (`drizzle/`): Bun
+### Amplify CLI: `ampx`
 
-- Uses Bun like the frontend
-- Managed as an independent package
-- `drizzle/package.json` + `drizzle/node_modules/`
-
-### Edge Functions (`supabase/functions/`): Deno
-
-- Built-in package manager in Deno runtime
-- Import npm packages with `npm:` prefix
-- Import map management in each function's `deno.json`
+- Used for the Amplify Gen2 backend in `frontend/packages/backend/`
+- `ampx sandbox` deploys a per-dev cloud sandbox and generates `amplify_outputs.json`
+- `ampx pipeline-deploy` runs on AWS Amplify Hosting (CI) for branch/production deploys
+- Invoked through devenv scripts (`sandbox`, `sandbox-once`, `sandbox-delete`), not directly
 
 ## Directory Structure
 
 ```
 /
-├── drizzle/
-│   ├── package.json          # Drizzle-specific dependencies
-│   └── node_modules/         # Drizzle-specific modules
 ├── frontend/
-│   ├── package.json          # Frontend workspace definition
-│   └── node_modules/         # Frontend modules
+│   ├── package.json          # Frontend workspace definition (Bun)
+│   ├── node_modules/         # Frontend modules
+│   ├── apps/
+│   │   ├── web/              # Next.js
+│   │   └── mobile/           # Expo
+│   └── packages/
+│       ├── backend/          # Amplify backend (@workspace/backend, ampx)
+│       ├── data-client/      # @workspace/data-client (getDataClient)
+│       └── auth/             # @workspace/auth
 └── backend-py/
-    └── app/
-        ├── pyproject.toml    # Python dependencies (uv managed)
-        └── .venv/            # Python virtual environment
+    ├── pyproject.toml        # uv workspace root
+    ├── uv.lock               # single root lockfile
+    ├── apps/                 # FastAPI (api), mcp
+    └── packages/             # core (logger / exceptions / auth utils)
 ```
 
 This structure allows each component to use optimal tools independently and prevents dependency conflicts.

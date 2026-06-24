@@ -1,20 +1,20 @@
-# Date and Time Handling (Supabase + Database Best Practices)
+# Date and Time Handling (Amplify Data + Database Best Practices)
 
 Essential principles and best practices for date and time handling:
 
 ## Database Configuration
 
-### 1. Drizzle Schema
+### 1. Amplify Data Schema (AppSync + DynamoDB)
 
-- Use `timestamp` with `withTimezone: true` and `precision: 3` for all datetime columns
-- Maps to PostgreSQL's `TIMESTAMP WITH TIME ZONE` type
-- Millisecond precision (3) is fully compatible with JavaScript `Date` objects
+- Use `a.datetime()` for all datetime fields. This maps to the GraphQL `AWSDateTime` scalar.
+- `AWSDateTime` is an extended ISO 8601 date-time string with a required timezone offset.
+- `createdAt` / `updatedAt` are added automatically by Amplify Data as UTC ISO 8601 strings.
 
-### 2. Supabase/PostgreSQL
+### 2. AWSDateTime / UTC
 
-- Database timezone is maintained as UTC (Supabase default)
-- Data inserted with timezone is internally stored as UTC
-- Treat all datetime data as UTC for consistency
+- Store and validate all datetime values as UTC (`Z`) ISO 8601 strings.
+- Because `AWSDateTime` requires a timezone offset, standardizing on UTC prevents timezone mix-ups.
+- Treat all datetime data as UTC for consistency across backend, API, and storage.
 
 ## Client Implementation Principles
 
@@ -24,13 +24,13 @@ Essential principles and best practices for date and time handling:
 - Do not format dates in Next.js Server Components
 - Prevents hydration errors from SSR and client timezone mismatches
 
-### 2. When Saving to Database
+### 2. When Saving to the Database
 
 - Convert JavaScript `Date` objects to ISO 8601 format with `toISOString()`
-- Database automatically stores as UTC
-- Do not use `Date.now()` (Unix timestamps will error)
+- The `AWSDateTime` field stores the value as UTC
+- Do not use `Date.now()` (Unix timestamps will error against `AWSDateTime`)
 
-### 3. When Displaying to Client
+### 3. When Displaying to the Client
 
 - Always convert to client's timezone when displaying
 - Use `Intl.DateTimeFormat` (respects browser timezone settings)
@@ -144,7 +144,7 @@ export function DateDisplay({ utcDate, className }: DateDisplayProps) {
 import { DateDisplay } from "@/components/DateDisplay";
 
 export default async function Page() {
-  // Convert Date object from DB to ISO string
+  // Convert Date object from data layer to ISO string
   const eventDate = new Date("2025-01-15T10:30:00Z");
 
   return (
@@ -198,12 +198,15 @@ export function InternationalizedDateDisplay({ utcDate }: { utcDate: string }) {
 }
 ```
 
-### ✅ Good: Saving to Supabase
+### ✅ Good: Saving to Amplify Data
 
 ```typescript
+import { getDataClient } from "@workspace/data-client";
+
 const saveEvent = async (eventDate: Date) => {
-  await supabase.from("events").insert({
-    event_date: eventDate.toISOString(), // Save as UTC in ISO 8601 format
+  await getDataClient().models.Event.create({
+    // Save as UTC in ISO 8601 format → AWSDateTime
+    scheduledAt: eventDate.toISOString(),
   });
 };
 ```
@@ -211,6 +214,8 @@ const saveEvent = async (eventDate: Date) => {
 ### ✅ Good: Saving from User Input
 
 ```typescript
+import { getDataClient } from "@workspace/data-client";
+
 const saveEventFromUserInput = async (
   year: number,
   month: number,
@@ -220,8 +225,8 @@ const saveEventFromUserInput = async (
   const userDate = new Date(year, month - 1, day);
 
   // Convert to UTC with toISOString() and save
-  await supabase.from("events").insert({
-    event_date: userDate.toISOString(),
+  await getDataClient().models.Event.create({
+    scheduledAt: userDate.toISOString(),
   });
 };
 ```
@@ -266,46 +271,41 @@ export function BadClientDateDisplay({ utcDate }: { utcDate: string }) {
 
 ```typescript
 const badSave = async () => {
-  await supabase.from("events").insert({
-    event_date: Date.now(), // Error: Unix timestamp not accepted
+  await getDataClient().models.Event.create({
+    scheduledAt: Date.now(), // Error: Unix timestamp not accepted by AWSDateTime
   });
 };
 ```
 
-## Drizzle Schema Example
+## Amplify Data Schema Example
 
 ```typescript
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+// frontend/packages/backend/amplify/data/resource.ts
+import { a } from "@aws-amplify/backend";
 
-export const events = pgTable("events", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  // Event datetime (UTC, millisecond precision)
-  eventDate: timestamp("event_date", {
-    withTimezone: true,
-    precision: 3,
-  }).notNull(),
-  createdAt: timestamp("created_at", {
-    withTimezone: true,
-    precision: 3,
-  })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", {
-    withTimezone: true,
-    precision: 3,
-  })
-    .notNull()
-    .defaultNow(),
+const schema = a.schema({
+  Event: a
+    .model({
+      title: a.string().required(),
+      // Event datetime (UTC ISO 8601 → AWSDateTime)
+      scheduledAt: a.datetime(), // "2025-01-15T10:30:00.000Z"
+      // createdAt / updatedAt are added automatically as UTC ISO 8601
+    })
+    .authorization((allow) => [allow.owner()]),
 });
 ```
 
 ## Key Points
 
-- **Consistency**: DB always UTC, user timezone only when displaying
-- **Precision**: `timestamptz(3)` ensures millisecond precision
+- **Consistency**: data layer always UTC, user timezone only when displaying
+- **AWSDateTime**: `a.datetime()` enforces ISO 8601 with a timezone offset; standardize on UTC (`Z`)
 - **Hydration**: Handle datetime in Client Components
 - **ISO 8601**: Convert to standard format with `toISOString()`
-- **Type Safety**: Auto-generate types with Supabase CLI
+- **Type Safety**: `Schema` types are generated from the Amplify Data schema
 
 This implementation prevents timezone-related bugs and hydration errors, enabling consistent datetime handling even in global applications.
+
+## References
+
+- [AWS AppSync scalar types (AWSDateTime)](https://docs.aws.amazon.com/appsync/latest/devguide/scalars.html)
+- [Amplify Data modeling](https://docs.amplify.aws/nextjs/build-a-backend/data/data-modeling/)

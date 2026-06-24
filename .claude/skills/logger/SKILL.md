@@ -1,6 +1,6 @@
 ---
 name: logger
-description: 統一ロギング戦略ガイダンス。Frontend (Pino + loglevel)、Backend-py (structlog)、Edge Functions (軽量実装) での構造化ログについての質問に使用。ログレベル設定、環境変数、child() による階層化ロガーの実装支援を提供。
+description: 統一ロギング戦略ガイダンス。Frontend (Pino + loglevel)、Backend-py (structlog, Lambda/CloudWatch) での構造化ログについての質問に使用。ログレベル設定、環境変数、child() による階層化ロガーの実装支援を提供。
 ---
 
 # 統一ロギング戦略スキル
@@ -13,8 +13,11 @@ description: 統一ロギング戦略ガイダンス。Frontend (Pino + loglevel
 |----------|-----------|----------|
 | **Frontend (Server)** | Pino | `frontend/packages/logger/server/` |
 | **Frontend (Client)** | loglevel | `frontend/packages/logger/client/` |
-| **Backend-py** | structlog | `backend-py/packages/core/src/core/logging.py` |
-| **Edge Functions** | 独自実装 | `supabase/functions/shared/logger/` |
+| **Backend-py (Lambda)** | structlog | `backend-py/packages/core/src/core/logging.py` |
+
+> Backend-py（FastAPI）は AWS Lambda 上で動くため、structlog の出力（stdout）は自動的に
+> **CloudWatch Logs** に集約される。本番では JSON 形式（`LOG_FORMAT=json`）にして CloudWatch
+> Logs Insights / メトリクスフィルタで検索できるようにする。
 
 ## 共通仕様
 
@@ -35,9 +38,11 @@ description: 統一ロギング戦略ガイダンス。Frontend (Pino + loglevel
 
 | 環境変数 | ドメイン | 用途 | デフォルト |
 |----------|---------|------|-----------|
-| `LOG_LEVEL` | Backend-py, Edge Functions | ログレベル | `info` |
-| `LOG_FORMAT` | Backend-py, Edge Functions | 出力形式 | `pretty`(開発) / `json`(本番) |
+| `LOG_LEVEL` | Backend-py (Lambda) | ログレベル | `info` |
+| `LOG_FORMAT` | Backend-py (Lambda) | 出力形式 | `pretty`(開発) / `json`(本番) |
 | `NEXT_PUBLIC_LOG_LEVEL` | Frontend Client | ログレベル | `warn`(本番) / `debug`(開発) |
+
+> Lambda 環境変数は `amplify/functions/api/resource.ts` で設定する。
 
 ### 出力形式
 
@@ -171,41 +176,47 @@ logger.info(
 
 ---
 
-## Edge Functions Logger
+## Lambda (FastAPI) のログ → CloudWatch
+
+FastAPI は AWS Lambda 上で動くため、専用の Edge ロガーは無い。backend-py の structlog
+(`core.logging`) をそのまま使い、stdout 出力が CloudWatch Logs に集約される。Webhook など
+個別ハンドラでは `child()` 相当（structlog の `bind`）でコンテキストを付与する。
 
 ### 基本的な使用
 
-```typescript
-import { createFunctionLogger } from "../shared/logger/index.ts"
+```python
+from core.logging import get_logger
 
-const logger = createFunctionLogger("onesignal-webhooks")
+logger = get_logger("sns-webhooks")
 
-// 基本的なログ
-logger.info("Received webhook", { eventType: "notification.delivered" })
-logger.error("Processing failed", { error: errorMessage })
+# 基本的なログ（CloudWatch Logs に出力される）
+logger.info("Received webhook", event_type="notification.delivered")
+logger.error("Processing failed", error=str(exc))
 ```
 
-### 子ロガー（コンテキスト継承）
+### コンテキスト継承（bind）
 
-```typescript
-const logger = createFunctionLogger("polar-webhooks")
+```python
+logger = get_logger("polar-webhooks")
 
-// ハンドラーごとに子ロガーを作成
-const orderLogger = logger.child({ handler: "order" })
-orderLogger.info("Processing order", { orderId: "ord-123" })
+# ハンドラーごとにコンテキストを束ねる（structlog の bind）
+order_logger = logger.bind(handler="order")
+order_logger.info("Processing order", order_id="ord-123")
 ```
 
 ### 出力例
 
 **開発環境 (Pretty):**
 ```
-[10:30:45] INFO  Received webhook | functionName="onesignal-webhooks" eventType="notification.delivered"
+2025-01-10 10:30:45 [info     ] Received webhook   logger=sns-webhooks event_type=notification.delivered
 ```
 
-**本番環境 (JSON):**
+**本番環境 (JSON, CloudWatch):**
 ```json
-{"timestamp":"2025-01-10T01:30:45.123Z","level":"info","message":"Received webhook","functionName":"onesignal-webhooks","eventType":"notification.delivered"}
+{"timestamp":"2025-01-10T01:30:45.123Z","level":"info","event":"Received webhook","logger":"sns-webhooks","event_type":"notification.delivered"}
 ```
+
+> CloudWatch でのログ確認: `aws logs tail "/aws/lambda/<function_name>" --follow`
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: tanstack-query
-description: TanStack Query v5 によるサーバー状態管理ガイダンス。useQuery、useMutation、QueryClient、キャッシュ無効化、Supabase連携についての質問に使用。クエリキー設計、SSR対応、FSD配置方針の実装支援を提供。
+description: TanStack Query v5 によるサーバー状態管理ガイダンス。useQuery、useMutation、QueryClient、キャッシュ無効化、Amplify Data（getDataClient）連携についての質問に使用。クエリキー設計、SSR対応、FSD配置方針の実装支援を提供。
 ---
 
 # TanStack Query v5 スキル
@@ -33,21 +33,15 @@ frontend/packages/query/
 ```typescript
 'use client'
 import { useQuery } from '@workspace/query'
-import { createClient } from '@workspace/client-supabase/client'
+import { getDataClient } from '@workspace/data-client'
 
-export function useUserProfile(userId: string) {
-  const supabase = createClient()
-
+export function useUserProfile(id: string) {
   return useQuery({
-    queryKey: ['users', userId, 'profile'],
+    queryKey: ['userProfiles', id, 'profile'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
+      const { data, errors } = await getDataClient().models.UserProfile.get({ id })
 
-      if (error) throw error
+      if (errors) throw new Error(errors.map((e) => e.message).join(', '))
       return data
     },
     staleTime: 60 * 1000, // 1分間はstale判定しない
@@ -55,32 +49,33 @@ export function useUserProfile(userId: string) {
 }
 ```
 
+> Amplify Data の認可は `amplify/data/resource.ts` の `allow.owner()` /
+> `allow.authenticated()` 等で行うため、クエリ側でユーザー絞り込みを書く必要はない
+> （`allow.owner()` なら呼び出しユーザー自身のレコードだけが返る）。
+
 ### Mutation（データ更新）
 
 ```typescript
 'use client'
 import { useMutation, useQueryClient } from '@workspace/query'
-import { createClient } from '@workspace/client-supabase/client'
+import { getDataClient } from '@workspace/data-client'
 
 export function useUpdateUserProfile() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ userId, updates }) => {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update(updates)
-        .eq('user_id', userId)
-        .select()
-        .single()
+    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, unknown> }) => {
+      const { data, errors } = await getDataClient().models.UserProfile.update({
+        id,
+        ...updates,
+      })
 
-      if (error) throw error
+      if (errors) throw new Error(errors.map((e) => e.message).join(', '))
       return data
     },
-    onSuccess: (data, { userId }) => {
+    onSuccess: (_data, { id }) => {
       // キャッシュを無効化して再取得
-      queryClient.invalidateQueries({ queryKey: ['users', userId] })
+      queryClient.invalidateQueries({ queryKey: ['userProfiles', id] })
     },
   })
 }

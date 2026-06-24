@@ -26,72 +26,79 @@
 
 ---
 
-## RLS Testing with pgTAP
+## Authorization Testing (Amplify Data)
 
-### MANDATORY: Use pgTAP for RLS and DB-layer validation
+### MANDATORY: Declare authorization rules in the schema, verify via sandbox
 
-RLS policies, DB functions, triggers, and constraints are verified with **pgTAP** via `supabase test db`. All RLS tests live in `supabase/tests/` as `.sql` files and run with:
+Authorization is **not** tested at a database layer. In Amplify Data, access control is declared
+in the schema with `.authorization((allow) => [...])` in
+`frontend/packages/backend/amplify/data/resource.ts` (this replaces row-level security / RLS).
+Correctness is verified against a deployed **per-dev cloud sandbox** (`ampx sandbox`) through
+integration / E2E tests, not via standalone DB-layer SQL tests.
 
-```bash
-test-db   # = supabase test db --local (devenv script)
+```typescript
+// frontend/packages/backend/amplify/data/resource.ts
+const schema = a.schema({
+  Todo: a
+    .model({ content: a.string() })
+    .authorization((allow) => [allow.owner()]),
+});
 ```
 
-詳細は `.claude/skills/pgtap/SKILL.md` を参照。ここではポリシーだけを示す。
+### Why authorization is verified via sandbox integration / E2E
 
-### Why pgTAP (and not supabase-js tests)
-
-- RLS の正しさは **DB 層で完結して検証**するのが最短・最堅牢
-- マルチテナント / PII 保護が最重要 → DB 層の境界で絶対に漏らさない
-- Supabase 公式が `supabase test db` で直接サポート
-- アプリ経由テスト（supabase-js + Vitest）だと「RLS のバグ」と「クエリのバグ」が混ざって切り分け困難
+- 認可ルールは **schema にコードファーストで宣言**され、AppSync の resolver として強制される
+- 正しさは実際にデプロイした sandbox（Cognito + AppSync + DynamoDB）に対してクライアント越しに検証するのが最も実態に近い
+- マルチテナント / PII 保護は「所有者・userPool 認可」をルールとして宣言し、別ユーザー文脈での拒否を確認する
+- 実ブラウザ / 実機でのフロー確認は Maestro が担当
 
 ### FSD `api/` segment に対する単体テストは不要
 
-FSD の `api/` セグメント（supabase-js を叩く薄いクエリ関数）には **単体テストを書かない**。理由:
+FSD の `api/` セグメント（`getDataClient()` を叩く薄いクエリ関数）には **単体テストを書かない**。理由:
 
-- RLS の正しさは pgTAP で DB 層で保証済み
-- supabase-js のクエリビルダーそのものをアプリ側でテストする価値は薄い
+- 認可の正しさは schema の `.authorization(...)` 宣言と sandbox に対する検証で保証される
+- データクライアント（`generateClient<Schema>()` ラッパー）そのものをアプリ側でテストする価値は薄い
 - 実ブラウザでのフロー確認は Maestro が担当
 
 代わりに以下のレイヤーでテストを書く:
 
 | レイヤー | テスト手段 | 目的 |
 |----------|-----------|------|
-| RLS / DB 関数 / 制約 | pgTAP (`test-db` script) | DB 層の境界保証 |
+| 認可ルール / データアクセス | sandbox に対する integration / E2E | デプロイ済み AppSync の境界保証 |
 | `model/` のビジネスロジック | Vitest 単体テスト (TDD) | 純粋関数・reducer・state derivation |
 | `lib/` ユーティリティ | Vitest 単体テスト (TDD) | 関数の入出力 |
 | UI コンポーネント | Storybook | 見た目・状態分岐（単体テスト不要） |
 | E2E フロー | Maestro | 画面遷移・認証フロー |
 
-### RLS テストマトリクス（必須カバレッジ）
+### 認可検証マトリクス（必須カバレッジ）
 
-RLS を設定したテーブルは以下すべてを検証する:
+認可ルールを設定したモデルは、最低限以下の文脈を検証する:
 
-| ロール | SELECT | INSERT | UPDATE | DELETE |
-|--------|--------|--------|--------|--------|
-| `anon`（未認証・`tests.clear_authentication()`）| ✅ | ✅ | ✅ | ✅ |
-| `authenticated`（自テナント/所有者）| ✅ | ✅ | ✅ | ✅ |
-| `authenticated`（他テナント/非所有者）| ✅ | ✅ | ✅ | ✅ |
+| 文脈 | read (list/get) | create | update | delete |
+|------|------|------|------|------|
+| 未認証（サインアウト状態）| ✅ | ✅ | ✅ | ✅ |
+| 認証済み（所有者 / 自テナント）| ✅ | ✅ | ✅ | ✅ |
+| 認証済み（非所有者 / 他テナント）| ✅ | ✅ | ✅ | ✅ |
 
-許可ケースは `lives_ok` / `results_eq`、拒否ケースは `throws_ok`（書き込み系）または `is_empty`（読み取り系）で検証する。
+許可ケースは操作が成功すること、拒否ケースはエラー（権限不足）または空結果になることを検証する。
 
-### TDD ワークフロー（pgTAP）
+### TDD ワークフロー（認可ルール）
 
-1. **Red**: RLS ポリシーが未実装の状態で拒否テストを書き、`test-db` で FAIL することを確認
-2. **Green**: `drizzle/schema/` にポリシーを追加 → `devenv tasks run app:migrate-dev` → `test-db` で PASS
-3. **Refactor**: ポリシー式を整理。テストは触らない
+1. **Red**: ルール未設定 / 不十分な状態で拒否を期待するテストを書き、FAIL することを確認
+2. **Green**: `amplify/data/resource.ts` に `.authorization(...)` を追加 → `sandbox` でデプロイ → PASS
+3. **Refactor**: ルールを整理。テストは触らない
 
 **NEVER**:
-- テストを書き換えて PASS させる（実装側を修正する）
-- RLS を disable してテストする
-- `authenticate_as_service_role()` のまま RLS 挙動を検証する
+- テストを書き換えて PASS させる（実装側＝ schema を修正する）
+- 認可ルールを無効化して検証する
+- 管理者 / バイパス文脈のまま一般ユーザーの認可挙動を検証する
 
 ### Enforcement
 
-- ❌ RLS ポリシーを追加したのに pgTAP テストを書かない
-- ❌ 自テナント/他テナントの両方を検証しない
-- ❌ SELECT だけ書いて INSERT/UPDATE/DELETE を省略
-- ✅ テストマトリクスをすべて埋める
+- ❌ 認可ルールを追加したのに検証テストを書かない
+- ❌ 所有者 / 非所有者の両方を検証しない
+- ❌ read だけ書いて create/update/delete を省略
+- ✅ 検証マトリクスをすべて埋める
 - ✅ ポジティブ/ネガティブ両方を検証
 
 ---
@@ -102,7 +109,7 @@ RLS を設定したテーブルは以下すべてを検証する:
 
 ### 作業終了前チェックリスト
 
-1. **全テスト実行**: `test` script を実行
+1. **全テスト実行**: `unit-test` を実行（個別に `test-frontend` / `test-backend-py`）
 2. **失敗テストの対応**:
    - 原因分析を実施
    - 実装の修正（テストは変更しない）
@@ -128,12 +135,20 @@ RLS を設定したテーブルは以下すべてを検証する:
 
 ---
 
+## Test Commands
+
+| Operation | Command |
+|-----------|---------|
+| **Frontend Tests** | `test-frontend` (Vitest) |
+| **Backend Tests** | `test-backend-py` (pytest) |
+| **All Unit Tests** | `unit-test` |
+| **E2E (Maestro)** | `e2e` / `e2e-web` / `e2e-mobile` |
+
+---
+
 ## References
 
-- [Supabase: pgTAP Extension](https://supabase.com/docs/guides/database/extensions/pgtap)
-- [Supabase: Testing Overview](https://supabase.com/docs/guides/local-development/testing/overview)
-- [Supabase: pgTAP Extended](https://supabase.com/docs/guides/local-development/testing/pgtap-extended)
-- [supabase test db CLI](https://supabase.com/docs/reference/cli/supabase-test-db)
-- [usebasejump/supabase-test-helpers](https://github.com/usebasejump/supabase-test-helpers) — `tests.authenticate_as()` などのヘルパー
-- [pgTAP 本家ドキュメント](https://pgtap.org/documentation.html)
-- プロジェクト内詳細: `.claude/skills/pgtap/SKILL.md`
+- [Amplify Data — Customize authorization rules](https://docs.amplify.aws/nextjs/build-a-backend/data/customize-authz/)
+- [Amplify Data modeling](https://docs.amplify.aws/nextjs/build-a-backend/data/data-modeling/)
+- [Amplify sandbox (ampx sandbox)](https://docs.amplify.aws/nextjs/deploy-and-host/sandbox-environments/setup/)
+- [Maestro E2E](https://maestro.mobile.dev/)

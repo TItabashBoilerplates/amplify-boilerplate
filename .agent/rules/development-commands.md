@@ -1,23 +1,37 @@
 # Development Commands
 
-すべて devenv の **scripts** (PATH 直結) または **tasks** (`devenv tasks run <name>`) を使用する。Makefile は **deprecated**（削除済み）。直接 `bun run` / `uv run` / `cd frontend && ...` 等での実行は禁止。
+すべて devenv の **scripts** (PATH 直結) または `devenv up [PROCESSES...]` を使用する。Makefile は **deprecated**（削除済み）。直接 `bun run` / `uv run` / `bunx ampx` / `cd frontend && ...` 等での実行は禁止。
 
 正典: `/.claude/rules/commands.md`
 
 ## Initial Setup
 
-`devenv shell` 進入 (direnv 経由含む) で `setup:*` task が自動実行され、依存・secrets が同期される。明示的な init コマンドは不要。
+`bootstrap` で依存をインストールする（frontend: bun / backend-py: uv）。`devenv shell` 進入 (direnv 経由含む) で `setup:*` task が自動実行され、依存が同期される場合もある。
+
+```bash
+bootstrap                       # 依存インストール（frontend + backend-py）
+```
+
+## Amplify Backend (sandbox)
+
+データモデル・認可・ストレージ・関数の変更は `frontend/packages/backend/amplify/` を編集し、
+`ampx sandbox` で per-dev のクラウド sandbox に反映する（Supabase ローカル Docker の代替）。
+
+```bash
+sandbox                         # ampx sandbox（watch + amplify_outputs.json 生成）
+sandbox-once                    # 1 回デプロイして終了
+sandbox-delete                  # sandbox 破棄
+```
+
+> ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
 
 ## Running Services
 
 ```bash
-devenv up                       # 軽量セット起動 (Supabase + backend + storybook、TUI 付き)
-dev-web                         # 軽量セット + Next.js (web)
-dev-mobile                      # 軽量セット + Expo Metro (mobile, non-interactive)
-dev-all                         # 軽量セット + 全 frontend apps
-devenv up backend web           # 任意組み合わせ
-stop                            # devenv プロセス + Supabase Docker 全停止
-supabase-start / supabase-stop  # Supabase Docker 単独制御
+dev-web                         # Next.js (web)
+dev-mobile                      # Expo Metro (mobile)
+storybook                       # Storybook
+devenv up [PROCESSES...]        # 任意の常駐サービス組み合わせ
 ```
 
 ## Lint & Format
@@ -32,12 +46,6 @@ format-frontend         # Biome format (auto-fix)
 format-frontend-check   # Biome format check (check only)
 type-check-frontend     # TypeScript type checking
 
-# Drizzle (Biome)
-lint-drizzle            # Biome lint (auto-fix)
-lint-drizzle-ci         # Biome lint (CI mode, no fixes)
-format-drizzle          # Biome format (auto-fix)
-format-drizzle-check    # Biome format check (check only)
-
 # Backend Python (Ruff + MyPy)
 lint-backend-py         # Ruff lint (auto-fix)
 lint-backend-py-ci      # Ruff lint (CI mode, no fixes)
@@ -45,60 +53,49 @@ format-backend-py       # Ruff format (auto-fix)
 format-backend-py-check # Ruff format check (check only)
 type-check-backend-py   # MyPy type checking (strict mode)
 
-# Edge Functions (Deno)
-lint-functions          # Deno lint
-format-functions        # Deno format (auto-fix)
-format-functions-check  # Deno format check (check only)
-check-functions         # Deno type checking (auto-detect all functions)
-
 # FSD Boundary Check
 lint-fsd                # FSD boundary check (web + mobile, ESLint)
 
 # Integrated Commands (Recommended)
-lint                    # Lint all (Frontend + Drizzle + Backend Python + Edge Functions)
+lint                    # Lint all (Frontend + Backend Python)
 format                  # Format all (auto-fix)
 format-check            # Format check all (CI mode)
 type-check              # Type check all
 ci-check                # All CI checks (= devenv test、ローカル用 ci:check aggregator)
 ```
 
-## Database Operations
+## Amplify Data / Schema Operations
 
-ローカルマイグレーションは AI 自動実行可、本番 / staging は **ユーザー承認必須**。
+Amplify Data のスキーマ・認可ルールはコードファースト。`frontend/packages/backend/amplify/data/resource.ts`
+を `a.schema(...)` / `a.model(...)` で編集し、`sandbox`（`ampx sandbox`）が watch して AppSync + DynamoDB
+へ反映する。`Schema` 型と GraphQL クライアントは sandbox の deploy 時に自動生成される（手動の型生成タスクは不要）。
 
-```bash
-# Development Migration (local) — AI 実行可
-devenv tasks run app:migrate-dev    # Generate + apply migration + 型生成（フルフロー、推奨）
-devenv tasks run db:migrate-dev     # マイグレーション生成 + 適用のみ
-
-# Production Migration Apply — ユーザー承認必須
-devenv tasks run -P staging    db:migrate-deploy
-devenv tasks run -P production db:migrate-deploy
-
-# Type Generation (usually included in migrate-dev)
-devenv tasks run model:build        # Generate Supabase types + Drizzle schema (frontend + functions)
+```typescript
+// frontend/packages/backend/amplify/data/resource.ts
+const schema = a.schema({
+  Todo: a
+    .model({
+      content: a.string(),
+    })
+    .authorization((allow) => [allow.owner()]),
+})
 ```
 
-## Model Generation
+フロントからの利用:
 
-```bash
-devenv tasks run model:frontend     # Frontend: Supabase types + Hey API client + Drizzle schema copy
-devenv tasks run model:functions    # Edge Functions: Supabase types + Drizzle schema copy
-devenv tasks run model:build        # All models (= model:frontend + model:functions)
+```typescript
+import type { Schema } from '@workspace/backend'
+import { getDataClient } from '@workspace/data-client'
+
+const { data: todos } = await getDataClient().models.Todo.list()
 ```
-
-**Generated for Edge Functions**:
-
-- `supabase/functions/shared/types/supabase/schema.ts` - Supabase TypeScript types
-- `supabase/functions/shared/drizzle/` - Drizzle schema (TypeScript)
 
 ## Test
 
 ```bash
-test                # 全 unit test (frontend + backend-py)
+unit-test           # 全 unit test (frontend + backend-py)
 test-frontend       # Vitest
 test-backend-py     # pytest
-test-db             # pgTAP DB tests
 e2e / e2e-web / e2e-mobile  # Maestro E2E
 ```
 
@@ -107,11 +104,10 @@ e2e / e2e-web / e2e-mobile  # Maestro E2E
 ```bash
 build-frontend       # Next.js production build
 build-storybook      # Storybook static build
-
-devenv tasks run -P staging    deploy:functions   # Edge Functions (staging)
-devenv tasks run -P production deploy:functions   # Edge Functions (production)
-devenv tasks run -P production deploy:supabase    # config + buckets + functions + secrets フルデプロイ
 ```
+
+ブランチ / 本番デプロイは **AWS Amplify Hosting** が `amplify.yml`（monorepo, appRoot=frontend）に従い
+`ampx pipeline-deploy` と Next.js build を実行する（CI）。手動の deploy script は不要。
 
 ## Frontend Development (Editor / 個別パッケージ追加)
 
@@ -132,58 +128,16 @@ Backend follows clean architecture with strict separation of concerns:
 - Gateways provide data access interfaces
 - Infrastructure handles external dependencies
 
+`backend-py` は uv workspace（`apps/api` = FastAPI, `apps/mcp`, `packages/core` = logger / exceptions / auth utils）。
+FastAPI は AWS Lambda 上に Mangum ハンドラ (`api.lambda_handler.handler`) で載り、Amplify の Python custom
+function (`frontend/packages/backend/amplify/functions/api/resource.ts`, CDK Function PYTHON_3_13) として
+デプロイされる。認証は Cognito JWT 検証ミドルウェア
+(`backend-py/.../middleware/auth_middleware.py`)。
+
 Code quality tools:
 
 - Ruff for linting (line length: 88)
 - MyPy for type checking (strict mode)
 - Maximum function complexity: 3 (McCabe)
 
-## Edge Functions Development
-
-Edge Functions use Deno's native `Deno.serve` API for serverless API development:
-
-- Built with Deno runtime for TypeScript support
-- Native `Deno.serve` API for lightweight, efficient serverless functions
-- Each function should have a `deno.json` with import map configuration
-- **IMPORTANT**: Use `npm:` prefix for npm package imports by default
-  - Do not use JSR (`jsr:`) unless there's a specific reason
-  - Example: `"@supabase/supabase-js": "npm:@supabase/supabase-js@^2"`
-- Type-safe integration with Supabase client and database schema
-- Proper error handling with TypeScript type guards (`error instanceof Error`)
-
-### Using Drizzle Schema in Edge Functions
-
-You can use Drizzle schema directly in Edge Functions:
-
-```typescript
-// supabase/functions/example/index.ts
-import type { InferSelectModel, InferInsertModel } from "npm:drizzle-orm";
-import { generalUsers, generalUserProfiles } from "../shared/drizzle/index.ts";
-
-// Infer types
-type User = InferSelectModel<typeof generalUsers>;
-type NewUser = InferInsertModel<typeof generalUsers>;
-type UserProfile = InferSelectModel<typeof generalUserProfiles>;
-
-Deno.serve(async (req) => {
-  const user: User = {
-    id: crypto.randomUUID(),
-    displayName: "John Doe",
-    accountName: "johndoe",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  return new Response(JSON.stringify({ user }), {
-    headers: { "Content-Type": "application/json" },
-  });
-});
-```
-
-**Benefits**:
-
-- TypeScript type safety
-- Types auto-update when schema changes (when running `devenv tasks run model:build`)
-- Can use both Supabase-generated types and Drizzle types
-
-**→ For detailed Edge Functions documentation, see [`supabase/functions/README.md`](../../supabase/functions/README.md)**
+**→ For detailed Python backend documentation, see [`backend-py/README.md`](../../backend-py/README.md)**

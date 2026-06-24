@@ -11,35 +11,32 @@
 ```typescript
 // apps/web/src/views/dashboard/ui/DashboardPage.tsx
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 
 // モノレポ共有パッケージ
-import { createClient } from '@workspace/client-supabase/server'
-import type { Tables } from '@workspace/types/schema'
+import type { Schema } from '@workspace/backend'
+
+// Amplify サーバーコンテキスト（Cognito 認証）
+import { runWithAmplifyServerContext } from '@/shared/lib/amplify/server'
+import { getCurrentUser } from 'aws-amplify/auth/server'
+import { cookies } from 'next/headers'
 
 // FSD レイヤー
 import { UserSettings } from './UserSettings'
 
-type User = Tables<'users'>
+type User = Schema['User']['type']
 
 export default async function DashboardPage() {
-  await cookies() // キャッシュ無効化
+  const user = await runWithAmplifyServerContext({
+    nextServerContext: { cookies },
+    operation: (contextSpec) => getCurrentUser(contextSpec),
+  }).catch(() => null)
 
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-
-  if (error || !user) redirect('/login')
-
-  const { data: userData } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  if (!user) redirect('/login')
 
   return (
     <div>
-      <h1>Welcome, {user.email}</h1>
-      <UserSettings initialData={userData} userId={user.id} />
+      <h1>Welcome, {user.signInDetails?.loginId}</h1>
+      <UserSettings userId={user.userId} />
     </div>
   )
 }
@@ -54,41 +51,38 @@ export default async function DashboardPage() {
 import { useState } from 'react'
 
 // モノレポ共有パッケージ
-import { createClient } from '@workspace/client-supabase/client'
+import { getDataClient } from '@workspace/data-client'
 import { useMutation, useQueryClient } from '@workspace/query'
 import { Button, Input, Card, CardContent } from '@workspace/ui/components'
-import type { Tables } from '@workspace/types/schema'
+import type { Schema } from '@workspace/backend'
 
 // FSD レイヤー
 import { useUserStore } from '@/entities/user'
 
-type User = Tables<'users'>
+type User = Schema['User']['type']
 
 interface UserSettingsProps {
-  initialData: User | null
   userId: string
+  initialName?: string
 }
 
-export function UserSettings({ initialData, userId }: UserSettingsProps) {
-  const [displayName, setDisplayName] = useState(initialData?.display_name ?? '')
-  const supabase = createClient()
+export function UserSettings({ userId, initialName = '' }: UserSettingsProps) {
+  const [displayName, setDisplayName] = useState(initialName)
   const queryClient = useQueryClient()
   const updateUser = useUserStore((state) => state.setUser)
 
   const mutation = useMutation({
     mutationFn: async (newName: string) => {
-      const { data, error } = await supabase
-        .from('users')
-        .update({ display_name: newName })
-        .eq('id', userId)
-        .select()
-        .single()
+      const { data, errors } = await getDataClient().models.User.update({
+        id: userId,
+        displayName: newName,
+      })
 
-      if (error) throw error
+      if (errors) throw new Error(errors.map((e) => e.message).join(', '))
       return data
     },
     onSuccess: (data) => {
-      updateUser(data) // Zustand store 更新
+      if (data) updateUser(data) // Zustand store 更新
       queryClient.invalidateQueries({ queryKey: ['user', userId] })
     },
   })
@@ -151,7 +145,7 @@ import { Button } from '@workspace/ui/components'
 import { Input } from '@workspace/ui/components'
 
 // FSD 同一スライス
-import { signInWithOtp } from '../api'
+import { requestEmailOtp } from '../api'
 import type { AuthFormState } from '../model/types'
 
 export function LoginForm() {
@@ -160,7 +154,7 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
     async (_prevState, formData) => {
       const email = formData.get('email') as string
-      const result = await signInWithOtp(email)
+      const result = await requestEmailOtp(email)
 
       if ('error' in result) {
         return { success: false, message: result.error }
@@ -188,30 +182,35 @@ export function LoginForm() {
 }
 ```
 
-### Feature: Server Action
+### Feature: Email OTP リクエスト（Cognito）
+
+Cognito の passwordless Email OTP は `aws-amplify/auth` の `signIn`（クライアント側）で開始する。
 
 ```typescript
-// apps/web/src/features/auth/api/signInWithOtp.ts
-'use server'
+// apps/web/src/features/auth/api/requestEmailOtp.ts
+'use client'
 
-// モノレポ共有パッケージ
-import { createClient } from '@workspace/client-supabase/server'
+import { signIn } from 'aws-amplify/auth'
 
-export async function signInWithOtp(email: string) {
+export async function requestEmailOtp(email: string) {
   try {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true },
+    // USER_AUTH フロー + EMAIL_OTP で OTP メールを送信
+    await signIn({
+      username: email,
+      options: {
+        authFlowType: 'USER_AUTH',
+        preferredChallenge: 'EMAIL_OTP',
+      },
     })
-
-    if (error) return { error: error.message }
     return { success: true }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
 ```
+
+検証ページでは `confirmSignIn({ challengeResponse: otp })` で OTP を確認し、再送は
+`resendSignInCode()` を使う。
 
 ---
 
@@ -220,11 +219,11 @@ export async function signInWithOtp(email: string) {
 ```typescript
 // apps/web/src/entities/user/model/types.ts
 
-// モノレポ共有パッケージから型をインポート
-import type { Tables } from '@workspace/types/schema'
+// モノレポ共有パッケージから Schema 型をインポート
+import type { Schema } from '@workspace/backend'
 
-export type User = Tables<'users'>
-export type UserProfile = Tables<'user_profiles'>
+export type User = Schema['User']['type']
+export type UserProfile = Schema['UserProfile']['type']
 
 export interface UserWithProfile {
   user: User
@@ -254,7 +253,7 @@ export const useUserStore = create<UserState>((set) => ({
 
 ---
 
-## TanStack Query + Supabase
+## TanStack Query + Amplify Data
 
 ```typescript
 // apps/web/src/entities/user/api/userQueries.ts
@@ -262,10 +261,10 @@ export const useUserStore = create<UserState>((set) => ({
 
 // モノレポ共有パッケージ
 import { useQuery, useMutation, useQueryClient } from '@workspace/query'
-import { createClient } from '@workspace/client-supabase/client'
-import type { Tables } from '@workspace/types/schema'
+import { getDataClient } from '@workspace/data-client'
+import type { Schema } from '@workspace/backend'
 
-type User = Tables<'users'>
+type User = Schema['User']['type']
 
 // Query Keys
 export const userKeys = {
@@ -276,42 +275,33 @@ export const userKeys = {
 
 // Query Hook
 export function useUser(userId: string) {
-  const supabase = createClient()
-
   return useQuery({
     queryKey: userKeys.detail(userId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      const { data, errors } = await getDataClient().models.User.get({ id: userId })
 
-      if (error) throw error
-      return data as User
+      if (errors) throw new Error(errors.map((e) => e.message).join(', '))
+      return data
     },
   })
 }
 
 // Mutation Hook
 export function useUpdateUser() {
-  const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Partial<User> }) => {
-      const { data, error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single()
+      const { data, errors } = await getDataClient().models.User.update({
+        id: userId,
+        ...updates,
+      })
 
-      if (error) throw error
-      return data as User
+      if (errors) throw new Error(errors.map((e) => e.message).join(', '))
+      return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(data.id) })
+      if (data) queryClient.invalidateQueries({ queryKey: userKeys.detail(data.id) })
     },
   })
 }
@@ -323,11 +313,11 @@ export function useUpdateUser() {
 
 ```typescript
 // モノレポ共有パッケージ（@workspace/*）
-import { useAuth } from '@workspace/auth'
+import { useAuthUser } from '@workspace/auth'
 import { useQuery, useMutation } from '@workspace/query'
 import { Button, Card } from '@workspace/ui/components'
-import { createClient } from '@workspace/client-supabase/server'
-import type { Tables } from '@workspace/types/schema'
+import { getDataClient } from '@workspace/data-client'
+import type { Schema } from '@workspace/backend'
 
 // FSD レイヤー（@/*）
 import { HomePage } from '@/views/home'

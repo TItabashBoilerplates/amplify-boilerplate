@@ -53,7 +53,7 @@ export default async function Page() {
 
 ### 例外: 認証・認可チェックはブロックして良い
 
-認証チェック（`supabase.auth.getUser()`）や認可の決定は shell 描画前に `await` する。Suspense 内で行うと未認証 UI が一瞬漏れるリスクがあるため。
+認証チェック（`runWithAmplifyServerContext` + `getCurrentUser`）や認可の決定は shell 描画前に `await` する。Suspense 内で行うと未認証 UI が一瞬漏れるリスクがあるため。
 
 ## ルール 3: View コンポーネントは slot で受け取る
 

@@ -13,9 +13,13 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 | **State** | TanStack Query (server), Zustand (global) |
 | **Architecture** | Feature Sliced Design (FSD) |
 | **i18n** | next-intl (en, ja) |
-| **Backend** | FastAPI (Python), Supabase Edge Functions (Deno) |
-| **Database** | PostgreSQL, Drizzle ORM, pgvector |
-| **Auth** | Supabase Auth |
+| **Auth** | Amazon Cognito (Amplify Auth, passwordless Email OTP) |
+| **Data** | AWS AppSync + DynamoDB (Amplify Data, `a.schema`) |
+| **Storage** | Amazon S3 (Amplify Storage) |
+| **Backend (compute)** | FastAPI on AWS Lambda (Amplify Python custom function, Mangum) |
+| **Notifications** | Amazon SNS (Pinpoint for mobile push: follow-up) |
+| **Secrets** | Amplify secrets (SSM Parameter Store) |
+| **Hosting / CI-CD** | AWS Amplify Hosting (`amplify.yml`) |
 
 ## Commands (MANDATORY)
 
@@ -23,16 +27,21 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 
 ```bash
 # Setup
-# 不要 — `devenv shell` 進入 (direnv 経由含む) で setup:* タスクが自動実行:
-#   - secrets コピー / bun install (frontend, drizzle) / uv sync (backend-py)
+bootstrap              # 依存インストール (frontend: bun / backend-py: uv)
+#   ※ `devenv shell` 進入 (direnv 経由含む) で setup:* タスクが自動実行される
 
-# Services（軽量 default = supabase + backend + storybook）
-devenv up              # 軽量セット起動 (TUI 付き)
-dev-web                # 軽量 + Next.js (web)
-dev-mobile             # 軽量 + Expo Metro (mobile, non-interactive)
-dev-all                # 全部入り
-devenv up backend web  # 任意組み合わせ
-stop                   # devenv プロセス + Supabase 全停止
+# Amplify backend（Supabase ローカル Docker の代替）
+sandbox                # ampx sandbox（per-dev クラウド sandbox + amplify_outputs.json 生成、watch）
+sandbox-once           # 1 回デプロイして終了
+sandbox-delete         # sandbox 破棄
+#   ⚠️ sandbox / デプロイには AWS 認証情報（プロファイル）が必要
+
+# Dev servers
+dev-web                # Next.js (web)
+dev-mobile             # Expo Metro (mobile, non-interactive)
+storybook              # Storybook
+devenv up <names...>   # 任意組み合わせ
+stop                   # devenv プロセス停止
 
 # Devenv 外（対話的 TUI 必要時）
 frontend               # turbo dev (web + mobile 並列、重い)
@@ -41,22 +50,15 @@ mobile-ios / mobile-android / mobile-web   # Expo TUI を別ターミナルで
 # Quality
 lint                   # Lint all (auto-fix)
 format                 # Format all
-format-check           # Format check (CI)
-type-check             # Type check all
+type-check-frontend / type-check-backend-py
 ci-check               # CI gate (lint + format-check + type-check)
 
 # Tests
-test-db                # pgTAP DB tests
-e2e / e2e-web / e2e-mobile
+unit-test              # 全 unit test (frontend Vitest + backend-py pytest)
+e2e / e2e-web / e2e-mobile   # Maestro
 
-# Database (user approval required)
-devenv tasks run app:migrate-dev   # Generate + apply migration + types (recommended)
-devenv tasks run db:migrate-dev    # Migration only
-devenv tasks run model:build       # Regenerate types only
-
-# Profile switching for remote ops
-devenv tasks run -P staging db:migrate-deploy
-devenv tasks run -P production deploy:functions
+# Deploy（CI）
+#   Amplify Hosting が amplify.yml に従い ampx pipeline-deploy + Next.js build を実行
 ```
 
 **NEVER execute tools directly**:
@@ -64,12 +66,14 @@ devenv tasks run -P production deploy:functions
 ```bash
 # WRONG
 cd frontend && bun run biome check --write
+cd frontend/packages/backend && bunx ampx sandbox
 npx tsc --noEmit
 make lint           # ❌ Makefile は削除済み
 
 # CORRECT
 lint-frontend
 type-check-frontend
+sandbox
 ```
 
 ---
@@ -105,27 +109,30 @@ type-check-frontend
 - Modify tests to make them pass
 - Leave failing tests at end of work
 
-### 3. Supabase-First Architecture
+### 3. Amplify-First Architecture
 
 **Priority order**:
-1. **First**: `supabase-js` / `@supabase/ssr` from frontend
-2. **Second**: Edge Functions (if necessary)
-3. **Last Resort**: `backend-py` (only when required)
+1. **First**: Amplify Data from the frontend — `getDataClient()` (`@workspace/data-client`) で AppSync/DynamoDB に直接アクセス（CRUD・認可は `a.schema` の `allow.*` に集約）
+2. **Second**: Amplify Auth / Storage を直接（`aws-amplify/auth`, S3 path-based）
+3. **Last Resort**: `backend-py` (FastAPI on Lambda) — 必要なときのみ
 
 **Use backend-py ONLY for**:
-- Complex database transactions
+- 複雑なオーケストレーション / 複数リソースをまたぐ処理
 - AI/ML processing (LangChain, embeddings)
 - Long-running background jobs
 - Python-specific library requirements
 
-### 4. Auto-Generated Files (DO NOT EDIT)
+### 4. Backend Definition Files (where to edit)
 
-**NEVER manually edit**:
-- `frontend/packages/types/schema.ts`
-- `supabase/functions/shared/types/supabase/schema.ts`
-- `backend-py/apps/api/src/api/domain/entity/models.py`
+**Amplify バックエンドの変更は `frontend/packages/backend/amplify/` を編集**:
+- `amplify/data/resource.ts` — データモデル + 認可（`a.schema` / `allow.*`）
+- `amplify/auth/resource.ts` — Cognito（Email OTP）
+- `amplify/storage/resource.ts` — S3（path-based）
+- `amplify/functions/api/resource.ts` — FastAPI Python Lambda
+- `amplify/backend.ts` — `defineBackend({ auth, data, storage, api })` + SNS 配線
 
-**Correct workflow**: Edit `drizzle/schema/*.ts` → run `devenv tasks run app:migrate-dev`
+**Correct workflow**: 上記を編集 → `sandbox` (= `ampx sandbox`) で per-dev クラウド sandbox に反映。
+フロントは `import type { Schema } from '@workspace/backend'` で型を共有する（手書きの型生成は不要）。
 
 ### 5. Internationalization (i18n)
 
@@ -145,7 +152,7 @@ Both `en.json` and `ja.json` are required.
 
 | Layer | Timezone | Format |
 |-------|----------|--------|
-| **Database** | UTC | `TIMESTAMP WITH TIME ZONE` |
+| **Database (DynamoDB)** | UTC | ISO 8601 string (`AWSDateTime` / `a.datetime()`) |
 | **API** | UTC | ISO 8601 string |
 | **Frontend** | Convert UTC ⇔ Local | `toISOString()` / `Intl.DateTimeFormat` |
 
@@ -153,21 +160,21 @@ Both `en.json` and `ja.json` are required.
 
 ### 7. Storage Policy
 
-**Default: Private buckets** (unless explicitly requested otherwise)
+**Default: Private, path-based access** (Amplify Storage / S3, unless explicitly requested otherwise)
 
 ```typescript
-// CORRECT: Use createSignedUrl for private files
-const { data } = await supabase.storage
-  .from('documents')
-  .createSignedUrl('path/to/file.pdf', 60)
+// CORRECT: download/upload via aws-amplify/storage with private paths
+import { getUrl, uploadData } from 'aws-amplify/storage'
 
-// WRONG: getPublicUrl on private bucket
-const { data } = supabase.storage
-  .from('documents')
-  .getPublicUrl('path/to/file.pdf')
+const { url } = await getUrl({
+  path: ({ identityId }) => `private/${identityId}/documents/file.pdf`,
+  options: { expiresIn: 60 },
+})
+
+// WRONG: exposing private paths publicly / hardcoding another user's identityId
 ```
 
-**RESTful path structure**: `{resource}/{id}/{sub-resource}/{filename}`
+**Path structure**: `private/{identityId}/{resource}/{filename}`（アクセス制御は `defineStorage` の access ルールで宣言）
 
 ---
 
@@ -178,8 +185,7 @@ const { data } = supabase.storage
 | Frontend (Web) | [frontend/README.md](frontend/README.md) |
 | Frontend (Mobile) | [frontend/apps/mobile/README.md](frontend/apps/mobile/README.md) |
 | Backend Python | [backend-py/README.md](backend-py/README.md) |
-| Database Schema | [drizzle/README.md](drizzle/README.md) |
-| Edge Functions | [supabase/functions/README.md](supabase/functions/README.md) |
+| Amplify Backend (auth/data/storage/functions) | [frontend/packages/backend/README.md](frontend/packages/backend/README.md) |
 
 ---
 
@@ -189,9 +195,8 @@ const { data } = supabase.storage
 |-----------|-----------------|
 | Frontend Web | **Bun** |
 | Frontend Mobile | **Bun** |
+| Amplify backend (`packages/backend`) | **Bun** (`ampx`) |
 | Backend Python | **uv** |
-| Drizzle | **Bun** |
-| Edge Functions | **Deno** |
 
 ---
 
@@ -202,12 +207,13 @@ const { data } = supabase.storage
 非対話環境（CI / Claude Code）では `/tmp/devenv-*/processes/logs/<process>.{stdout,stderr}.log` を直接 tail する:
 
 ```bash
-tail -100 /tmp/devenv-*/processes/logs/backend.stderr.log
 tail -100 /tmp/devenv-*/processes/logs/storybook.stderr.log
 tail -100 /tmp/devenv-*/processes/logs/web.stderr.log     # devenv up web 起動時
 ```
 
-詳細は `.claude/skills/debugging/SKILL.md` を参照。
+Amplify バックエンドのデバッグは `sandbox` (= `ampx sandbox`) のコンソール出力、生成された
+`amplify_outputs.json`、および Lambda/AppSync の CloudWatch Logs を確認する。AWS 認証情報
+（プロファイル）が未設定だと sandbox は起動しない。詳細は `.claude/skills/debugging/SKILL.md` を参照。
 
 ---
 
@@ -216,10 +222,10 @@ tail -100 /tmp/devenv-*/processes/logs/web.stderr.log     # devenv up web 起動
 Detailed guidance available in `.codex/skills/`:
 
 - `fsd/` - Feature Sliced Design
-- `drizzle/` - Drizzle ORM schema management
-- `supabase/` - Supabase Auth, RLS, Storage
+- `monorepo/` - Bun workspace + FSD monorepo structure
 - `tanstack-query/` - TanStack Query v5
 - `datetime/` - DateTime handling patterns
 - `i18n/` - next-intl internationalization
 - `shadcn-ui/` - shadcn/ui + TailwindCSS
-- `debugging/` - デバッグ手順（devenv 2.0 native process manager の TUI 優先）
+- `maestro/` - Maestro E2E (Cognito Email OTP)
+- `debugging/` - デバッグ手順（devenv TUI + ampx sandbox）

@@ -3,14 +3,15 @@
 ## Architecture
 
 - Clean Architecture layers (apps/api 内)
-- SQLModel for sync implementation
+- FastAPI on AWS Lambda（Mangum アダプタ。Amplify Python custom function がパッケージ・デプロイ）
 - uv workspace モノレポ（`apps/{api,mcp}` + `packages/core`）
 
 ## Patterns
 
-- Gateway pattern for DRY
+- Gateway pattern for DRY（外部システムは boto3 (DynamoDB / S3) / AppSync 経由）
 - Type hints required
-- 共有基盤 (logger / supabase client / 共通例外) は `packages/core` に集約
+- 認可は Cognito JWT 検証（`api/middleware/auth_middleware.py`）
+- 共有基盤 (logger / Cognito auth utils / 共通例外) は `packages/core` に集約
 - サービス固有のドメイン (entity / 固有例外) は `apps/<service>/src/<service>/domain/`
 
 ## Formatting
@@ -23,7 +24,7 @@
 
 ## Commands
 
-すべて devenv の **scripts** (PATH 直結) を使用する。Makefile は **deprecated**（削除済み）。直接 `uv run ruff` / `uv run mypy` / `uv run pytest` での実行は禁止。
+すべて devenv の **scripts** (PATH 直結) を使用する。直接 `uv run ruff` / `uv run mypy` / `uv run pytest` での実行は禁止。
 
 ```bash
 lint-backend-py           # Ruff lint (workspace 全体, auto-fix)
@@ -34,7 +35,10 @@ test-backend-py           # pytest (workspace 全体)
 
 正典: `/.claude/rules/commands.md`
 
-## Auto-Generated
+## Lambda / Amplify
 
-`apps/api/src/api/domain/entity/models.py` is auto-generated on container startup.
-DO NOT edit manually.
+- Lambda ハンドラは `api.lambda_handler.handler`（Mangum）。
+- Lambda 環境変数（`COGNITO_USER_POOL_ID` / `COGNITO_APP_CLIENT_ID` / `SNS_TOPIC_ARN`）は
+  frontend 側 `frontend/packages/backend/amplify/backend.ts` が注入する。
+- シークレットは Amplify secrets（SSM Parameter Store、`ampx sandbox secret set NAME`）で管理する。
+- バンドル・デプロイは `ampx sandbox`（per-dev）/ `ampx pipeline-deploy`（CI）が `backend-py` を packaging する。

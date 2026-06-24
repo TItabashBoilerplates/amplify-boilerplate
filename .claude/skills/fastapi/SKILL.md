@@ -612,3 +612,91 @@ async def handle_items(request: Request):
     if request.method == "GET":
         return []
 ```
+
+## Running on AWS Lambda (this repo)
+
+In this boilerplate the FastAPI app runs on **AWS Lambda** via an Amplify Python custom function
+(`frontend/packages/backend/amplify/functions/api/resource.ts`, CDK `Function` with
+`PYTHON_3_13`). The Lambda handler is **Mangum**, which adapts the ASGI app to the Lambda event/context.
+
+```python
+# backend-py/.../api/lambda_handler.py
+from mangum import Mangum
+
+from api.main import app  # the FastAPI() instance
+
+# Amplify wires this as the handler: "api.lambda_handler.handler"
+handler = Mangum(app)
+```
+
+> `fastapi dev` / `fastapi run` are for local iteration. In the cloud the app is invoked through
+> Mangum on Lambda — do not assume a long-lived uvicorn process; keep startup cheap and avoid
+> module-level blocking I/O.
+
+## Authentication: verify Cognito JWTs
+
+Auth is **Amazon Cognito** (Amplify Auth). Endpoints verify the Cognito-issued JWT (the `idToken`
+sent as `Authorization: Bearer <token>`) instead of any third-party auth. Implement verification as
+a dependency so it composes with `Annotated` and can be shared across routers.
+
+```python
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+# middleware/auth_middleware.py verifies signature against the Cognito User Pool JWKS,
+# and checks `iss` (the user pool) and `aud`/`client_id` and `token_use`.
+from middleware.auth_middleware import verify_cognito_jwt
+
+app = FastAPI()
+bearer = HTTPBearer()
+
+
+async def get_current_user(
+    creds: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+) -> dict:
+    try:
+        claims = verify_cognito_jwt(creds.credentials)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Cognito token",
+        ) from exc
+    return claims  # includes `sub` (Cognito user id), `email`, etc.
+
+
+CurrentUserDep = Annotated[dict, Depends(get_current_user)]
+
+
+@app.get("/me")
+async def read_me(user: CurrentUserDep) -> dict:
+    return {"sub": user["sub"], "email": user.get("email")}
+```
+
+## Accessing AWS resources from Lambda (boto3)
+
+There is no Postgres/Supabase client. Reach DynamoDB (Amplify Data tables) and S3 (Amplify Storage)
+with **boto3** using the Lambda execution role's IAM credentials (no static keys). Use a
+`def` *path operation* (or `asyncify`) since boto3 is blocking.
+
+```python
+import boto3
+
+# Module-level clients are reused across warm invocations
+_dynamodb = boto3.resource("dynamodb")
+_s3 = boto3.client("s3")
+
+
+@app.get("/todos/{todo_id}")
+def get_todo(todo_id: str, user: CurrentUserDep) -> dict:
+    table = _dynamodb.Table("Todo-<apiId>-<env>")  # table name from amplify_outputs / env var
+    resp = table.get_item(Key={"id": todo_id})
+    item = resp.get("Item")
+    if item is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    return item
+```
+
+> Resource names (DynamoDB table, S3 bucket) and secrets are passed to the function as environment
+> variables wired in `amplify/functions/api/resource.ts` / `backend.ts`; do not hardcode them.

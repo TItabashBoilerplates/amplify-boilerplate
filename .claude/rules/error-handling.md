@@ -33,7 +33,7 @@
 |------|----------|------|
 | **Next.js** | `error.tsx`, `global-error.tsx`, Server Action の最外層 | コンポーネント、ユーティリティは throw |
 | **FastAPI** | `@app.exception_handler()`, ミドルウェア | UseCase, Gateway は raise |
-| **supabase-js** | 呼び出し元の `if (error)` チェック | supabase-js は throw しない設計 |
+| **Amplify Data** | 呼び出し元の `if (errors)` チェック | クライアントは `{ data, errors }` を返す（throw しない）設計 |
 
 ## フロントエンド (Next.js / TypeScript)
 
@@ -44,12 +44,11 @@
 export async function createPost(formData: FormData) {
   const validated = validateInput(formData) // throws on invalid
 
-  const supabase = await createClient()
-  const { data, error } = await supabase.from('posts').insert(validated)
+  const { data, errors } = await getDataClient().models.Post.create(validated)
 
-  if (error) {
-    console.error('Failed to create post:', error)
-    return { error: error.message }
+  if (errors) {
+    console.error('Failed to create post:', errors)
+    return { error: errors[0]?.message ?? 'Unknown error' }
   }
 
   return { data }
@@ -101,24 +100,24 @@ export default function Error({
 }
 ```
 
-### supabase-js の error チェック（必須）
+### Amplify Data の errors チェック（必須）
 
-supabase-js は throw しない設計のため、`error` の明示的チェックが必須。
+Amplify Data クライアントは throw せず `{ data, errors }` を返す設計のため、`errors` の明示的チェックが必須。
 
 ```typescript
-// ✅ CORRECT: error を必ずチェック
-const { data, error } = await supabase.from('posts').select('*')
-if (error) {
-  console.error('Supabase query failed:', error)
-  throw new Error(error.message)
+// ✅ CORRECT: errors を必ずチェック
+const { data, errors } = await getDataClient().models.Post.list()
+if (errors) {
+  console.error('Amplify Data query failed:', errors)
+  throw new Error(errors[0]?.message ?? 'Query failed')
 }
 
-// ❌ WRONG: error を無視して data を使用
-const { data } = await supabase.from('posts').select('*')
+// ❌ WRONG: errors を無視して data を使用
+const { data } = await getDataClient().models.Post.list()
 return data ?? []  // エラーなのか空なのか区別不能
 
-// ❌ WRONG: error チェックなしで data を使う
-const { data } = await supabase.from('posts').select('*')
+// ❌ WRONG: errors チェックなしで data を使う
+const { data } = await getDataClient().models.Post.list()
 return data!  // 型アサーションでごまかさない
 ```
 
@@ -209,14 +208,12 @@ try {
 }
 
 // OK: オプショナルな設定の読み込み
-const { data: preferences, error } = await supabase
-  .from('user_preferences')
-  .select('*')
-  .eq('user_id', userId)
-  .single()
+const { data: preferences, errors } = await getDataClient().models.UserPreferences.get({
+  userId,
+})
 
-if (error) {
-  console.warn('Failed to load preferences, using defaults:', error)
+if (errors) {
+  console.warn('Failed to load preferences, using defaults:', errors)
   return DEFAULT_PREFERENCES  // 安全なデフォルト
 }
 ```
@@ -232,10 +229,9 @@ try {
 }
 
 // NG: データ保存の失敗を無視 → データ損失
-try {
-  await supabase.from('orders').insert(order)
-} catch {
-  return { success: true }  // 嘘のレスポンス
+const { errors } = await getDataClient().models.Order.create(order)
+if (errors) {
+  return { success: true }  // 嘘のレスポンス（errors を無視している）
 }
 
 // NG: 決済処理のフォールバック → 金銭的損害

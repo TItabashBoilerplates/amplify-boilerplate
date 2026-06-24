@@ -14,23 +14,25 @@ paths: backend-py/**/*.py
 ## Directory Structure (uv Workspace)
 
 `backend-py/` は uv workspace。`apps/<service>` の実行可能サービスと `packages/<name>` の共有
-ライブラリで構成される。`apps/api` が FastAPI HTTP サーバ、`apps/mcp` は MCP サーバ雛形、
-`packages/core` は logger / Supabase client / 共通例外を提供する。
+ライブラリで構成される。`apps/api` が FastAPI HTTP サーバ（AWS Lambda 上に Mangum 経由で載る）、
+`apps/mcp` は MCP サーバ雛形、`packages/core` は logger / 共通例外 / 認証ユーティリティを提供する。
+HTTP リクエストの認証は Cognito JWT 検証ミドルウェア（`middleware/auth_middleware.py`）で行う。
 
 ```
 backend-py/
 ├── pyproject.toml                  # workspace root（共通 tooling: ruff/mypy/pytest）
 ├── apps/
-│   ├── api/src/api/                # FastAPI サーバ
+│   ├── api/src/api/                # FastAPI サーバ（Mangum で Lambda 化）
+│   │   ├── lambda_handler.py       # Lambda エントリ（Mangum: api.lambda_handler.handler）
 │   │   ├── controller/             # HTTP request/response only
 │   │   ├── usecase/                # Business logic
 │   │   ├── gateway/                # Data access interfaces
-│   │   ├── domain/                 # Entities, services, 固有例外 (sqlacodegen 生成は entity/)
-│   │   ├── infra/                  # External system connections (DB)
-│   │   └── middleware/             # Auth, CORS, request processing
+│   │   ├── domain/                 # Entities, services, 固有例外
+│   │   ├── infra/                  # External system connections
+│   │   └── middleware/             # Cognito JWT 検証, CORS, request processing
 │   └── mcp/src/mcp_server/         # MCP server skeleton
 └── packages/
-    └── core/src/core/              # 共有: logging.py / exceptions.py / supabase_client.py
+    └── core/src/core/              # 共有: logging.py / exceptions.py / 認証ユーティリティ
 ```
 
 ## Responsibility Separation
@@ -38,7 +40,7 @@ backend-py/
 - **Controllers**: HTTP layer only, no business logic
 - **Use Cases**: Business logic, orchestration
 - **Gateways**: Data access abstraction (interface definitions)
-- **Infrastructure**: External system connections (DB, Supabase, external APIs)
+- **Infrastructure**: External system connections (AppSync/DynamoDB, S3, external APIs)
 - **Util**: Cross-cutting utilities (logging configuration, etc.)
 - **Domain**: Entities, Value Objects
 
@@ -54,8 +56,8 @@ backend-py/
 | **Gateway インターフェース** | `gateway/` | 抽象化されたデータアクセス |
 | **ドメインサービス** | `domain/service/` | ビジネスロジック |
 | **横断的ユーティリティ** | `util/` | logging設定など |
-| **外部システム接続** | `infra/` | DB, Supabase, 外部API |
-| **ミドルウェア** | `middleware/` | 認証、リクエスト処理 |
+| **外部システム接続** | `infra/` | AppSync/DynamoDB, S3, 外部API |
+| **ミドルウェア** | `middleware/` | Cognito JWT 認証、リクエスト処理 |
 
 ### 禁止事項
 
@@ -80,15 +82,15 @@ class ChatUseCase:
 ```
 
 ```python
-# ❌ Bad: Supabase クライアント初期化を各所で重複
+# ❌ Bad: AWS クライアント初期化を各所で重複
 # usecase/chat.py
-supabase = create_client(url, key)
+client = boto3.client("dynamodb")
 # usecase/profile.py
-supabase = create_client(url, key)
+client = boto3.client("dynamodb")
 
 # ✅ Good: infra で一元管理
-# infra/supabase_client.py
-from src.infra.supabase_client import SupabaseClient
+# infra/aws_clients.py
+from api.infra.aws_clients import get_dynamodb_client
 ```
 
 ### チェックリスト

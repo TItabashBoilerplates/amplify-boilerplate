@@ -56,10 +56,10 @@ Phase 3: Test (test-frontend + test-backend-py)
 
 ## 修正ルール
 
-- **Makefile コマンド必須**: 品質チェックは必ず `make` コマンドで実行（直接コマンド禁止）
+- **devenv コマンド必須**: 品質チェックは必ず devenv の scripts（`lint` / `format` / `type-check` / `unit-test` / `ci-check` 等）で実行（`make` や直接コマンドは禁止。`.claude/rules/commands.md` 参照）
 - **TDD ポリシー厳守**: テスト失敗時は実装を修正、テストは変更しない
 - **クリーンコード**: 修正時に未使用コード・重複コードを残さない
-- **自動生成ファイル編集禁止**: `frontend/packages/types/schema.ts` 等は手動編集しない
+- **自動生成ファイル編集禁止**: `frontend/amplify_outputs.json` や `@workspace/backend` の `Schema` 型（`amplify/data/resource.ts` から生成）は手動編集しない。スキーマ変更は `amplify/` を編集して `sandbox` で再生成する
 
 ## ループ制御
 

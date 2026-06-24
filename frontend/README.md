@@ -54,9 +54,10 @@ frontend/
 │   │   ├── src/                # Token definitions (colors, radius)
 │   │   └── scripts/            # CSS generation scripts
 │   │
-│   ├── auth/                   # Authentication package
-│   ├── types/                  # Supabase type definitions
-│   ├── client-supabase/        # Supabase client
+│   ├── auth/                   # Authentication (Cognito): AuthProvider, useAuthUser
+│   ├── backend/                # Amplify Gen2 backend (auth/data/storage/functions) + Schema type
+│   ├── data-client/            # Amplify Data client (getDataClient)
+│   ├── types/                  # Shared generic types
 │   ├── api-client/             # Backend API client
 │   └── query/                  # TanStack Query configuration
 │
@@ -197,18 +198,27 @@ Theme configuration: `packages/tokens/` and `apps/web/app/globals.css`
 # bun install / uv sync が完了する。明示的な init コマンドは不要。
 
 # Start development server
-dev-web                 # 軽量セット (Supabase + backend + storybook) + Next.js (web)
+dev-web                 # Next.js (web) dev サーバ
 # または
-devenv up web           # web を軽量セットと一緒に起動
+devenv up web           # web を devenv プロセスとして起動
+
+# Amplify backend は別途 sandbox で起動する（AWS 認証情報が必要）
+sandbox                 # ampx sandbox（per-dev クラウド sandbox + amplify_outputs.json 生成、watch）
 ```
 
 ### Common Commands (devenv scripts on PATH)
 
 ```bash
+# Amplify backend (sandbox, AWS 認証情報が必要)
+sandbox                # ampx sandbox (per-dev クラウド sandbox + amplify_outputs.json 生成)
+sandbox-once           # 1 回デプロイして終了
+sandbox-delete         # sandbox 破棄
+
 # Development
-dev-web                # 軽量 + Next.js (web)
-dev-mobile             # 軽量 + Expo Metro (mobile, non-interactive)
-dev-all                # 全部入り (web + mobile + backend + storybook)
+dev-web                # Next.js (web) dev サーバ
+dev-mobile             # Expo Metro (mobile, non-interactive)
+storybook              # Storybook
+devenv up <names...>   # 任意のサーバを組み合わせて起動 (web / mobile / storybook)
 build-frontend         # Next.js production build
 type-check-frontend    # TypeScript type check
 
@@ -223,9 +233,9 @@ lint-fsd               # FSD boundary check (web + mobile, ESLint)
 nlx shadcn@latest add <name>          # shadcn/ui (Web)
 nlx gluestack-ui@latest add --use-bun # gluestack-ui (Mobile)
 
-# Type Generation
-devenv tasks run model:frontend       # Supabase types + API client
-devenv tasks run model:build          # All models
+# Types (手動の型生成タスクは不要)
+# データモデルの型は `import type { Schema } from '@workspace/backend'` で共有され、
+# amplify_outputs.json は `sandbox` (= ampx sandbox) が生成する。
 ```
 
 正典: `/.claude/rules/commands.md`
@@ -393,16 +403,33 @@ bun add -D <package-name>
 
 ## Environment Variables
 
-Frontend environment variables are managed in `env/frontend/.env.local`.
+### Amplify configuration
 
-### Required Variables
+The web app does **not** rely on public backend URL/key env vars. Instead, the Amplify
+backend configuration is read from the generated `amplify_outputs.json` (produced by
+`ampx sandbox` locally, or by Amplify Hosting CI per branch). The app imports this file
+and configures Amplify on the client via `ConfigureAmplifyClientSide`.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```tsx
+// apps/web から amplify_outputs.json を読み込んで Amplify を構成
+import outputs from '@/amplify_outputs.json'
+import { ConfigureAmplifyClientSide } from '@/shared/lib/amplify'
 ```
 
-**Note**: All public variables must be prefixed with `NEXT_PUBLIC_` to be accessible in the browser.
+### Secrets
+
+Backend secrets are stored as **Amplify secrets** in AWS SSM Parameter Store, not in
+`.env` files:
+
+```bash
+ampx sandbox secret set <NAME>     # ローカル sandbox 用シークレットを設定
+```
+
+These are referenced from the backend via `secret('NAME')` and resolved per branch by
+Amplify Hosting in CI.
+
+**Note**: Browser-exposed Next.js public vars (if any) must still be prefixed with
+`NEXT_PUBLIC_`, but Amplify backend access does not require one.
 
 ## Best Practices
 
@@ -435,90 +462,46 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ## Deployment
 
-### Vercel Deployment
+### AWS Amplify Hosting Deployment
 
-This monorepo is optimized for deployment on Vercel with Turborepo integration.
+This monorepo deploys on **AWS Amplify Hosting**. Amplify Hosting builds and deploys
+**per branch**, driven by the `amplify.yml` build spec at the repository root
+(monorepo configuration with `appRoot: frontend`).
 
-#### Configuration Files
+#### Build Spec (`amplify.yml`)
 
-**`apps/web/vercel.json`** - Vercel configuration for the web app:
+`amplify.yml` (repo root) defines both the backend and frontend phases:
 
-```json
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "cd ../.. && turbo build --filter=@workspace/web",
-  "installCommand": "cd ../.. && bun install",
-  "outputDirectory": ".next",
-  "devCommand": "bun run dev"
-}
-```
-
-Key features:
-- **Monorepo build**: Uses Turbo to build only the web app
-- **Bun package manager**: Installs dependencies with Bun
-- **Security headers**: Adds X-Content-Type-Options, X-Frame-Options, etc.
-- **Function timeouts**: Configures max duration for API routes
-
-> **Note on `devCommand`**: `vercel.json` の `"devCommand": "bun run dev"` は **Vercel 環境専用フック**（Vercel ビルド環境には devenv が存在しないため）。ローカル開発では devenv の `dev-web` script を使用すること。Vercel 側からこのフックが呼ばれるのは `vercel dev` 等の限定的なケースのみで、通常のデプロイ (`buildCommand`) には影響しない。
-
-#### Vercel Project Settings
-
-When creating a new Vercel project, configure the following:
-
-1. **Framework Preset**: Next.js
-2. **Root Directory**: `frontend/apps/web`
-3. **Build Command**: (automatically detected from vercel.json)
-4. **Install Command**: (automatically detected from vercel.json)
-5. **Output Directory**: (automatically detected from vercel.json)
-6. **Node.js Version**: 20.x or later (recommended: 22.x)
-
-#### Environment Variables
-
-Set the following environment variables in Vercel project settings:
-
-**Required**:
-- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-
-**Optional**:
-- `NEXT_PUBLIC_API_URL` - Backend API URL (if using separate backend)
+- **Backend**: `ampx pipeline-deploy --branch <branch> --app-id <app-id>` provisions the
+  Amplify Gen2 backend (Cognito / AppSync+DynamoDB / S3 / functions) for that branch and
+  emits `amplify_outputs.json`. This is run by Amplify Hosting CI, **not locally**.
+- **Frontend**: `bun install && bun run build` builds the Next.js web app, consuming the
+  `amplify_outputs.json` produced by the backend phase.
 
 #### Deployment Workflow
 
-1. **Connect Repository**: Link your Git repository to Vercel
-2. **Configure Settings**: Set Root Directory to `frontend/apps/web`
-3. **Add Environment Variables**: Configure Supabase credentials
-4. **Deploy**: Push to main branch or trigger manual deployment
+1. **Connect the Git repository** in the AWS Amplify console.
+2. **Configure the monorepo app root** (`frontend`) so Amplify resolves the workspace.
+3. **Add per-branch secrets/env** as Amplify secrets (see below).
+4. **Push to a branch**: each push triggers a build that runs the backend deploy +
+   Next.js build. Connected branches also get **branch previews** automatically.
 
-**Automatic Deployments**:
-- **Production**: Deployments from `main` branch
-- **Preview**: Deployments from `develop` or `staging` branches
-- **Ignored**: Branches starting with `internal-*`
+Production is typically the `main` branch; feature branches get their own isolated
+backend + preview URL.
 
-#### Vercel CLI Deployment
+#### Environment Variables & Secrets
+
+Backend configuration is delivered via the generated `amplify_outputs.json` (no public
+backend URL/key env vars). Secrets are stored as **Amplify secrets** in AWS SSM
+Parameter Store, scoped per branch:
 
 ```bash
-# Install Vercel CLI
-bun add -g vercel
-
-# Login to Vercel
-vercel login
-
-# Deploy to preview
-cd frontend/apps/web
-vercel
-
-# Deploy to production
-vercel --prod
+# ローカル sandbox 用
+ampx sandbox secret set <NAME>
 ```
 
-#### Monorepo Considerations
-
-- **Turborepo Cache**: Vercel automatically provides remote caching for Turborepo
-- **Build Performance**: Only the web app is built (`--filter=@workspace/web`)
-- **Workspace Dependencies**: All `@workspace/*` packages are built automatically
-- **Install Performance**: Bun provides fast dependency installation
+For deployed branches, set secrets per branch in the Amplify console (or via the Amplify
+secrets tooling); they are resolved at `ampx pipeline-deploy` time.
 
 #### Deployment Best Practices
 
@@ -526,8 +509,8 @@ vercel --prod
 2. **Check Types**: Run `type-check-frontend` to catch type errors
 3. **Lint Code**: Run `lint-frontend` to ensure code quality
 4. **Full CI Gate**: Run `ci-check` (= `devenv test`) to verify all projects
-5. **Preview Deployments**: Test changes in preview environments before merging
-6. **Environment Variables**: Never commit secrets, use Vercel environment variables
+5. **Branch Previews**: Validate changes in the branch preview before merging to `main`
+6. **Secrets**: Never commit secrets; use Amplify secrets (SSM) per branch
 
 #### Troubleshooting Deployment
 
@@ -535,19 +518,16 @@ vercel --prod
 - Ensure all workspace dependencies are listed in `package.json`
 - `devenv shell` を再アクティベートして `setup:install-frontend` task で lockfile を同期
 
-**Environment Variables Not Available**:
-- Ensure variables are prefixed with `NEXT_PUBLIC_` for client-side access
-- Check Vercel project settings for correct variable names
+**Backend phase fails / `amplify_outputs.json` missing**:
+- Check `amplify.yml` (repo root) is present and the backend phase runs
+  `ampx pipeline-deploy --branch <branch> --app-id <id>`
+- Verify the Amplify app has valid AWS credentials / service role for the branch
 
-**Build Timeout**:
-- Check Turborepo cache is working correctly
-- Consider upgrading to a higher-tier plan for faster builds
+**Auth/Data not configured at runtime**:
+- Confirm the frontend build consumed `amplify_outputs.json` from the backend phase
+- Check the branch's Amplify secrets (SSM) are set for that environment
 
-**Deployment Ignored**:
-- Check `git.deploymentEnabled` settings in `vercel.json`
-- Verify branch name doesn't match ignore patterns
-
-For more information, see [Vercel Monorepo Documentation](https://vercel.com/docs/monorepos).
+For more information, see [AWS Amplify Hosting Documentation](https://docs.amplify.aws/nextjs/deploy-and-host/).
 
 ## Troubleshooting
 
@@ -560,10 +540,11 @@ If you see hydration errors related to dates or times:
 
 ### Type Errors
 
-If Supabase types are out of sync:
+If the `Schema` type from `@workspace/backend` is out of sync, re-run `sandbox`
+(= `ampx sandbox`) to regenerate `amplify_outputs.json`:
 ```bash
-devenv tasks run model:frontend     # Frontend types のみ再生成
-devenv tasks run model:build        # 全 model 再生成
+sandbox                             # ampx sandbox (watch, amplify_outputs.json を再生成)
+sandbox-once                        # 1 回だけデプロイして終了
 ```
 
 ### Build Errors
@@ -582,6 +563,6 @@ build-frontend                      # Next.js production build
 - [shadcn/ui Documentation](https://ui.shadcn.com)
 - [TailwindCSS Documentation](https://tailwindcss.com)
 - [Feature-Sliced Design](https://feature-sliced.design)
-- [next-intl Documentation](https://next-intl-docs.vercel.app)
+- [next-intl Documentation](https://next-intl.dev)
 
 For project-specific guidelines, see `/CLAUDE.md` in the project root.

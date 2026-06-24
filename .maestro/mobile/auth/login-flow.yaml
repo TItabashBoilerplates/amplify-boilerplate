@@ -1,23 +1,27 @@
-# Mobile Authentication Flow - OTP Login (Template)
-# Tests the complete OTP authentication flow for Expo mobile app
+# Mobile Authentication Flow - Cognito Email OTP Login (Template)
+# Tests the passwordless Email OTP authentication flow for the Expo mobile app.
+#
+# Auth stack: Amazon Cognito (Amplify Auth, passwordless Email OTP).
+# Client: aws-amplify/auth — signIn (USER_AUTH + EMAIL_OTP) → confirmSignIn.
 #
 # NOTE: This is a template. Update when mobile auth screens are implemented.
 # Required implementations:
 #   - Login screen with email input
 #   - OTP verification screen
+#
+# OTP delivery: Cognito sends the code via Amazon SES. There is no local mail
+# sink, so the OTP step needs a test mailbox (see web/auth/login-flow.yaml and
+# scripts/get-otp-from-email.js) before it can be fully automated.
 
 appId: ${APP_ID}
-name: "Mobile OTP Login Flow"
+name: "Mobile Cognito Email OTP Login Flow"
 tags:
   - auth
   - mobile
   - e2e
-  - wip  # Mark as work-in-progress until auth screens are ready
+  - wip # Mark as work-in-progress until auth screens are ready
 
 env:
-  # Android emulator uses 10.0.2.2 for host localhost
-  # iOS simulator can use localhost directly
-  MAILPIT_URL: "http://10.0.2.2:54324"
   TEST_EMAIL: "testuser@example.com"
 
 ---
@@ -35,14 +39,15 @@ env:
 #     id: "email-input"
 # - inputText: ${TEST_EMAIL}
 
-# Step 4: Submit OTP request (update selector when implemented)
+# Step 4: Submit OTP request (Cognito signIn USER_AUTH + EMAIL_OTP)
 # - tapOn: "Send OTP"
 
-# Step 5: Wait for OTP email and extract code
+# Step 5: Fetch the Cognito OTP code from the test mailbox
+#   NOTE: Implement scripts/get-otp-from-email.js against your mailbox provider.
 # - runScript:
-#     file: ../../scripts/get-otp-from-mailpit.js
+#     file: ../../scripts/get-otp-from-email.js
 #     env:
-#       MAILPIT_URL: ${MAILPIT_URL}
+#       TEST_EMAIL: ${TEST_EMAIL}
 #       WAIT_FOR_EMAIL: "true"
 #       MAX_RETRIES: "15"
 
@@ -51,7 +56,7 @@ env:
 #     id: "otp-input"
 # - inputText: ${output.otpCode}
 
-# Step 7: Submit verification (update selector when implemented)
+# Step 7: Submit verification (Cognito confirmSignIn)
 # - tapOn: "Verify"
 
 # Step 8: Verify successful authentication

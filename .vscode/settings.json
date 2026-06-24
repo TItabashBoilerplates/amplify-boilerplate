@@ -4,18 +4,7 @@
 	"editor.formatOnSave": true,
 	"typescript.preferences.importModuleSpecifier": "non-relative",
 
-	// Deno (Edge Functions)
-	"deno.path": "/opt/homebrew/bin/deno",
-	"deno.enablePaths": ["./supabase/functions"],
-	"deno.importMap": "./supabase/functions/import_map.json",
-	"deno.suggest.imports.hosts": {
-		"https://deno.land": true
-	},
-	"deno.enable": true,
-	"deno.lint": true,
-	"deno.unstable": false,
-
-	// Biome (Frontend + Drizzle)
+	// Biome (Frontend + Amplify backend)
 	"[typescript]": {
 		"editor.formatOnSave": true,
 		"editor.defaultFormatter": "biomejs.biome",
