@@ -7,10 +7,18 @@
 
 | 種類 | 実装パターン |
 |---|---|
-| **対話的・短時間**（チャット、補完、要約など即時応答） | **SSE ストリーミング**でトークンを逐次返す（オーソドックスな既定） |
-| **長時間・エージェント的**（マルチステップ推論、ツール連携、バッチ、数十秒〜分） | **バックグラウンド処理 + DB で処理ステータス管理 + フロントは Amplify リアルタイムで監視** |
+| **対話的・短時間**（チャット、補完、要約など即時応答） | **A: SSE ストリーミング**でトークンを逐次返す（オーソドックスな既定） |
+| **バックグラウンド・〜15分・サンドボックス不要**（数十秒〜数分のジョブ） | **B: ワーカー Lambda + DB ステータス + Amplify リアルタイム監視** |
+| **超長時間（> Lambda 15分）or サンドボックス隔離が必要なエージェント**（任意コード/AI生成コードの実行、ブラウザ操作、多段の自律エージェント） | **C: Amazon Bedrock AgentCore**（Runtime: 最大8時間・microVM 隔離 / Code Interpreter・Browser: サンドボックスツール）+ DB ステータス + Amplify リアルタイム監視 |
 
-「短いか長いか」で迷ったら、**Lambda / Function URL のタイムアウト（同期は最大15分、SSE も接続を保持し続ける）を超えうるか**で判断する。超えうる／途中経過を見せたい／複数人が監視する場合は必ずパターン B。
+判断軸:
+- 即時応答でトークンを流す → **A（SSE）**。
+- 背景処理だが **Lambda の15分以内で収まり、サンドボックス不要** → **B（ワーカー Lambda）**。
+- **15分を超える** or **サンドボックス（隔離されたコード実行・ブラウザ）が要る** → **C（AgentCore）**。
+  迷ったら「Lambda の15分を超えうるか」「未検証/AI生成コードを実行するか」で判定し、どちらか Yes なら C。
+
+> **B も C も、フロント監視は共通**: DB（Amplify Data）に処理ステータスを持ち、フロントは Amplify の
+> リアルタイム（AppSync サブスクリプション）で監視する。違いは「処理本体をどこで走らせるか」だけ。
 
 ## 2. 対話的 = SSE ストリーミング（既定）
 
@@ -35,6 +43,27 @@
 > リアルタイム監視は **Amplify のベストプラクティス（AppSync サブスクリプション）** を使う。ポーリングはしない。
 > 詳細は `.claude/skills/amplify-gen2/references/realtime.md`、バックグラウンド/SQS は `references/aws-services.md`。
 
+> **ワーカー Lambda は ≤15分・サンドボックス不要のときだけ**。超えるか、隔離されたコード実行/ブラウザが
+> 要るなら下の §3.5（AgentCore）に逃がす。
+
+## 3.5 超長時間 / サンドボックスが要る = Amazon Bedrock AgentCore（必須）
+
+以下のいずれかに該当するエージェント処理は **ワーカー Lambda ではなく Amazon Bedrock AgentCore** を使う:
+
+- **Lambda の 15分上限を超える**（多段の自律エージェント、長い推論・ツールループ、バッチ）。
+- **サンドボックス隔離が必要**（AI/LLM が生成した任意コードの実行、ブラウザ操作などの未検証処理）。
+
+| 用途 | AgentCore の機能 |
+|---|---|
+| エージェント本体を長時間ホスト（最大 **8時間**・microVM セッション隔離・非同期） | **AgentCore Runtime**（`InvokeAgentRuntime`） |
+| AI 生成/任意コードを隔離実行（Python/JS/TS・15分→最大8時間・S3 経由 5GB） | **AgentCore Code Interpreter** |
+| エージェントのブラウザ操作を隔離実行 | **AgentCore Browser** |
+
+- 監視は **B と同じ**: ジョブ状態を Amplify Data（`AgentJob` 等）に書き、フロントは AppSync サブスクで監視。
+  起動・進捗反映は worker/オーケストレータ（または AgentCore からのコールバック）が Amplify Data を IAM 認可で更新する。
+- AgentCore 呼び出しは IAM（`bedrock-agentcore:InvokeAgentRuntime` 等）を最小権限で付与（`references/aws-services.md`）。
+- LangGraph / Strands 等のフレームワークをそのままホストできる。詳細は `references/generative-ai.md` の Pattern C。
+
 ## 4. 共通ルール
 
 - **LLM クライアントは LangChain**（`.claude/rules/backend-py.md` の LLM ポリシー）。TS=`@langchain/aws`、
@@ -50,5 +79,7 @@
 
 - 対話的 AI を**ポーリングや一括レスポンス**で実装しない（SSE を使う）。
 - 長時間エージェントを**同期 Function URL で待たせない**（背景処理 + DB ステータス + サブスクリプション）。
+- **Lambda の15分を超える / サンドボックスが要るエージェントを worker Lambda で無理に回さない**
+  （**Amazon Bedrock AgentCore** を使う。§3.5）。未検証/AI生成コードを素の Lambda で実行しない。
 - 監視を**ポーリングで実装しない**（Amplify リアルタイム = AppSync サブスクリプション）。
 - 違反する実装はやり直し。判断に迷う場合はユーザーに確認（`feedback_ask_user_when_unsure.md`）。

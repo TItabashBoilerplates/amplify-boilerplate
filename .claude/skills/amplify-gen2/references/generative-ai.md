@@ -25,7 +25,8 @@
    - [Data モデル AgentJob](#data-モデル-agentjob)
    - [worker がステータスを更新](#worker-がステータスを更新)
    - [フロントが 1 ジョブを監視](#フロントが-1-ジョブを監視)
-   - [なぜ SSE でなく background か](#なぜ-sse-でなく-background-か)
+   - [B か C か（worker Lambda か AgentCore か）](#b-か-c-かworker-lambda-か-agentcore-か)
+3.5. [Pattern C: Amazon Bedrock AgentCore（超長時間 / サンドボックス）](#35-pattern-c-amazon-bedrock-agentcore超長時間--サンドボックス)
 4. [LLM クライアント（LangChain）](#4-llm-クライアントlangchain)
 5. [Gotchas](#5-gotchas)
 
@@ -33,19 +34,19 @@
 
 ## 1. 決定マトリクス
 
-リクエストが**対話的で短い**（チャット返信、補完、要約）なら **Pattern A: SSE ストリーミング**で
-トークンを流す。**長時間 / 多段（エージェント）/ 複数ウォッチャ / 再開可能性が要る**なら
-**Pattern B: バックグラウンドジョブ + DB ステータス + subscription** にする。Function URL の同期
-ストリームは最大 15 分（Lambda の上限）で 1 接続に縛られるため、長尺は必ず B に倒す。
+リクエストが**対話的で短い**（チャット返信、補完、要約）なら **Pattern A: SSE ストリーミング**。
+**バックグラウンドだが Lambda の15分以内で収まりサンドボックス不要**なら **Pattern B: ワーカー Lambda +
+DB ステータス + subscription**。**Lambda の15分を超える、または隔離サンドボックス（AI/任意コードの実行・
+ブラウザ操作）が要る**なら **Pattern C: Amazon Bedrock AgentCore**。B と C は監視機構（DB ステータス +
+AppSync サブスク）を共有し、違いは**処理本体をどこで走らせるか**だけ。
 
-| 観点 | Pattern A（SSE） | Pattern B（background + realtime） |
-|---|---|---|
-| 体感 | 1 トークンずつ即時 | 進捗 %・段階・部分結果を live 更新 |
-| 想定時間 | 〜数十秒（< Lambda 15 分） | 分〜時間、再試行あり |
-| 接続 | 1 クライアントの HTTP ストリーム | DB 行を **複数クライアント**が購読可 |
-| 耐久性 | 接続切れたら失う | DB に残る（再ロード・別端末で再開可） |
-| 配線 | Function URL `RESPONSE_STREAM` | Data モデル + worker + subscription |
-| 監視 | `fetch` reader（クライアント） | `observeQuery` / `onUpdate`（realtime.md） |
+| 観点 | A（SSE） | B（worker Lambda） | C（AgentCore） |
+|---|---|---|---|
+| 体感 | 1 トークンずつ即時 | 進捗を live 更新 | 進捗を live 更新 |
+| 想定時間 | 〜数十秒（< 15分） | 〜15分（Lambda 上限） | **最大 8 時間**（Runtime） |
+| サンドボックス | 不要 | 不要 | **隔離コード実行/ブラウザ**（Code Interpreter / Browser） |
+| 処理本体 | Function URL `RESPONSE_STREAM` | worker Lambda | **AgentCore Runtime / tools** |
+| 監視 | `fetch` reader | `observeQuery` / `onUpdate` | `observeQuery` / `onUpdate`（B と同じ） |
 
 ---
 
@@ -404,12 +405,58 @@ export function useAgentJob(id: string) {
 > 一覧で複数ジョブを live 表示するなら `observeQuery()`（realtime.md §1）。`onUpdate` の filter で
 > 使う `id` は、更新 mutation の selectionSet に含まれている必要がある（realtime.md §3）。
 
-### なぜ SSE でなく background か
+### B か C か（worker Lambda か AgentCore か）
 
-- **タイムアウト**: Function URL の同期ストリームは Lambda 15 分上限。分〜時間の処理は不可。
-- **耐久性 / 再開**: 結果が DB に残るので、リロード・別端末でも続きを見られる。
-- **複数ウォッチャ**: 1 ジョブを複数クライアントが subscribe できる（SSE は 1 接続）。
-- **疎結合**: enqueue → worker → DB → subscription で UI とワーカを分離（aws-services.md SQS）。
+background にする理由（SSE と比較）: タイムアウト回避・耐久性/再開・複数ウォッチャ・疎結合
+（enqueue → worker → DB → subscription、aws-services.md SQS）。そのうえで処理本体を **B（worker
+Lambda）か C（AgentCore）か**は次で決める:
+
+- **worker Lambda（B）**: 処理が **≤15分** で **サンドボックス不要**。SQS/Bedrock 連携で十分なジョブ。
+- **AgentCore（C）**: **15分を超える** or **隔離サンドボックスが要る**（AI/任意コードの実行、ブラウザ操作、
+  多段の自律エージェント）。→ 下の §3.5。
+
+監視（DB ステータス + AppSync サブスク）は **B でも C でも同じ**。
+
+---
+
+## 3.5 Pattern C: Amazon Bedrock AgentCore（超長時間 / サンドボックス）
+
+**Lambda の15分上限を超える**、または **隔離サンドボックスが必要**（AI/LLM が生成した任意コードの実行、
+ブラウザ操作など未検証処理）なエージェントは、worker Lambda ではなく **Amazon Bedrock AgentCore** を使う。
+監視は Pattern B と同じ（`AgentJob` + `observeQuery`/`onUpdate`）。
+
+| 機能 | 用途 | 主要仕様 |
+|---|---|---|
+| **AgentCore Runtime** | エージェント本体を長時間ホスト | **最大8時間**/セッション（既定 28800s・設定可）、**microVM セッション隔離**、同期/非同期、`InvokeAgentRuntime`（+ `InvokeAgentRuntimeWithWebSocketStream`）。Strands / LangGraph 等をそのままホスト |
+| **AgentCore Code Interpreter** | AI生成/任意コードの隔離実行 | Python/JS/TS、**既定15分→最大8時間**、内部データ参照、インターネット可、インライン100MB / S3 経由 5GB、CloudTrail |
+| **AgentCore Browser** | エージェントのブラウザ操作を隔離実行 | サンドボックス化されたブラウザツール |
+
+### 配線（AgentCore × Amplify Data 監視）
+
+```
+client → AgentJob.create(mutation)                 # PENDING
+       → orchestrator が AgentCore Runtime を非同期起動（InvokeAgentRuntime, sessionId）
+AgentCore Runtime（最大8時間） → エージェント実行（LangGraph/Strands）
+   ├─ 必要なら Code Interpreter / Browser を隔離ツールとして呼ぶ
+   └─ 進捗/結果を Amplify Data に書き戻す（IAM 認可の data client。worker か AgentCore からのコールバック）
+client ← observeQuery / onUpdate(filter id) で live 監視（B と同じ）
+```
+
+- **起動**: 軽量な TS の Amplify Function（or Step Functions）を**オーケストレータ**にして
+  `@aws-sdk/client-bedrock-agentcore` の `InvokeAgentRuntime`（agent ARN + sessionId）で起動する。
+  長時間処理は Lambda で待たず**非同期に投げて即 return**し、状態は AgentCore→Amplify Data で反映する。
+- **IAM（最小権限）**: オーケストレータに `bedrock-agentcore:InvokeAgentRuntime`、コード実行を使うなら
+  Code Interpreter 系アクションを付与（`addToRolePolicy`、`references/aws-services.md`）。
+- **ステータス更新**: AgentCore 側のエージェントコードが `@workspace/data-client` 相当（または AppSync の
+  HTTP）で `AgentJob` を **IAM 認可**で更新するか、進捗イベントをオーケストレータ経由で書き戻す。
+- **サンドボックスだけ欲しい場合**: 既存の worker からコードの**実行部分だけ** Code Interpreter に逃がす
+  （worker 自体は ≤15分でも、未検証コードは素の Lambda で実行しない）。
+- **`a.conversation`（AI Kit）との関係**: ターンキーなチャットは AI Kit、**長時間/サンドボックスの自律
+  エージェントは AgentCore**、と棲み分ける。
+- LangChain/LangGraph/Strands をそのままホストできるので、`@langchain/aws`（§4）の知識はそのまま活きる。
+
+> AgentCore の各機能の完全な API・セッション管理・コスト最適化は**専用スキル（将来追加）**に委ねる。
+> ここでは Amplify との継ぎ目（起動・IAM・`AgentJob` ステータス + リアルタイム監視）に集中する。
 
 ---
 
@@ -452,3 +499,9 @@ LLM 呼び出しは **LangChain** を使う（`.claude/rules/backend-py.md` LLM 
   （Mangum 構成の `functions/api` では流せない）。既定は TS の Pattern A。
 - **Bedrock model access**: 使うリージョンで Foundation Model アクセスを有効化していないと
   `AccessDeniedException`。sandbox と本番の各リージョンで個別に有効化する。
+- **15分超 / サンドボックスは AgentCore**: worker Lambda は ≤15分・サンドボックス不要のときだけ。
+  超えるか、未検証/AI生成コードを実行するなら **AgentCore（§3.5）** に逃がす。素の Lambda で任意コードを
+  実行しない（隔離されていない）。AgentCore Runtime は最大8時間・microVM 隔離。
+- **AgentCore のコスト/セッション**: Runtime/Code Interpreter は実行時間課金。セッションは使い終わったら
+  必ずクローズ（Code Interpreter は `code_session` context manager / close）。長時間でも `AgentJob` の
+  ステータス + サブスクで監視するのは B と同じ。
