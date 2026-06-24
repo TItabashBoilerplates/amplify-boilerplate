@@ -118,70 +118,26 @@ backend.addOutput({
 
 ## 3. Secrets と環境変数
 
-### Secrets（機密値）— `secret('NAME')`
-
-機密値はリソース定義内で `secret('NAME')` を使って参照する。実値はコードに置かず、
-環境ごとに Amplify が SSM Parameter Store から解決する。
-
-```typescript
-import { defineAuth, secret } from '@aws-amplify/backend'
-
-export const auth = defineAuth({
-  loginWith: {
-    externalProviders: {
-      google: {
-        clientId: secret('GOOGLE_CLIENT_ID'),
-        clientSecret: secret('GOOGLE_CLIENT_SECRET'),
-      },
-    },
-  },
-})
-```
-
-**sandbox（per-dev）への secret 設定**は `ampx sandbox secret` サブコマンド：
-
-```bash
-npx ampx sandbox secret set GOOGLE_CLIENT_ID        # → 値の入力を促す
-npx ampx sandbox secret list
-npx ampx sandbox secret get GOOGLE_CLIENT_ID
-npx ampx sandbox secret remove GOOGLE_CLIENT_ID
-```
-
-sandbox の secret は SSM Parameter Store に入り、**Amplify コンソールには出ない**。
-
-**ブランチ（デプロイ環境）の secret** は Amplify コンソールの
-**Hosting > Secrets > Manage secrets** で設定する（全ブランチ共通 / 特定ブランチ）。
-保存先パス:
-- 全ブランチ: `/amplify/shared/<app-id>/<secret-key>`
-- 特定ブランチ: `/amplify/<app-id>/<branchname>-branch-<hash>/<secret-key>`
-
-### 非機密の環境変数 — function の `environment` / `addEnvironment`
-
-非機密値は Lambda の env として渡す。定義時は `defineFunction({ environment })`、
-backend.ts での後付けは `addEnvironment`（本リポジトリの FastAPI 配線がこれ）。
+機密値はリソース定義内で `secret('NAME')`（SSM Parameter Store から実行時解決）、非機密値は
+function の `environment` / `addEnvironment`、フロントは `amplify_outputs.json`（backend 由来）
++ `NEXT_PUBLIC_*`（公開値）で扱う。
 
 ```typescript
-// 定義時
-export const api = defineFunction({
-  // ...
-  environment: { LOG_LEVEL: 'info' },
-})
-
-// backend.ts で後付け（合成後の値を注入できる）
+import { secret } from '@aws-amplify/backend'
+// 例: 機密は secret()、非機密は addEnvironment（合成後の値を注入）
+clientSecret: secret('GOOGLE_CLIENT_SECRET')
 fastapi.addEnvironment('SNS_TOPIC_ARN', notificationsTopic.topicArn)
 ```
 
-### フロントエンドの設定値
-
-- backend 由来の値（Auth/Data/Storage メタデータ、`custom.*`）は **`amplify_outputs.json`** から読む。
-- フロント固有の公開値は Next.js の **`NEXT_PUBLIC_*`**（コンソールの環境変数 → `amplify.yml` で
-  `.env` に書き出し → `process.env.NEXT_PUBLIC_X`）。`amplify_outputs.json` の上書きは非対応。
-
-```typescript
-// web は tsconfig path alias `amplify-outputs` → apps/web/amplify_outputs.json
-import outputs from 'amplify-outputs'
-const backendApiUrl = outputs.custom.backendApiUrl   // FastAPI Function URL
+```bash
+npx ampx sandbox secret set GOOGLE_CLIENT_ID   # sandbox（SSM・コンソール非表示）
+# ブランチは Amplify コンソール Hosting → Secrets で設定
 ```
+
+→ secrets vs env の使い分け、`ampx sandbox secret` 全コマンド、ブランチ secret の SSM パス、
+function の型付き `env`（`$amplify/env/<fn>`）/ `secret()`、Python Lambda の `os.getenv`、
+`NEXT_PUBLIC_*` / `amplify_outputs.json` / dotenvx の詳細は
+[secrets-and-env.md](secrets-and-env.md) を参照。
 
 ---
 

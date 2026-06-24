@@ -73,7 +73,8 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 | Cognito auth: `defineAuth`, passwordless Email OTP, social/MFA, client session, Next.js SSR auth | [references/auth.md](references/auth.md) |
 | S3 storage: `defineStorage`, access rules, upload/download/getUrl/list/remove | [references/storage.md](references/storage.md) |
 | Lambda functions: Node `defineFunction`, env/secrets, triggers, data resolvers, **Python custom function (FastAPI)** | [references/functions.md](references/functions.md) |
-| `defineBackend`, custom CDK (`createStack`/`addOutput`), secrets, `ampx` commands, `amplify.yml`, hosting | [references/backend-and-deploy.md](references/backend-and-deploy.md) |
+| `defineBackend`, custom CDK (`createStack`/`addOutput`), `ampx` commands, `amplify.yml`, hosting | [references/backend-and-deploy.md](references/backend-and-deploy.md) |
+| **Secrets & env vars** — `secret()`, `ampx sandbox secret`, branch secrets (SSM), function `environment`/typed `env`, `NEXT_PUBLIC_*`, `amplify_outputs.json` | [references/secrets-and-env.md](references/secrets-and-env.md) |
 
 ## Always-true conventions
 
