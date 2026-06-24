@@ -109,7 +109,7 @@ non_interactive = true
 # `pythonpath` を重ねて指定するのは flat-layout のワークアラウンドであり src-layout と冗長。
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["apps/api/tests", "packages/core/tests"]
+testpaths = ["apps/api/tests", "apps/mcp/tests", "packages/core/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

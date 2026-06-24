@@ -13,7 +13,7 @@ backend-py/
 ├── .python-version         # 3.13
 ├── apps/
 │   ├── api/                # FastAPI + Cognito JWT auth サーバ（Lambda 上）
-│   └── mcp/                # MCP server skeleton（未実装の雛形）
+│   └── mcp/                # MCP サーバ（FastMCP 最小実装・streamable-http）
 └── packages/
     └── core/               # 全サービスで共有: logger / 共通例外 / Cognito auth utils
 ```
@@ -21,7 +21,7 @@ backend-py/
 | Member | 役割 | 起動 |
 |---|---|---|
 | `apps/api` | FastAPI HTTP サーバ（Lambda / ローカル） | ローカルは uvicorn (port 4040)、本番は Lambda（Mangum） |
-| `apps/mcp` | MCP サーバ雛形 | opt-in — 実装が入るまで placeholder |
+| `apps/mcp` | MCP サーバ（FastMCP） | `dev-mcp`（= `uv run --package mcp-server mcp-server`、streamable-http :4041） |
 | `packages/core` | 共有ライブラリ | サービスから `from core.X import …` で import |
 
 新しいサービスを追加するときは `apps/<name>/` を 1 つ生やし、`pyproject.toml` の `[tool.uv.workspace] members` に既にマッチ済みなので、`uv lock` を走らせるだけで workspace 化される。
@@ -265,7 +265,10 @@ FastAPI が自動生成する（ローカル uvicorn 起動時）:
 
 ## MCP Server (apps/mcp)
 
-実装はまだ無く、`apps/mcp/src/mcp_server/__init__.py` のみ存在する雛形。実装着手時の手順は `apps/mcp/README.md` を参照。`mcp[cli]` SDK の `FastMCP` を使う想定。
+`mcp[cli]` SDK の `FastMCP` ベースの最小実装。汎用ツール（`ping` / `add`）＋ AI 拡張ポイント
+（`generate`、LangChain + Bedrock に差し替え前提）＋ resource（`config://info`）を公開する。
+`dev-mcp` で streamable-http（:4041）起動。ツール追加・AI 連携・依存追加・MCP Inspector の手順は
+`apps/mcp/README.md` を参照。
 
 ## AI / ML (LangChain / LangGraph)
 

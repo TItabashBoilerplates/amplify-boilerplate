@@ -53,6 +53,12 @@
     dev-mobile.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && bun run start "$@"'';
     storybook.exec = ''cd "$DEVENV_ROOT/frontend" && bun run storybook'';
 
+    # ---------- Backend services (opt-in, on demand) ----------
+    # REST API (FastAPI) — also runnable as the `backend` process via `devenv up`.
+    dev-api.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run --package api api "$@"'';
+    # MCP server (FastMCP, streamable-http on :4041).
+    dev-mcp.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run --package mcp-server mcp-server "$@"'';
+
     # ---------- Quality: frontend ----------
     lint-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && bun run lint'';
     format-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && bun run format'';

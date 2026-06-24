@@ -1,6 +1,5 @@
-"""MCP server skeleton.
+"""backend-mcp — a minimal, extensible FastMCP server.
 
-Implementation is intentionally empty. See ``apps/mcp/README.md`` for
-guidelines on how to flesh this out with the official ``mcp[cli]`` SDK
-(FastMCP) when work on the MCP server begins.
+The server implementation lives in :mod:`mcp_server.main`. Start it with
+``uv run --package mcp-server mcp-server`` (or the ``dev-mcp`` devenv script).
 """
