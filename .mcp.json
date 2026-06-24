@@ -32,12 +32,6 @@
 		"gemini-api-docs-mcp": {
 			"type": "http",
 			"url": "https://gemini-api-docs-mcp.dev"
-		},
-		"doppler": {
-			"type": "stdio",
-			"command": "npx",
-			"args": ["-y", "@dopplerhq/mcp-server"],
-			"env": {}
 		}
 	}
 }
