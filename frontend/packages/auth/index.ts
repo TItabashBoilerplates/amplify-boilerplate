@@ -1,16 +1,16 @@
 /**
  * @workspace/auth - 認証ライブラリ
  *
- * Supabase認証をZustandで管理するための共通パッケージ
- * フレームワーク非依存（Next.js 固有の useRequireAuth は apps/web に移動済み）
+ * Amplify (Cognito) の認証状態を Zustand で管理する共通パッケージ。
+ * フレームワーク非依存（Web 用 `AuthProvider` / Native 用 `NativeAuthProvider` を提供）。
  *
  * @packageDocumentation
  */
 
-// Hooks
-export { useAuth } from './hooks'
-// Providers
+// Hooks（セレクタ付き）
+export { useAuth, useAuthUser, useIsAuthenticated } from './hooks'
+// Providers（Web）
 export { AuthProvider } from './providers/AuthProvider'
-export type { AuthState } from './store/authStore'
 // Store
 export { useAuthStore } from './store/authStore'
+export type { AuthState, AuthUser } from './store/authStore'

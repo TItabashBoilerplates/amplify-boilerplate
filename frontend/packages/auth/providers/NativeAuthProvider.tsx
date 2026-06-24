@@ -1,33 +1,28 @@
 /**
- * React Native用認証プロバイダーコンポーネント
+ * React Native 用認証プロバイダーコンポーネント
  *
  * @module @workspace/auth/providers/NativeAuthProvider
  */
 
-import { createClient } from '@workspace/client-supabase/native'
 import { clientLogger } from '@workspace/logger/client'
+import { Hub } from 'aws-amplify/utils'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
+import { loadAuthUser } from '../lib/loadAuthUser'
 import { useAuthStore } from '../store/authStore'
 
 const logger = clientLogger.child({ provider: 'NativeAuthProvider' })
 
-/**
- * NativeAuthProviderのProps
- */
 interface NativeAuthProviderProps {
   children: ReactNode
 }
 
 /**
- * React Native用認証状態管理プロバイダー
+ * Amplify (Cognito) の認証状態を監視し Zustand ストアへ反映する（React Native 用）。
  *
- * Supabaseの認証状態変更をリアルタイムで監視し、Zustandストアに反映します。
- * AsyncStorageを使用してセッションを永続化します。
+ * Amplify はトークンを安全なストレージに永続化する。`Hub` の `auth` チャネルで
+ * 認証イベントを購読し、初回はスプラッシュと組み合わせるため `loading` ガードを使う。
  *
- * ### 使用方法
- *
- * _layout.tsxで全体をラップ:
  * ```tsx
  * import { NativeAuthProvider } from '@workspace/auth/providers/native'
  *
@@ -39,73 +34,43 @@ interface NativeAuthProviderProps {
  *   )
  * }
  * ```
- *
- * @example
- * ```tsx
- * // コンポーネントから認証状態を取得
- * import { useAuthStore } from '@workspace/auth'
- *
- * const { user, isAuthenticated } = useAuthStore()
- * ```
  */
 export function NativeAuthProvider({ children }: NativeAuthProviderProps) {
   const [loading, setLoading] = useState(true)
-  const { setAuth, reset } = useAuthStore()
+  const setUser = useAuthStore((state) => state.setUser)
+  const reset = useAuthStore((state) => state.reset)
 
   useEffect(() => {
-    // Native用のSupabaseクライアントを作成
-    const supabase = createClient()
+    const sync = () => loadAuthUser().then((user) => (user ? setUser(user) : reset()))
 
-    // 初回セッション取得（AsyncStorageから復元）
-    supabase.auth
-      .getSession()
-      .then(({ data: { session }, error }) => {
-        if (error) {
-          logger.error('Failed to get initial session', { error: error.message })
+    // 初回取得（永続化されたセッションから復元）
+    sync().finally(() => setLoading(false))
+
+    const stopListening = Hub.listen('auth', ({ payload }) => {
+      switch (payload.event) {
+        case 'signedIn':
+        case 'tokenRefresh':
+          sync()
+          break
+        case 'signedOut':
+          logger.info('User signed out')
           reset()
-        } else {
-          setAuth(session)
-        }
-      })
-      .catch((error) => {
-        logger.error('Unexpected error during session fetch', {
-          error: error instanceof Error ? error.message : String(error),
-        })
-        reset()
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-
-    // 認証状態変更のリアルタイム監視
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        logger.info('User signed out')
-        reset()
-        return
-      }
-
-      if (!session && event === 'TOKEN_REFRESHED') {
-        logger.error('Token refresh failed, session lost')
-        reset()
-        return
-      }
-
-      if (session) {
-        setAuth(session)
-      } else {
-        reset()
+          break
+        case 'tokenRefresh_failure':
+          logger.error('Token refresh failed, session lost')
+          reset()
+          break
+        default:
+          break
       }
     })
 
     return () => {
-      subscription.unsubscribe()
+      stopListening()
     }
-  }, [setAuth, reset])
+  }, [setUser, reset])
 
-  // ローディング中はnullを返す（スプラッシュスクリーンと組み合わせて使用）
+  // ローディング中は null（スプラッシュスクリーンと併用）
   if (loading) {
     return null
   }

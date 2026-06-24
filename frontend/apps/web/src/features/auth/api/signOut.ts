@@ -1,18 +1,14 @@
-/**
- * ログアウト機能
- *
- * @module features/auth/api/signOut
- */
-
-import { createClient } from '@workspace/client-supabase/client'
+import { signOut as amplifySignOut } from 'aws-amplify/auth'
 
 /**
  * ログアウト処理
- * Supabaseセッションを削除してログイン画面にリダイレクト
+ *
+ * Amplify (Cognito) のセッションを破棄してログイン画面へ遷移する。
+ *
+ * @module features/auth/api/signOut
  */
 export async function signOut(): Promise<void> {
-  const supabase = createClient()
-  await supabase.auth.signOut()
+  await amplifySignOut()
 
   // ログイン画面にリダイレクト
   window.location.href = '/login'

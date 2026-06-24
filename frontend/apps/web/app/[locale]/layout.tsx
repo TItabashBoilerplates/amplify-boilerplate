@@ -1,11 +1,11 @@
 import { AuthProvider } from '@workspace/auth'
-import { OneSignalProvider } from '@workspace/onesignal'
 import { QueryProvider } from '@workspace/query'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
+import { ConfigureAmplifyClientSide } from '@/shared/lib/amplify'
 import { routing } from '@/shared/config/i18n'
 import '@workspace/ui/styles/globals.css'
 
@@ -50,11 +50,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ConfigureAmplifyClientSide />
         <QueryProvider>
           <AuthProvider>
-            <OneSignalProvider appId={process.env.NEXT_PUBLIC_ONE_SIGNAL_APP_ID ?? ''}>
-              <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
-            </OneSignalProvider>
+            <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

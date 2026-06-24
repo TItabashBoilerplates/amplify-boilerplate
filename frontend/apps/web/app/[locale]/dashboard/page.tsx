@@ -1,7 +1,8 @@
+import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createServerClient as createClient } from '@/shared/lib/supabase'
+import { runWithAmplifyServerContext } from '@/shared/lib/amplify/server'
 import {
   DashboardBackendInfo,
   DashboardBackendInfoSkeleton,
@@ -13,35 +14,39 @@ import { Header } from '@/widgets/header'
  * ダッシュボードページ（Server Component - 認証必須）
  *
  * 認証チェックだけを shell 描画前に await し、バックエンド API 取得は
- * Suspense で分離してストリーミング。ページ遷移直後にヘッダーとユーザー情報が
- * 描画され、バックエンド応答は後から差し込まれる。
+ * Suspense で分離してストリーミング。認証は Amplify (Cognito) の
+ * サーバーコンテキストで行う。
  */
 export default async function Page() {
-  await cookies()
+  const auth = await runWithAmplifyServerContext({
+    nextServerContext: { cookies },
+    operation: async (contextSpec) => {
+      try {
+        const user = await getCurrentUser(contextSpec)
+        const session = await fetchAuthSession(contextSpec)
+        const accessToken = session.tokens?.accessToken?.toString() ?? null
+        const email =
+          (session.tokens?.idToken?.payload?.email as string | undefined) ?? user.username
+        return { email, accessToken }
+      } catch {
+        // 未認証
+        return null
+      }
+    },
+  })
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error || !user) {
+  if (!auth) {
     redirect('/login')
   }
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  const accessToken = session?.access_token ?? null
 
   return (
     <div className="min-h-screen pt-16">
       <Header />
       <DashboardPage
-        userEmail={user.email || 'Unknown'}
+        userEmail={auth.email ?? 'Unknown'}
         backendSlot={
           <Suspense fallback={<DashboardBackendInfoSkeleton />}>
-            <DashboardBackendInfo accessToken={accessToken} />
+            <DashboardBackendInfo accessToken={auth.accessToken} />
           </Suspense>
         }
       />

@@ -20,6 +20,7 @@
     "types": ["node", "react", "react-dom"],
     "paths": {
       "@/*": ["./src/*"],
+      "amplify-outputs": ["./amplify_outputs.json"],
       "@workspace/ui": ["../../packages/ui/src/components"],
       "@workspace/ui/*": ["../../packages/ui/src/*"],
       "@workspace/tokens": ["../../packages/tokens/src"],

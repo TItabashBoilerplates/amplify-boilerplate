@@ -1,66 +1,66 @@
-import type { Session, User } from '@supabase/supabase-js'
 import { create } from 'zustand'
+
+/**
+ * 認証ユーザー情報（Cognito / Amplify Auth）
+ *
+ * `aws-amplify/auth` の `getCurrentUser()` + `fetchUserAttributes()` から組み立てる、
+ * フレームワーク・プラットフォーム非依存の最小ユーザー表現。
+ */
+export interface AuthUser {
+  /** Cognito の sub（一意なユーザーID） */
+  userId: string
+  /** サインインに使ったユーザー名（Email OTP の場合は email） */
+  username: string
+  /** メールアドレス（属性が取得できた場合） */
+  email?: string
+}
 
 /**
  * 認証状態の型定義
  */
 export interface AuthState {
-  /**
-   * 現在のユーザー情報
-   */
-  user: User | null
+  /** 現在のユーザー情報（未認証なら null） */
+  user: AuthUser | null
 
-  /**
-   * 現在のセッション情報
-   */
-  session: Session | null
-
-  /**
-   * 認証済みかどうか
-   */
+  /** 認証済みかどうか */
   isAuthenticated: boolean
 
   /**
-   * 認証状態を設定
-   * セッション情報から自動的にユーザー情報と認証状態を更新します
-   *
-   * @param session - Supabaseのセッション情報（nullの場合は未認証）
+   * 認証ユーザーを設定（null で未認証）。
+   * `isAuthenticated` は user の有無から自動導出する。
    */
-  setAuth: (session: Session | null) => void
+  setUser: (user: AuthUser | null) => void
 
-  /**
-   * 認証状態をリセット
-   */
+  /** 認証状態をリセット */
   reset: () => void
 }
 
 /**
- * 認証状態管理用Zustandストア
+ * 認証状態管理用 Zustand ストア
  *
- * Supabaseの認証状態をグローバルに管理します。
- * AuthProviderからのみ更新され、コンポーネントから読み取り専用で使用されます。
+ * Amplify (Cognito) の認証状態をグローバルに管理する。
+ * `AuthProvider` / `NativeAuthProvider` からのみ更新され、コンポーネントからは
+ * セレクタ付きフック（`useAuthUser` / `useIsAuthenticated`）で読み取る。
  *
  * @example
  * ```tsx
- * const { user, isAuthenticated } = useAuthStore()
+ * const user = useAuthUser()
+ * const isAuthenticated = useIsAuthenticated()
  * ```
  */
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  session: null,
   isAuthenticated: false,
 
-  setAuth: (session) =>
+  setUser: (user) =>
     set({
-      session,
-      user: session?.user ?? null,
-      isAuthenticated: session !== null,
+      user,
+      isAuthenticated: user !== null,
     }),
 
   reset: () =>
     set({
       user: null,
-      session: null,
       isAuthenticated: false,
     }),
 }))

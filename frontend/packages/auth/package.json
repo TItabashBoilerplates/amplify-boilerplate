@@ -17,7 +17,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@workspace/types": "workspace:*",
+    "@workspace/logger": "workspace:*",
+    "aws-amplify": "^6.18.0",
     "zustand": "^5.0.7"
   },
   "devDependencies": {

@@ -1,64 +1,29 @@
-'use server'
-
-import { redirect } from 'next/navigation'
-import { createServerClient as createClient } from '@/shared/lib/supabase'
+import { confirmSignIn } from 'aws-amplify/auth'
 
 /**
- * OTPトークンを検証してログイン
+ * OTP コードを検証してサインインを完了する（Cognito Email OTP）。
  *
- * @param email - ユーザーのメールアドレス
- * @param token - 6桁のOTPトークン
- * @returns 成功時はリダイレクト、失敗時はエラーメッセージ
+ * {@link signInWithOtp} で開始したサインインのチャレンジに対し、メールで届いた
+ * コードを送信する。成功時はダッシュボードへ遷移する。
  *
- * @example
- * ```tsx
- * 'use server'
- * import { verifyOtp } from '@/features/auth'
- *
- * export async function handleVerifyOtp(formData: FormData) {
- *   const email = formData.get('email') as string
- *   const token = formData.get('token') as string
- *
- *   const result = await verifyOtp(email, token)
- *
- *   if ('error' in result) {
- *     return { success: false, message: result.error }
- *   }
- *
- *   // 成功時はリダイレクトされる
- * }
- * ```
+ * @param _email - メールアドレス（UI 互換のため受け取るが、チャレンジは進行中の
+ *   サインインセッションに紐づくため未使用）
+ * @param code - メールで届いた OTP コード
+ * @returns 失敗時 `{ error }`（成功時は遷移するため戻らない）
  */
-export async function verifyOtp(email: string, token: string) {
+export async function verifyOtp(_email: string, code: string) {
   try {
-    const supabase = await createClient()
+    const { isSignedIn } = await confirmSignIn({ challengeResponse: code })
 
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'email',
-    })
-
-    if (error) {
-      return { error: error.message }
+    if (!isSignedIn) {
+      return { error: 'Verification incomplete' }
     }
 
-    if (!session) {
-      return { error: 'Failed to create session' }
-    }
-
-    // 認証成功後、ダッシュボードにリダイレクト
-    redirect('/dashboard')
+    // 認証成功後、ダッシュボードへ遷移
+    window.location.href = '/dashboard'
+    return { success: true as const }
   } catch (error) {
     if (error instanceof Error) {
-      // Next.js の redirect は Error をスローするため、
-      // redirect の場合は再スローする
-      if (error.message === 'NEXT_REDIRECT') {
-        throw error
-      }
       return { error: error.message }
     }
     return { error: 'An unexpected error occurred' }

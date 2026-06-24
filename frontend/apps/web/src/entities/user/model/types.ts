@@ -1,16 +1,20 @@
-import type { Tables } from '@workspace/types/schema'
+import type { AuthUser } from '@workspace/auth'
 
 /**
- * Supabase users テーブルの型
+ * 認証ユーザー情報（Cognito / Amplify Auth）
+ *
+ * 認証ストアの `AuthUser`（`@workspace/auth`）を再利用する。
  */
-export type User = Tables<'users'>
+export type { AuthUser }
 
 /**
- * 認証ユーザー情報（Supabase Auth）
+ * アプリ上のユーザープロフィール。
+ *
+ * 実体は Amplify Data（AppSync + DynamoDB）の `User` モデルに対応させる想定。
+ * Phase 5 でスキーマ確定後、`Schema['User']['type']` に置き換える。
  */
-export interface AuthUser {
+export interface User {
   id: string
-  email: string | undefined
-  emailConfirmedAt: Date | null
-  createdAt: Date
+  email: string
+  displayName?: string
 }

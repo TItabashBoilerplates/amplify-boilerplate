@@ -4,4 +4,4 @@
  * @module @workspace/auth/types
  */
 
-export type { AuthState } from '../store/authStore'
+export type { AuthState, AuthUser } from '../store/authStore'

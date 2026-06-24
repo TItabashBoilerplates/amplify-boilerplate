@@ -11,7 +11,11 @@ import { defineAuth } from '@aws-amplify/backend'
  */
 export const auth = defineAuth({
   loginWith: {
-    email: true,
+    // パスワードレス Email OTP を有効化（旧 Supabase の OTP ログイン UX を踏襲）。
+    // ※ Cognito から OTP メールを送るには Amazon SES の設定が必要。
+    email: {
+      otpLogin: true,
+    },
     // 例: ソーシャルログインを足す場合（secret は Amplify secrets 管理）
     // externalProviders: {
     //   google: {
