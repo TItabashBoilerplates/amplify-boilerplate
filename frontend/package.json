@@ -22,7 +22,6 @@
     "ui:add:web": "cd packages/ui && bunx shadcn@latest add",
     "ui:add:mobile": "cd packages/native-ui && bunx gluestack-ui@latest add --use-bun",
     "tokens:build": "bun run packages/tokens/scripts/generate-css.ts",
-    "generate:types": "bun run scripts/generate-types.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

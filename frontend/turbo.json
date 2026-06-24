@@ -57,12 +57,8 @@
     }
   },
   "globalEnv": [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "NEXT_PUBLIC_BACKEND_PY_URL",
-    "EXPO_PUBLIC_SUPABASE_URL",
-    "EXPO_PUBLIC_SUPABASE_ANON_KEY",
-    "BACKEND_URL"
+    "AWS_BRANCH",
+    "AWS_APP_ID"
   ],
   "boundaries": {
     "tags": {

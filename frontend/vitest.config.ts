@@ -28,7 +28,7 @@ export default defineConfig({
       '@workspace/native-ui': path.resolve(__dirname, './packages/native-ui'),
       '@workspace/auth': path.resolve(__dirname, './packages/auth'),
       '@workspace/types': path.resolve(__dirname, './packages/types'),
-      '@workspace/client-supabase': path.resolve(__dirname, './packages/client/supabase'),
+      '@workspace/data-client': path.resolve(__dirname, './packages/data-client'),
       '@workspace/logger': path.resolve(__dirname, './packages/logger'),
     },
   },
