@@ -8,8 +8,7 @@
     { "path": "./packages/types" },
     { "path": "./packages/tokens" },
     { "path": "./packages/api-client" },
-    { "path": "./packages/onesignal" },
     { "path": "./packages/app" },
-    { "path": "./packages/client/supabase" }
+    { "path": "./packages/data-client" }
   ]
 }
