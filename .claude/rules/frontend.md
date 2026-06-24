@@ -41,6 +41,7 @@ frontend/
     │   └── mobile/       # gluestack-ui (Native専用)
     ├── tokens/           # デザイントークン (共有)
     ├── backend/          # Amplify Gen2 backend (auth/data/storage/functions, @workspace/backend)
+    ├── backend-core/     # TS backend 関数の共有ロジック (logger 等。Python の core 相当)
     ├── data-client/      # Amplify Data クライアント (getDataClient / generateClient<Schema>)
     ├── auth/             # 認証ユーティリティ (AuthProvider / useAuthUser)
     ├── query/            # TanStack Query 設定

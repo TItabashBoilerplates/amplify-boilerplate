@@ -17,6 +17,13 @@
     "pipeline-deploy": "ampx pipeline-deploy",
     "type-check": "tsc --noEmit -p amplify/tsconfig.json"
   },
+  "dependencies": {
+    "@hono/mcp": "^0.3.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@workspace/backend-core": "workspace:*",
+    "hono": "^4.12.0",
+    "zod": "^4.0.0"
+  },
   "devDependencies": {
     "@aws-amplify/backend": "^1.23.0",
     "@aws-amplify/backend-cli": "^1.8.3",

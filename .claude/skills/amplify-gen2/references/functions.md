@@ -418,3 +418,46 @@ backend.addOutput({
   （`auth_middleware`）。検証を外すと無防備になる。
 - **依存の解決**: `uv export --no-emit-workspace` で workspace 内パッケージを除外し、サードパーティ
   依存だけ wheel 化。workspace パッケージ（`apps/api` / `packages/core`）はソースを直接コピーする。
+
+## TypeScript の REST / MCP 関数（本リポジトリの第一候補）
+
+Amplify ネイティブな Node `defineFunction` で REST API と MCP サーバを実装している（Python の FastAPI は
+エスカレーション経路）。共有ロジックは `@workspace/backend-core`。
+
+- **REST API**: `functions/rest-api/`（`@workspace/backend`）。Hono アプリ（`app.ts`）を
+  `hono/aws-lambda` の `handle(app)` で Lambda 化（`handler.ts`）。`app.request()` で単体テスト可
+  （`app.test.ts`）。`backend.ts` で Function URL + Cognito env を配線。
+
+  ```typescript
+  // handler.ts
+  import { handle } from 'hono/aws-lambda'
+  import { app } from './app'
+  export const handler = handle(app)
+  ```
+
+- **MCP サーバ**: `functions/mcp/`。`@hono/mcp` の `StreamableHTTPTransport` +
+  `@modelcontextprotocol/sdk` の `McpServer`。Lambda はステートレスなのでリクエストごとに server+transport
+  を生成。tools は純粋関数（`tools.ts`）に切り出してテスト（`tools.test.ts`）。
+
+  ```typescript
+  // handler.ts
+  import { StreamableHTTPTransport } from '@hono/mcp'
+  import { Hono } from 'hono'
+  import { handle } from 'hono/aws-lambda'
+  import { buildMcpServer } from './server'
+
+  const app = new Hono()
+  app.all('/mcp', async (c) => {
+    const server = buildMcpServer()
+    const transport = new StreamableHTTPTransport()
+    await server.connect(transport)
+    return transport.handleRequest(c)
+  })
+  export const handler = handle(app)
+  ```
+
+- **env 注入の型**: `backend.<fn>.resources.lambda` は `IFunction` 型なので、`addEnvironment` を呼ぶには
+  concrete な `Function`（`aws-cdk-lib/aws-lambda`）にキャストする
+  （`const fn = backend.restApi.resources.lambda as Function`）。
+- **zod**: MCP の `registerTool({ inputSchema })` は **zod v4** を使う（v3.25 系は tsc で
+  `TS2589: Type instantiation is excessively deep` を誘発しやすい）。

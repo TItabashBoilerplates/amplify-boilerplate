@@ -1,4 +1,4 @@
-import { type ClientSchema, a, defineData } from '@aws-amplify/backend'
+import { a, type ClientSchema, defineData } from '@aws-amplify/backend'
 
 /**
  * Amplify Data（AppSync + DynamoDB）— Supabase Postgres + Drizzle の置き換え
