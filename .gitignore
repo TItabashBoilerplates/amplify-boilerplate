@@ -30,7 +30,14 @@ env/**
 **/dist/
 **/build/
 **/.next/**
-**/.vercel/
+
+# AWS Amplify (Gen2) — generated outputs / sandbox / CDK assets
+**/amplify_outputs*.json
+**/amplifyconfiguration*.json
+**/.amplify/
+amplify/.attributes.json
+amplify/backend/amplify-meta.json
+**/cdk.out/
 
 # Expo
 .expo/

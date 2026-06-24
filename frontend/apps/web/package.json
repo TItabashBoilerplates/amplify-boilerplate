@@ -11,10 +11,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.7.3",
     "@radix-ui/react-slot": "^1.2.3",
     "@workspace/auth": "workspace:*",
+    "@workspace/backend": "workspace:*",
     "@workspace/types": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "aws-amplify": "^6.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.539.0",
