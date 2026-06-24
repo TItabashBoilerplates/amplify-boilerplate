@@ -1,5 +1,6 @@
 import { defineBackend } from '@aws-amplify/backend'
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda'
+import { Topic } from 'aws-cdk-lib/aws-sns'
 import { auth } from './auth/resource'
 import { data } from './data/resource'
 import { api } from './functions/api/resource'
@@ -40,9 +41,18 @@ const apiUrl = fastapi.addFunctionUrl({
   },
 })
 
-// フロントエンドが参照できるよう amplify_outputs.json の custom に URL を出力
+// --- 通知（SNS）-----------------------------------------------------------
+// OneSignal の置き換え。サーバー駆動の通知基盤として SNS トピックを用意し、
+// FastAPI Lambda に publish 権限を付与する（モバイルプッシュは Pinpoint を別途追加）。
+const notificationsStack = backend.createStack('notifications')
+const notificationsTopic = new Topic(notificationsStack, 'NotificationsTopic')
+notificationsTopic.grantPublish(fastapi)
+fastapi.addEnvironment('SNS_TOPIC_ARN', notificationsTopic.topicArn)
+
+// フロントエンドが参照できるよう amplify_outputs.json の custom に出力
 backend.addOutput({
   custom: {
     backendApiUrl: apiUrl.url,
+    notificationsTopicArn: notificationsTopic.topicArn,
   },
 })
