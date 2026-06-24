@@ -13,6 +13,8 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 - **モジュール・パッケージは必ず最新バージョンを調査し、最新の API を使用**
 - **ビルド・テスト・リント等は devenv のコマンド（scripts または `devenv tasks run`）を使用**（`.claude/rules/commands.md`）
 - **Amplify バックエンド（auth/data/storage/functions）の変更は `frontend/packages/backend/amplify/` を編集**し、`ampx sandbox` で反映する
+- **バックエンドの既定は TypeScript（Amplify Functions / Node `defineFunction`）。Python（backend-py）は特殊要件（LLM/長時間/Python固有）のときだけ**（`.claude/rules/backend-architecture.md`）
+- **TS のパッケージマネージャは bun（`bun add`/`bun install`）。npm/pnpm/yarn 禁止。Python は uv**（`.claude/rules/backend-architecture.md`）
 
 ## 最優先の設計思想: FSD × モノレポ
 

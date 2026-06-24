@@ -105,8 +105,8 @@ sandbox            # ampx sandbox — provision per-dev stack + watch + generate
 sandbox-once       # ampx sandbox --once (CI/verify)
 sandbox-delete     # tear down the sandbox
 # secrets / outputs (run inside frontend/packages/backend):
-npx ampx sandbox secret set NAME
-npx ampx generate outputs --branch <b> --app-id <id> --out-dir ../../apps/web
+bunx ampx sandbox secret set NAME
+bunx ampx generate outputs --branch <b> --app-id <id> --out-dir ../../apps/web
 ```
 
 Deploy is handled by Amplify Hosting via `amplify.yml` (`ampx pipeline-deploy`), not run

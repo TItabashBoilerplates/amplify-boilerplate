@@ -65,10 +65,10 @@ console:
 
 ```bash
 cd frontend/packages/backend
-npx ampx sandbox secret set GOOGLE_CLIENT_ID     # prompts for the value
-npx ampx sandbox secret list
-npx ampx sandbox secret get GOOGLE_CLIENT_ID
-npx ampx sandbox secret remove GOOGLE_CLIENT_ID
+bunx ampx sandbox secret set GOOGLE_CLIENT_ID     # prompts for the value
+bunx ampx sandbox secret list
+bunx ampx sandbox secret get GOOGLE_CLIENT_ID
+bunx ampx sandbox secret remove GOOGLE_CLIENT_ID
 ```
 
 **Branch / deployed environments** — set in the Amplify console:
@@ -195,7 +195,7 @@ For non-secret values your backend code reads at **build/synth time** (e.g.
 sandbox:
 
 ```bash
-npx dotenvx run --env-file=.env.local -- ampx sandbox
+bunx dotenvx run --env-file=.env.local -- ampx sandbox
 ```
 
 Real secrets still go through `ampx sandbox secret set` (SSM), never `.env.local`.

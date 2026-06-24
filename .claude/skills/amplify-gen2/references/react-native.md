@@ -52,7 +52,7 @@ Why each one:
 The official RN install line (for reference; UI/polyfill extras only added if you use them):
 
 ```bash
-npm add aws-amplify @aws-amplify/react-native \
+bun add aws-amplify @aws-amplify/react-native \
   @react-native-community/netinfo @react-native-async-storage/async-storage \
   react-native-get-random-values
 # optional, only if you use Amplify's prebuilt RN UI / URL handling:
@@ -97,10 +97,10 @@ You must build a **custom dev client** (generate native projects with `expo preb
 dev build), not `expo start` into Expo Go:
 
 ```bash
-npx expo prebuild            # generates ios/ and android/ native projects
-npx expo run:ios             # or: eas build --profile development --platform ios
+bunx expo prebuild            # generates ios/ and android/ native projects
+bunx expo run:ios             # or: eas build --profile development --platform ios
 # then start Metro for the dev client:
-npx expo start --dev-client
+bunx expo start --dev-client
 ```
 
 Metro/Hermes notes: Hermes is the default RN engine and ships **no Web Crypto**, which is exactly
@@ -115,7 +115,7 @@ Bun workspace (standard Expo monorepo Metro setup).
 - **One configure call.** `Amplify.configure(outputs)` runs once in `shared/lib/amplify.ts`. Do not
   call it again per screen.
 - **`amplify_outputs.json` is generated and git-ignored.** It is produced by the backend sandbox
-  (`npx ampx sandbox`) or `npx ampx generate outputs`, and imported with a **relative** path from
+  (`bunx ampx sandbox`) or `bunx ampx generate outputs`, and imported with a **relative** path from
   the mobile app root (`../../../amplify_outputs.json`). A fresh clone will not compile/run until
   this file exists — run the sandbox first.
 - **Token persistence is automatic on RN.** Once `@react-native-async-storage/async-storage` is
@@ -404,7 +404,7 @@ Mobile push uses **`aws-amplify/push-notifications`** backed by **Amazon Pinpoin
 FCM for Android). Install the native push module alongside the existing deps:
 
 ```bash
-npm install @aws-amplify/rtn-push-notification
+bun add @aws-amplify/rtn-push-notification
 ```
 
 Initialize **at the app entry point, after `Amplify.configure`** (so notifications are handled even
@@ -499,7 +499,7 @@ App-specific code in `frontend/apps/mobile/src/*` follows FSD:
 - **Polyfill import order.** `import 'react-native-get-random-values'` must be the **first** import,
   before `aws-amplify`. Hermes has no Web Crypto; auth/UUIDs break otherwise.
 - **`amplify_outputs.json` is generated & git-ignored.** A fresh clone won't run until you produce it
-  with `npx ampx sandbox` (or `npx ampx generate outputs`). It is imported via a relative path.
+  with `bunx ampx sandbox` (or `bunx ampx generate outputs`). It is imported via a relative path.
 - **No SSR on mobile.** Everything is client-side; there is no `runWithAmplifyServerContext`, no
   cookie store, no RSC. Don't copy web SSR patterns into the mobile app.
 - **Social login deep links.** A non-http custom scheme (`mobile://...`) must be in `app.json`

@@ -130,7 +130,7 @@ fastapi.addEnvironment('SNS_TOPIC_ARN', notificationsTopic.topicArn)
 ```
 
 ```bash
-npx ampx sandbox secret set GOOGLE_CLIENT_ID   # sandbox（SSM・コンソール非表示）
+bunx ampx sandbox secret set GOOGLE_CLIENT_ID   # sandbox（SSM・コンソール非表示）
 # ブランチは Amplify コンソール Hosting → Secrets で設定
 ```
 
@@ -159,9 +159,9 @@ sandbox-once                             # CI 等で 1 回だけ反映
 sandbox-delete                           # 破棄（-y で確認スキップ）
 
 # 直接形式（参考）。複数 sandbox の区別や関数ログのストリーム
-npx ampx sandbox --identifier feature-x
-npx ampx sandbox --stream-function-logs
-npx ampx sandbox secret set FOO          # secret 管理（§3）
+bunx ampx sandbox --identifier feature-x
+bunx ampx sandbox --stream-function-logs
+bunx ampx sandbox secret set FOO          # secret 管理（§3）
 ```
 
 `--identifier` は同一アカウント内で複数 sandbox を使い分けるための名前。
@@ -174,14 +174,14 @@ CI やローカルで、デプロイ済みのブランチ環境から `amplify_o
 
 ```bash
 # 指定ブランチ/アプリの outputs を web アプリへ生成（amplify-outputs エイリアスが解決される）
-npx ampx generate outputs --branch main --app-id <APP_ID> --out-dir ./apps/web
+bunx ampx generate outputs --branch main --app-id <APP_ID> --out-dir ./apps/web
 # --format / --outputs-version も指定可能
 ```
 
 GraphQL の型・statement を生成する（必要な場合のみ。本リポジトリは `Schema` 型共有が基本）：
 
 ```bash
-npx ampx generate graphql-client-code --format typescript --out ./generated
+bunx ampx generate graphql-client-code --format typescript --out ./generated
 ```
 
 > 通常、`amplify_outputs.json` は `ampx sandbox`（ローカル）と Amplify Hosting（CI、app-id+branch
@@ -207,7 +207,7 @@ applications:
             - npm install -g bun
             - bun install --frozen-lockfile
             # バックエンドをこのブランチにデプロイ（amplify_outputs.json 生成）
-            - cd packages/backend && npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+            - cd packages/backend && bunx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
     frontend:
       phases:
         preBuild:
@@ -215,7 +215,7 @@ applications:
             - npm install -g bun
             - bun install --frozen-lockfile
             # backend 出力を web アプリへ生成（amplify-outputs エイリアスが解決）
-            - cd packages/backend && npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID --out-dir ../../apps/web && cd ../..
+            - cd packages/backend && bunx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID --out-dir ../../apps/web && cd ../..
         build:
           commands:
             - bun run --filter @workspace/web build
