@@ -32,7 +32,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 │   ├── frontend.md   backend-py.md   python-monorepo.md
 │   ├── render-optimization.md   page-navigation.md
 │   ├── i18n.md   ui-testing.md   datetime.md
-└── skills/         # 技術別ガイダンス（FSD / monorepo / nextjs / fastapi / tanstack-query 等）
+└── skills/         # 技術別ガイダンス（**amplify-gen2** / FSD / monorepo / nextjs / fastapi / tanstack-query 等）
 ```
 
 > 注: 旧スタック専用の skill（supabase-config / drizzle / rls / pgtap / edge-functions-mcp /
