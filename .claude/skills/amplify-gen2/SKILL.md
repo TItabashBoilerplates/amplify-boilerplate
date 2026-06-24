@@ -68,7 +68,8 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 
 | Task | Read |
 |------|------|
-| Data models, relationships, authorization (RLS replacement), CRUD, realtime, custom queries/mutations | [references/data.md](references/data.md) |
+| Data models, relationships, authorization (RLS replacement), CRUD, custom queries/mutations | [references/data.md](references/data.md) |
+| **Realtime** — `observeQuery`, `onCreate/Update/Delete`, filters, connection state, custom `a.subscription` pub/sub, TanStack Query integration | [references/realtime.md](references/realtime.md) |
 | Cognito auth: `defineAuth`, passwordless Email OTP, social/MFA, client session, Next.js SSR auth | [references/auth.md](references/auth.md) |
 | S3 storage: `defineStorage`, access rules, upload/download/getUrl/list/remove | [references/storage.md](references/storage.md) |
 | Lambda functions: Node `defineFunction`, env/secrets, triggers, data resolvers, **Python custom function (FastAPI)** | [references/functions.md](references/functions.md) |

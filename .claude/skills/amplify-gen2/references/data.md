@@ -315,41 +315,22 @@ client.cancel(promise, 'cancellation message')
 
 ## 5. Realtime (Client Components only)
 
-Subscriptions require a client component (`'use client'`). Always `unsubscribe` on cleanup.
+Each model gets `observeQuery` (live list) and `onCreate` / `onUpdate` / `onDelete` (events)
+over an AppSync WebSocket. Subscriptions run **only in Client Components** and must be
+`unsubscribe`d on cleanup.
 
 ```ts
 'use client'
-import { useEffect, useState } from 'react'
-import { getDataClient } from '@workspace/data-client'
-import type { Schema } from '@workspace/backend'
-
-type Todo = Schema['Todo']['type']
-
-export function TodoList() {
-  const [todos, setTodos] = useState<Todo[]>([])
-
-  useEffect(() => {
-    // observeQuery: always-current list, with isSynced status
-    const sub = getDataClient().models.Todo.observeQuery().subscribe({
-      next: ({ items, isSynced }) => setTodos([...items]),
-      error: (e) => console.warn(e),
-    })
-    return () => sub.unsubscribe()
-  }, [])
-
-  return <ul>{todos.map((t) => <li key={t.id}>{t.content}</li>)}</ul>
-}
+const sub = getDataClient().models.Todo.observeQuery().subscribe({
+  next: ({ items, isSynced }) => setTodos([...items]),
+  error: (e) => console.warn(e),
+})
+return () => sub.unsubscribe()
 ```
 
-Event subscriptions with optional server-side filter:
-
-```ts
-const sub = getDataClient().models.Todo.onCreate({
-  filter: { content: { contains: 'groceries' } },
-}).subscribe({ next: (data) => console.log(data) })
-// also: .onUpdate(), .onDelete()
-sub.unsubscribe()
-```
+→ Full realtime guide (observeQuery, events, filters, authorization, connection state,
+**custom `a.subscription` pub/sub**, TanStack Query integration, and gotchas): see
+[realtime.md](realtime.md).
 
 ---
 
