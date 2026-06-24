@@ -1,12 +1,11 @@
 [project]
 name = "core"
 version = "0.1.0"
-description = "Shared infrastructure for backend-py services (logging, supabase client, exceptions)"
+description = "Shared infrastructure for backend-py services (logging, exceptions)"
 requires-python = ">=3.13"
 dependencies = [
     "structlog",
     "orjson >=3.10.14",
-    "supabase",
 ]
 
 [build-system]

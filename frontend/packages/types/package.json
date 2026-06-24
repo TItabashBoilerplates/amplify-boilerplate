@@ -13,9 +13,7 @@
     "generate": "bun run ../../scripts/generate-types.ts",
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.55.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.8.0"
   }

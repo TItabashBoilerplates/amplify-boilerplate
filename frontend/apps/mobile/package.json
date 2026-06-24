@@ -21,7 +21,6 @@
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
-    "@supabase/supabase-js": "^2.87.1",
     "expo": "^55.0.0-canary-20251210-1f163e3",
     "expo-constants": "18.1.0-canary-20251210-1f163e3",
     "expo-font": "14.1.0-canary-20251210-1f163e3",

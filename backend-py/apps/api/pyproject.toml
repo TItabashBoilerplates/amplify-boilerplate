@@ -1,17 +1,13 @@
 [project]
 name = "api"
 version = "0.1.0"
-description = "FastAPI + Supabase auth boilerplate"
+description = "FastAPI boilerplate (AWS Amplify / Lambda)"
 requires-python = ">=3.13"
 dependencies = [
     # Web framework
     "fastapi",
     "starlette",
     "uvicorn[standard]",
-    # DB / auth
-    "supabase",
-    "sqlmodel",
-    "psycopg2-binary",
     # Shared workspace package
     "core",
 ]

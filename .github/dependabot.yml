@@ -18,20 +18,10 @@ updates:
         patterns:
           - "tailwindcss*"
           - "@tailwindcss/*"
-      supabase:
+      aws-amplify:
         patterns:
-          - "@supabase/*"
-
-  # Drizzle dependencies
-  - package-ecosystem: "npm"
-    directory: "/drizzle"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    groups:
-      drizzle:
-        patterns:
-          - "drizzle-*"
+          - "aws-amplify"
+          - "@aws-amplify/*"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@workspace/auth": "workspace:*",
-    "@workspace/client-supabase": "workspace:*",
     "@workspace/types": "workspace:*",
     "zustand": "^5.0.7"
   },
