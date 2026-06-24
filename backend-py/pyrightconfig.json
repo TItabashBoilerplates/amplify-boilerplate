@@ -1,0 +1,14 @@
+{
+	"venvPath": "../.devenv/state",
+	"venv": "venv",
+	"include": [
+		"apps/api/src",
+		"apps/api/tests",
+		"packages/core/src",
+		"packages/core/tests",
+		"apps/mcp/src"
+	],
+	"extraPaths": ["apps/api/src", "packages/core/src", "apps/mcp/src"],
+	"pythonVersion": "3.13",
+	"reportMissingImports": "warning"
+}

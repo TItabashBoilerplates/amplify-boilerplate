@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./colors": "./src/colors.ts",
+    "./radius": "./src/radius.ts",
+    "./web.css": "./web.css",
+    "./native.css": "./native.css"
+  },
+  "scripts": {
+    "build": "bun run scripts/generate-css.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

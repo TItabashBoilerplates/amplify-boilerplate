@@ -1,0 +1,10 @@
+{
+  "tailwind": {
+    "config": "../../../apps/mobile/tailwind.config.ts",
+    "css": "../../../apps/mobile/global.css"
+  },
+  "app": {
+    "entry": "components/gluestack-ui-provider/index.tsx",
+    "components": "components"
+  }
+}

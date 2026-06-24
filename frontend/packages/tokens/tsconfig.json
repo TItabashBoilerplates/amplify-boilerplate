@@ -1,0 +1,13 @@
+{
+  "extends": "../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "types": ["node"],
+    "paths": {
+      "@workspace/tokens/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules"]
+}

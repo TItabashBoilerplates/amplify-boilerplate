@@ -1,0 +1,28 @@
+{
+  "name": "@workspace/onesignal",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./types": "./types/index.ts",
+    "./providers": "./providers/index.ts",
+    "./hooks": "./hooks/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react-onesignal": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "typescript": "^5.8.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

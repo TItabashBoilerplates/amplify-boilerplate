@@ -1,0 +1,27 @@
+{
+  "name": "@workspace/api-client",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./sdk": "./src/generated/sdk.gen.ts",
+    "./types": "./src/generated/types.gen.ts"
+  },
+  "scripts": {
+    "generate": "bun run scripts/generate.ts"
+  },
+  "dependencies": {
+    "@hey-api/client-fetch": "^0.9.0"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.89.2",
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5"
+  }
+}

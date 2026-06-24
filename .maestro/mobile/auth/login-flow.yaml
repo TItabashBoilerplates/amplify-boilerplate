@@ -1,0 +1,61 @@
+# Mobile Authentication Flow - OTP Login (Template)
+# Tests the complete OTP authentication flow for Expo mobile app
+#
+# NOTE: This is a template. Update when mobile auth screens are implemented.
+# Required implementations:
+#   - Login screen with email input
+#   - OTP verification screen
+
+appId: ${APP_ID}
+name: "Mobile OTP Login Flow"
+tags:
+  - auth
+  - mobile
+  - e2e
+  - wip  # Mark as work-in-progress until auth screens are ready
+
+env:
+  # Android emulator uses 10.0.2.2 for host localhost
+  # iOS simulator can use localhost directly
+  MAILPIT_URL: "http://10.0.2.2:54324"
+  TEST_EMAIL: "testuser@example.com"
+
+---
+# Step 1: Launch app and clear state
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+# Step 2: Navigate to login screen (update selector when implemented)
+# - tapOn: "Login"
+
+# Step 3: Enter email address (update selector when implemented)
+# - tapOn:
+#     id: "email-input"
+# - inputText: ${TEST_EMAIL}
+
+# Step 4: Submit OTP request (update selector when implemented)
+# - tapOn: "Send OTP"
+
+# Step 5: Wait for OTP email and extract code
+# - runScript:
+#     file: ../../scripts/get-otp-from-mailpit.js
+#     env:
+#       MAILPIT_URL: ${MAILPIT_URL}
+#       WAIT_FOR_EMAIL: "true"
+#       MAX_RETRIES: "15"
+
+# Step 6: Enter OTP code (update selector when implemented)
+# - tapOn:
+#     id: "otp-input"
+# - inputText: ${output.otpCode}
+
+# Step 7: Submit verification (update selector when implemented)
+# - tapOn: "Verify"
+
+# Step 8: Verify successful authentication
+# - assertVisible: "Home"
+
+# Placeholder: Take screenshot of current state
+- takeScreenshot: mobile-app-state

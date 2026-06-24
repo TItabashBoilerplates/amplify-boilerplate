@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      next:
+        patterns:
+          - "next*"
+      tailwind:
+        patterns:
+          - "tailwindcss*"
+          - "@tailwindcss/*"
+      supabase:
+        patterns:
+          - "@supabase/*"
+
+  # Drizzle dependencies
+  - package-ecosystem: "npm"
+    directory: "/drizzle"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      drizzle:
+        patterns:
+          - "drizzle-*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

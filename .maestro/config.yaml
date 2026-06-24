@@ -1,0 +1,26 @@
+# Maestro Workspace Configuration
+# Reference: https://maestro.mobile.dev/
+
+flows:
+  - "web/**/*.yaml"
+  - "mobile/**/*.yaml"
+
+includeTags:
+  - smoke
+  - auth
+  - e2e
+
+excludeTags:
+  - skip
+  - wip
+
+executionOrder:
+  continueOnFailure: false
+
+testOutputDir: ../e2e-results/maestro
+
+platform:
+  ios:
+    disableAnimations: true
+  android:
+    disableAnimations: true

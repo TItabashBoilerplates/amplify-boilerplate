@@ -1,0 +1,148 @@
+# Frontend (Next.js 16) Cursor Rules
+
+このディレクトリは、Next.js 16 + React 19 + shadcn/ui + TailwindCSS 4を使用したフロントエンドアプリケーションです。
+
+## アーキテクチャ
+
+- **Framework**: Next.js 16 (App Router)
+- **Architecture**: Feature-Sliced Design (FSD)
+- **UI**: shadcn/ui (Radix UI + TailwindCSS 4)
+- **State**: Zustand
+- **i18n**: next-intl
+- **Package Manager**: Bun
+
+## Feature-Sliced Design (FSD)
+
+### レイヤー構造
+
+```
+src/
+├── app/          # Application layer (providers, global styles)
+├── views/        # Views layer (full page components)
+├── widgets/      # Widgets layer (composite UI blocks)
+├── features/     # Features layer (business features)
+├── entities/     # Entities layer (domain models)
+└── shared/       # Shared layer (reusable code)
+```
+
+### インポートルール
+
+- **下位レイヤーのみインポート可能**: `app` → `views` → `widgets` → `features` → `entities` → `shared`
+- **同レイヤー間のインポート禁止**
+- **上位レイヤーへのインポート厳禁**
+
+## コーディング規約
+
+### Rendering Strategy
+
+**重要**: Next.js公式ベストプラクティスに従う
+
+1. **Public Pages (認証不要)**: **Server Component (SSR/SSG)** - 必須
+   - `'use client'`を使用しない
+   - `async`関数として実装
+   - `getTranslations`を使用（`useTranslations`は不可）
+
+2. **Authenticated Pages (認証必要)**: **Hybrid (SSR + CSR)** - 推奨
+   - Page wrapper: Server Component
+   - サーバー側で`await supabase.auth.getUser()`で認証チェック
+   - インタラクティブ部分: Client Component
+
+3. **Interactive Components**: **Client Component**
+   - `'use client'`ディレクティブ使用
+   - React Hooks使用可能
+
+### Supabase統合
+
+**🔒 CRITICAL**: Always use `supabase.auth.getUser()`, NEVER `getSession()` in server code
+
+```typescript
+// ✅ Good: Server Component with Supabase
+import { createClient } from '@/shared/lib/supabase/server'
+import { redirect } from 'next/navigation'
+
+export default async function DashboardPage() {
+  const supabase = createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error || !user) redirect('/login')
+
+  return <div>Welcome {user.email}</div>
+}
+```
+
+### UI Components
+
+**Component Selection Priority**:
+1. **First**: MagicUI components (via MCP)
+2. **Second**: shadcn/ui components
+3. **Last**: Custom components
+
+```bash
+# Add shadcn/ui components
+bunx shadcn@latest add button card input
+```
+
+### Styling
+
+- TailwindCSS 4 utility classes only
+- CSS variables for theming (`--background`, `--foreground`, etc.)
+- NO custom CSS files
+- NO hardcoded colors
+
+```typescript
+// ✅ Good
+<Card className="border-border bg-background">
+  <h2 className="text-foreground">Title</h2>
+</Card>
+
+// ❌ Bad
+<Card className="border-gray-200" style={{ background: '#fff' }}>
+  <h2 className="text-black">Title</h2>
+</Card>
+```
+
+## Development Commands
+
+```bash
+bun install                 # Install dependencies
+bun run dev                 # Development server
+bun run build               # Production build
+bun run lint                # Biome lint
+bun run format              # Biome format
+bun run type-check          # TypeScript check
+bun run test                # Vitest tests
+```
+
+## Testing
+
+- **Framework**: Vitest
+- **Location**: `__tests__/` directories or `*.test.tsx` files
+- **必須**: 全ての新機能にテストを書く
+
+```typescript
+// Example test
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+
+describe('Component', () => {
+  it('renders correctly', () => {
+    render(<Component />)
+    expect(screen.getByText('Text')).toBeInTheDocument()
+  })
+})
+```
+
+## 重要なドキュメント
+
+- `frontend/CLAUDE.md` - Frontend詳細ガイド
+- `apps/web/components.json` - shadcn/ui設定
+- `vitest.config.ts` - テスト設定
+
+## 禁止事項
+
+- ❌ `'use client'`の不必要な使用
+- ❌ `getSession()`の使用（セキュリティリスク）
+- ❌ Custom CSS files
+- ❌ Hardcoded colors
+- ❌ FSDレイヤー違反のインポート
+- ❌ ESLintやPrettierの使用（Biomeを使用）

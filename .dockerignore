@@ -1,0 +1,34 @@
+# Dependencies & caches
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.cache/
+
+# Frontend (backend-py デプロイに不要)
+frontend/
+
+# IDE & OS
+.git/
+.idea/
+.vscode/
+.DS_Store
+
+# Environment & secrets
+env/.env.secrets
+*.env.local
+
+# Documentation
+docs/
+*.md
+!backend-py/app/pyproject.toml
+
+# Drizzle (backend-py に不要)
+drizzle/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Claude config
+.claude/

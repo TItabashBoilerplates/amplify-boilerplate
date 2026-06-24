@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    // Bun runtime
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+
+    // Type checking
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Bun specific
+    "types": ["bun-types"],
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    // Path resolution
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

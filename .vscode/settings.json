@@ -1,0 +1,52 @@
+{
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true,
+	"editor.formatOnSave": true,
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+
+	// Deno (Edge Functions)
+	"deno.path": "/opt/homebrew/bin/deno",
+	"deno.enablePaths": ["./supabase/functions"],
+	"deno.importMap": "./supabase/functions/import_map.json",
+	"deno.suggest.imports.hosts": {
+		"https://deno.land": true
+	},
+	"deno.enable": true,
+	"deno.lint": true,
+	"deno.unstable": false,
+
+	// Biome (Frontend + Drizzle)
+	"[typescript]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "biomejs.biome",
+		"editor.codeActionsOnSave": {
+			"source.fixAll.biome": "explicit"
+		}
+	},
+
+	"[typescriptreact]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "biomejs.biome",
+		"editor.codeActionsOnSave": {
+			"source.fixAll.biome": "explicit"
+		}
+	},
+
+	"[javascript]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "biomejs.biome",
+		"editor.codeActionsOnSave": {
+			"source.fixAll.biome": "explicit"
+		}
+	},
+
+	"[json]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+
+	"[jsonc]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "biomejs.biome"
+	}
+}

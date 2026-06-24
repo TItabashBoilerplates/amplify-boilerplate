@@ -1,0 +1,45 @@
+{
+  "name": "@workspace/native-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./components/index.ts",
+    "./components": "./components/index.ts",
+    "./components/*": "./components/*",
+    "./layout": "./layout/index.ts",
+    "./layout/*": "./layout/*.tsx",
+    "./hooks": "./hooks/index.ts",
+    "./hooks/*": "./hooks/*.ts",
+    "./constants": "./constants/index.ts",
+    "./constants/*": "./constants/*.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/tokens": "workspace:*",
+    "@expo/vector-icons": "^15.0.3",
+    "@gluestack-ui/button": "^1.0.14",
+    "@gluestack-ui/core": "^3.0.12",
+    "@gluestack-ui/nativewind-utils": "^1.0.28",
+    "@gluestack-ui/overlay": "^0.1.15",
+    "@gluestack-ui/toast": "^1.0.8",
+    "@gluestack-ui/utils": "^3.0.13",
+    "expo-symbols": "1.1.0-canary-20251210-1f163e3",
+    "lucide-react-native": "^0.560.0",
+    "nativewind": "^4.1.23",
+    "react-native-reanimated": "~4.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "react": "19.2.1",
+    "react-native": "0.82.1",
+    "react-native-css": "^3.0.1",
+    "typescript": "~5.9.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-native": ">=0.82.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@workspace/types",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./schema": "./schema.ts",
+    "./api": "./api/index.ts"
+  },
+  "scripts": {
+    "generate": "bun run ../../scripts/generate-types.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.55.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

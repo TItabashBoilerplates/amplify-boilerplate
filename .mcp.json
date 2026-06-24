@@ -1,0 +1,55 @@
+{
+	"mcpServers": {
+		"context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "@upstash/context7-mcp"],
+			"env": {}
+		},
+		"magicuidesign": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "@magicuidesign/mcp@latest"],
+			"env": {}
+		},
+		"shadcn": {
+			"command": "npx",
+			"args": ["shadcn@latest", "mcp"]
+		},
+		"maestro": {
+			"command": "maestro",
+			"args": ["mcp"]
+		},
+		"supabase": {
+			"type": "http",
+			"url": "http://localhost:54321/mcp",
+			"headers": {
+				"apikey": "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH",
+				"Authorization": "Bearer sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+			}
+		},
+		"supabase-prod": {
+			"type": "http",
+			"url": "https://mcp.supabase.com/mcp?project_ref=<PROJECT_REF>&read_only=true"
+		},
+		"devenv": {
+			"transport": "stdio",
+			"command": "devenv",
+			"args": ["mcp"]
+		},
+		"figma": {
+			"type": "http",
+			"url": "https://mcp.figma.com/mcp"
+		},
+		"gemini-api-docs-mcp": {
+			"type": "http",
+			"url": "https://gemini-api-docs-mcp.dev"
+		},
+		"doppler": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "@dopplerhq/mcp-server"],
+			"env": {}
+		}
+	}
+}

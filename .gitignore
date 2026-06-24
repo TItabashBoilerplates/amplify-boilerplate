@@ -1,0 +1,150 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# =============================================================================
+# Dependencies
+# =============================================================================
+node_modules/
+.pnpm-store/
+
+# Python virtual environments
+.venv/
+venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Environment files directory
+# commit するのは ドキュメント (README) のみ。
+# 実際の環境変数・シークレットは AWS (Amplify secrets / SSM Parameter Store) 管理。
+# .env.local は秘密混入リスクがあるため追跡しない（雛形は env/README.md に記載）。
+env/**
+!env/*/
+!env/README.md
+
+# =============================================================================
+# Build Outputs
+# =============================================================================
+# Frontend builds
+**/dist/
+**/build/
+**/.next/**
+**/.vercel/
+
+# Expo
+.expo/
+**/web-build/
+
+# Python builds
+**/*.egg-info/
+
+# =============================================================================
+# Caches & Temporary Files
+# =============================================================================
+# Build tool caches
+**/.turbo/**
+**/*.tsbuildinfo
+
+# Linter & Formatter caches
+**.eslintcache
+
+# Python tool caches
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test coverage
+.coverage
+**.coverage.*
+
+# E2E test results (Maestro)
+e2e-results/maestro/
+htmlcov/
+
+# Metro
+**.metro-health-check*
+
+# =============================================================================
+# Logs
+# =============================================================================
+**/*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+**/*.pnpm-debug.log*
+**/*.lerna-debug.log*
+
+# =============================================================================
+# IDE & Editor
+# =============================================================================
+# VS Code user-specific files (exclude)
+.vscode/*
+# But include recommended settings (include)
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+.idea/
+**/*.swp
+**/*.scripts.swo
+*~
+
+# =============================================================================
+# OS Files
+# =============================================================================
+# macOS
+.DS_Store
+*.pem
+
+# Windows
+Thumbs.db
+
+# =============================================================================
+# Native App Certificates & Keys
+# =============================================================================
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# =============================================================================
+# Project Specific
+# =============================================================================
+# AI services
+ai/ollama/**
+ai/ollama-webui/**
+
+# Blockchain
+blockchain/chainlink/postgres/data/**
+blockchain/chainlink/data/**
+blockchain/src/scripts/.wallets/**
+ipfs/data/**
+ipfs/contents/**
+!.gitkeep
+
+# Supabase
+supabase/.branches/**
+supabase/.temp/**
+
+# Playwright MCP
+.playwright-mcp/**
+
+# Codex CLI local settings (config.toml.example is tracked)
+.codex/config.toml
+
+.serena/**
+
+# devenv
+.devenv/
+.devenv.flake.nix
+devenv.local.nix
+devenv.local.yaml
+.direnv/
+.pre-commit-config.yaml

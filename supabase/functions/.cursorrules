@@ -1,0 +1,276 @@
+# Supabase Edge Functions (Deno) Cursor Rules
+
+このディレクトリは、Denoを使用したSupabase Edge Functionsです。
+
+## Runtime & API
+
+- **Runtime**: Deno 2.5.6
+- **API**: `Deno.serve` (native, lightweight)
+- **Package Manager**: Deno組み込み
+- **Import**: `npm:` prefix推奨（JSR/HTTP imports不可）
+
+## コーディング規約
+
+### 1. Deno.serve API
+
+Edge FunctionsはDeno.serveを使用：
+
+```typescript
+// ✅ Good: Native Deno.serve API
+Deno.serve(async (req) => {
+  const { pathname } = new URL(req.url)
+
+  if (pathname === '/health') {
+    return new Response(JSON.stringify({ status: 'ok' }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  return new Response('Not Found', { status: 404 })
+})
+
+// ❌ Bad: Old Oak framework (deprecated)
+import { Application } from 'https://deno.land/x/oak/mod.ts'
+```
+
+### 2. Import Map (deno.json)
+
+各関数にdeno.jsonを配置し、npm prefixを使用：
+
+```json
+{
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2",
+    "drizzle-orm": "npm:drizzle-orm@^0.44"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  }
+}
+```
+
+**IMPORTANT**:
+- ✅ `npm:` prefix推奨（例: `npm:@supabase/supabase-js@^2`）
+- ❌ JSR (`jsr:`) は使用しない
+- ❌ HTTP imports (`https://deno.land/x/...`) は使用しない
+
+### 3. Type Safety
+
+TypeScript strict modeを有効化：
+
+```typescript
+// ✅ Good: Properly typed
+interface RequestBody {
+  userId: string
+  action: string
+}
+
+Deno.serve(async (req) => {
+  try {
+    const body: RequestBody = await req.json()
+
+    if (!body.userId || !body.action) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Process request...
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch (error) {
+    // Type guard for Error
+    if (error instanceof Error) {
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    return new Response('Internal Server Error', { status: 500 })
+  }
+})
+```
+
+### 4. Error Handling
+
+適切なエラーハンドリングとtype guards:
+
+```typescript
+// ✅ Good: Type-safe error handling
+try {
+  // Some operation
+} catch (error) {
+  if (error instanceof Error) {
+    console.error('Error:', error.message)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+  // Unknown error type
+  return new Response('Unknown error', { status: 500 })
+}
+
+// ❌ Bad: No type guard
+catch (error) {
+  console.error(error.message) // Type error!
+}
+```
+
+### 5. Drizzle Schema Integration
+
+Edge FunctionsでDrizzleスキーマを直接使用可能：
+
+```typescript
+import type { InferSelectModel, InferInsertModel } from 'npm:drizzle-orm'
+import { generalUsers } from '../shared/drizzle/index.ts'
+
+// 型を推論
+type User = InferSelectModel<typeof generalUsers>
+type NewUser = InferInsertModel<typeof generalUsers>
+
+Deno.serve(async (req) => {
+  const user: User = {
+    id: crypto.randomUUID(),
+    displayName: 'John Doe',
+    accountName: 'johndoe',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  return new Response(JSON.stringify({ user }), {
+    headers: { 'Content-Type': 'application/json' },
+  })
+})
+```
+
+**メリット**:
+- TypeScriptの型安全性
+- スキーマ変更時に型が自動更新（`make build-model-functions`実行時）
+- Supabase生成型とDrizzle型の両方を使い分け可能
+
+### 6. Supabase Client
+
+Supabase clientの適切な使用：
+
+```typescript
+import { createClient } from 'npm:@supabase/supabase-js@^2'
+
+Deno.serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  )
+
+  // Get user from auth header
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const { data: { user }, error } = await supabase.auth.getUser(
+    authHeader.replace('Bearer ', '')
+  )
+
+  if (error || !user) {
+    return new Response('Invalid token', { status: 401 })
+  }
+
+  // Use authenticated user...
+  return new Response(JSON.stringify({ user }), {
+    headers: { 'Content-Type': 'application/json' },
+  })
+})
+```
+
+## Development Commands
+
+```bash
+# Lint
+deno lint
+
+# Format
+deno fmt
+
+# Type check (all functions)
+make check-functions
+
+# Deploy
+supabase functions deploy <function-name>
+```
+
+## Testing
+
+Edge Functionsのテスト:
+
+```bash
+# Local development
+supabase functions serve <function-name>
+
+# Test with curl
+curl -X POST http://localhost:54321/functions/v1/<function-name> \
+  -H "Content-Type: application/json" \
+  -d '{"key": "value"}'
+```
+
+## Shared Code
+
+共有コードは`shared/`ディレクトリに配置：
+
+```
+supabase/functions/
+├── shared/
+│   ├── types/supabase/    # Supabase生成型
+│   └── drizzle/           # Drizzleスキーマ
+├── function1/
+│   ├── index.ts
+│   └── deno.json
+└── function2/
+    ├── index.ts
+    └── deno.json
+```
+
+## 禁止事項
+
+- ❌ JSR imports (`jsr:`)
+- ❌ HTTP imports (`https://deno.land/x/...`)
+- ❌ Old Oak framework
+- ❌ `getSession()`の使用（`getUser()`を使用）
+- ❌ Type guardsなしのerrorハンドリング
+- ❌ ハードコードされた環境変数
+
+## 環境変数
+
+環境変数は`Deno.env.get()`で取得：
+
+```typescript
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')
+const openaiKey = Deno.env.get('OPENAI_API_KEY')
+```
+
+## CORS対応
+
+CORS headers設定:
+
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Handle request...
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+})
+```

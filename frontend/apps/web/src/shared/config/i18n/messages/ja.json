@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "ようこそ",
+    "hello": "こんにちは",
+    "goodbye": "さようなら",
+    "yes": "はい",
+    "no": "いいえ",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "create": "作成",
+    "update": "更新",
+    "close": "閉じる",
+    "open": "開く",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功"
+  },
+  "navigation": {
+    "home": "ホーム",
+    "about": "概要",
+    "contact": "お問い合わせ",
+    "settings": "設定"
+  },
+  "HomePage": {
+    "title": "Next.jsへようこそ！",
+    "description": "ページを編集して始めましょう。",
+    "learn": "Next.jsを学ぶ"
+  },
+  "LocaleSwitcher": {
+    "label": "言語を変更",
+    "locale": "{locale, select, en {English} ja {日本語} other {Unknown}}"
+  },
+  "CheckoutSuccess": {
+    "title": "ご購入ありがとうございます！",
+    "description": "ご注文は正常に処理されました。",
+    "backToHome": "ホームに戻る"
+  },
+  "Pricing": {
+    "title": "プランを選択",
+    "description": "ニーズに最適なプランをお選びください。",
+    "perMonth": "/月",
+    "perYear": "/年",
+    "oneTime": "買い切り",
+    "subscribe": "購読する",
+    "purchase": "購入する",
+    "currentPlan": "現在のプラン",
+    "mostPopular": "人気No.1"
+  },
+  "Subscription": {
+    "title": "ご契約情報",
+    "status": "ステータス",
+    "active": "有効",
+    "canceled": "解約済み",
+    "pastDue": "支払い遅延",
+    "trialing": "トライアル中",
+    "currentPeriodEnd": "次回更新日",
+    "manageSubscription": "契約を管理",
+    "noSubscription": "有効な契約がありません",
+    "viewPlans": "プランを見る"
+  },
+  "Loading": {
+    "page": "ページを読み込み中...",
+    "dashboard": "ダッシュボードを読み込み中...",
+    "backendInfo": "バックエンド応答を読み込み中..."
+  },
+  "ErrorBoundary": {
+    "title": "エラーが発生しました",
+    "description": "予期しないエラーが発生しました。再試行するかホームに戻ってください。",
+    "retry": "再試行",
+    "backHome": "ホームに戻る",
+    "globalTitle": "アプリケーションエラー",
+    "globalDescription": "アプリケーションの読み込みに失敗しました。ページを再読み込みしてください。"
+  }
+}

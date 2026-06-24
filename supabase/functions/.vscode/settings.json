@@ -1,0 +1,35 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.formatOnSave": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  // Deno
+  "deno.path": "/opt/homebrew/bin/deno",
+  "deno.enablePaths": ["./"],
+  "deno.importMap": "./import_map.json",
+  "deno.suggest.imports.hosts": {
+    "https://deno.land": true
+  },
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.unstable": false,
+
+  // Typescript
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // React
+  "[typescriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Javascript
+  "[javascript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

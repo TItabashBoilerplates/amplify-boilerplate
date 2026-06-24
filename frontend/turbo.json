@@ -1,0 +1,91 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "generate": {
+      "cache": false,
+      "outputs": ["src/generated/**"]
+    },
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "!**/.env*.local"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".expo/**"]
+    },
+    "dev": {
+      "dependsOn": ["generate"],
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "ios": {
+      "cache": false,
+      "persistent": true
+    },
+    "android": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "eslint.config.*"]
+    },
+    "type-check": {
+      "dependsOn": ["^type-check", "generate"],
+      "outputs": []
+    },
+    "format": {
+      "outputs": [],
+      "cache": false
+    },
+    "format-check": {
+      "outputs": [],
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    },
+    "storybook": {
+      "cache": false,
+      "persistent": true
+    },
+    "build-storybook": {
+      "dependsOn": ["^build"],
+      "outputs": ["storybook-static/**"]
+    }
+  },
+  "globalEnv": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_BACKEND_PY_URL",
+    "EXPO_PUBLIC_SUPABASE_URL",
+    "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+    "BACKEND_URL"
+  ],
+  "boundaries": {
+    "tags": {
+      "app": {
+        "dependencies": {
+          "allow": ["app", "ui-pkg", "infra-pkg", "tool-pkg"]
+        }
+      },
+      "ui-pkg": {
+        "dependencies": {
+          "allow": ["ui-pkg", "infra-pkg", "tool-pkg"]
+        }
+      },
+      "infra-pkg": {
+        "dependencies": {
+          "allow": ["infra-pkg", "tool-pkg"]
+        }
+      },
+      "tool-pkg": {
+        "dependencies": {
+          "allow": ["tool-pkg"]
+        }
+      }
+    }
+  }
+}

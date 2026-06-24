@@ -1,0 +1,89 @@
+# Web Authentication Flow - OTP Login
+# Tests the complete OTP authentication flow for Next.js web app
+#
+# This flow:
+# 1. Creates a unique test user via Supabase Admin API (onFlowStart)
+# 2. Performs OTP login flow
+# 3. Cleans up the test user (onFlowComplete)
+
+appId: com.example.web
+name: "Web OTP Login Flow"
+jsEngine: graaljs
+tags:
+  - auth
+  - web
+  - e2e
+
+env:
+  # Environment variables are loaded from .maestro/.env
+  # Override defaults here if needed
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+  MAILPIT_URL: ${MAILPIT_URL}
+
+# Setup: Create test user before flow starts
+onFlowStart:
+  - runScript:
+      file: ../../scripts/setup-test-user.js
+      env:
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+
+# Cleanup: Delete test user after flow completes
+onFlowComplete:
+  - runScript:
+      file: ../../scripts/cleanup-test-user.js
+      env:
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+        USER_ID: ${output.userId}
+
+---
+# Step 1: Navigate to login page
+- launchApp:
+    arguments:
+      url: "http://localhost:3000/en/login"
+
+# Step 2: Verify login page loaded
+- assertVisible: "Email Address"
+- assertVisible: "Send One-Time Password"
+
+# Step 3: Enter email address (from setup-test-user.js output)
+- tapOn:
+    id: "email"
+- inputText: ${output.testEmail}
+
+# Step 4: Submit OTP request
+- tapOn: "Send One-Time Password"
+
+# Step 5: Verify success message
+- assertVisible: "Check Your Email"
+
+# Step 6: Wait for OTP email and extract code
+- runScript:
+    file: ../../scripts/get-otp-from-mailpit.js
+    env:
+      MAILPIT_URL: ${MAILPIT_URL}
+      WAIT_FOR_EMAIL: "true"
+      MAX_RETRIES: "15"
+
+# Step 7: Navigate to verify page
+- openLink: "http://localhost:3000/en/verify?email=${output.testEmail}"
+
+# Step 8: Verify OTP page loaded
+- assertVisible: "Verify Your Email"
+- assertVisible: "Enter the 6-digit code"
+
+# Step 9: Enter OTP code
+- tapOn:
+    id: "token"
+- inputText: ${output.otpCode}
+
+# Step 10: Submit verification
+- tapOn: "Verify Code"
+
+# Step 11: Verify successful authentication - redirected to dashboard
+- assertVisible: "Dashboard"
+
+# Step 12: Take screenshot of successful login
+- takeScreenshot: login-success

@@ -1,0 +1,24 @@
+# Node modules (installed in container)
+node_modules
+**/node_modules
+
+# Build outputs
+.next
+out
+storybook-static
+dist
+
+# Cache
+.turbo
+.cache
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Logs
+*.log

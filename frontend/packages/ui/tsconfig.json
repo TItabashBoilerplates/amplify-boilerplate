@@ -1,0 +1,15 @@
+{
+  "extends": "../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/ui/*": ["./src/*"],
+      "@workspace/tokens": ["../tokens/src"],
+      "@workspace/tokens/*": ["../tokens/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "**/__tests__/**", "mobile"]
+}

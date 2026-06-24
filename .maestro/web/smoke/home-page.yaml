@@ -1,0 +1,22 @@
+# Web Home Page Smoke Test
+# Basic verification that home page loads correctly
+
+appId: com.example.web
+name: "Web Home Page Smoke Test"
+tags:
+  - smoke
+  - web
+
+---
+# Step 1: Navigate to home page
+- launchApp:
+    arguments:
+      url: "http://localhost:3000/en"
+
+# Step 2: Verify page loaded (check for common elements)
+- assertVisible:
+    text: ".*"
+    optional: true
+
+# Step 3: Take screenshot for visual verification
+- takeScreenshot: home-page

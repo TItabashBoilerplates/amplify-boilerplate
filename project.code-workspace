@@ -1,0 +1,35 @@
+{
+	"folders": [
+		{
+			"name": "backend-py",
+			"path": "backend-py/app",
+			"settings": {
+				"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+				"editor.defaultFormatter": "charliermarsh.ruff",
+				"[python]": {
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.fixAll": "explicit",
+						"source.organizeImports": "explicit"
+					}
+				},
+				"ruff.lint.args": ["--config=./pyproject.toml"],
+				"ruff.organizeImports": true,
+				"ruff.fixAll": true,
+				"editor.formatOnSave": true
+			}
+		},
+		{
+			"path": "frontend"
+		},
+		{
+			"name": "edge function",
+			"path": "supabase/functions"
+		},
+		{
+			"name": "root",
+			"path": "."
+		}
+	],
+	"settings": {}
+}

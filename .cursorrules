@@ -1,0 +1,68 @@
+# shadcn-boilerplate Cursor Rules
+
+このプロジェクトは、Next.js 16 + shadcn/ui + Drizzle ORM + Supabaseを使用したフルスタックボイラープレートです。
+
+> **Note**: 詳細なルールは `.cursor/rules/` ディレクトリを参照してください。
+> このファイルは概要のみを提供し、個別のルールは Project Rules として管理されています。
+
+## プロジェクト構成
+
+- **Frontend Web**: Next.js 16, React 19, shadcn/ui, TailwindCSS 4, Bun
+- **Frontend Mobile**: Expo 55, React Native, gluestack-ui, NativeWind 5
+- **Backend Python**: FastAPI, Clean Architecture, Ruff + MyPy
+- **Database**: Drizzle ORM (TypeScript), PostgreSQL, Supabase
+- **Edge Functions**: Deno, Supabase Edge Functions
+- **モノレポ**: Bun workspace
+
+## 必須ポリシー
+
+以下のポリシーは**必須**です。詳細は `.cursor/rules/` を参照:
+
+| ポリシー | ルール | 概要 |
+|---------|--------|------|
+| Research-First | `@research` | 実装前に公式ドキュメント確認必須 |
+| TDD | `@tdd` | テスト駆動開発、All Green必須 |
+| Commands | `@commands` | Makefileコマンド使用必須 |
+| Auto-Generated | `@auto-generated` | 自動生成ファイル編集禁止 |
+| Supabase-First | `@supabase-first` | supabase-js優先 |
+| i18n | `@i18n` | 多言語対応必須 |
+| DateTime | `@datetime` | UTC保存、Frontend変換 |
+
+## ドメイン別ルール
+
+| ドメイン | ルール | Globs |
+|---------|--------|-------|
+| Frontend | `@frontend` | `frontend/**/*.{ts,tsx}` |
+| Backend Python | `@backend-py` | `backend-py/**/*.py` |
+| Edge Functions | `@edge-functions` | `supabase/functions/**/*.ts` |
+| Database | `@database` | `drizzle/**/*.ts` |
+
+## 開発コマンド
+
+```bash
+# 統合コマンド（推奨）
+make lint           # 全プロジェクトのlint
+make format         # 全プロジェクトのformat
+make type-check     # 型チェック
+make test           # 全テスト
+make ci-check       # CI用の全チェック
+
+# 初期化・実行
+make init           # プロジェクト初期化
+make run            # バックエンド起動
+make frontend       # フロントエンド起動
+
+# データベース（ユーザー承認必須）
+make migrate-dev    # マイグレーション生成 + 適用 + 型生成
+```
+
+## ドキュメント参照
+
+実装前に以下を必ず確認:
+
+- `README.md` - プロジェクト概要
+- 各ドメインの `README.md` - ドメイン固有のガイドライン
+
+## ライセンス
+
+MIT License

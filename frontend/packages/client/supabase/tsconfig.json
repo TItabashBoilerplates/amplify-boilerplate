@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/client-supabase/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

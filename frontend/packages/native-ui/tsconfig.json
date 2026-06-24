@@ -1,0 +1,15 @@
+{
+  "extends": "../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/native-ui/*": ["./*"],
+      "@workspace/tokens": ["../../tokens/src"],
+      "@workspace/tokens/*": ["../../tokens/src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+# 同一 PR / branch で後続の push が来たら走行中の workflow をキャンセルし、
+# main / develop への直接 push は最後まで走らせる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Doppler サービストークン（read-only・単一 config スコープ）。GitHub Secrets に
+# DOPPLER_TOKEN を登録すると、devenv shell 進入時の loadDopplerByEnv が CI でも
+# シークレットを取得できる（token がそのスコープの config を決めるため ENV/--config 不要）。
+# 未登録なら空文字 → Doppler 取得は失敗し警告のみ（lint/format/type-check/unit-test は
+# シークレット不要なので CI は通る）。デプロイ先のシークレットは Doppler ネイティブ連携で
+# 各プラットフォームに sync する（.claude/skills/doppler/references/cicd.md 参照）。
+env:
+  DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
+# 公式推奨: すべての `run:` を devenv shell 内で実行する。
+# これにより `devenv:enterShell` hook が発火し、`before = [ "devenv:enterShell" ]`
+# が付いた `setup:install-frontend` / `setup:install-drizzle` / `setup:install-backend`
+# が lockfile 変更検知ベースで自動同期される（`bun install --frozen-lockfile` /
+# `uv sync --frozen`）。
+# Refs: https://devenv.sh/integrations/github-actions/
+defaults:
+  run:
+    shell: devenv shell bash -- -e {0}
+
+jobs:
+  ci-check:
+    name: CI Check (lint + format + type-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          # cache-nix-action 公式推奨。これがないと nix store の自動 GC で
+          # devenv-shell の依存（中間ビルド成果物・derivation）が落ちて、
+          # 2 回目以降に「あるはずのものが無い」状態になる。
+          # Refs: https://github.com/nix-community/cache-nix-action
+          extra_nix_config: |
+            keep-outputs = true
+            keep-env-derivations = true
+      # /nix/store そのものを GHA cache に乗せる。
+      # 旧構成は `actions/cache@v4` で `.devenv/` を抱えていたが、`.devenv/profile`
+      # や `.devenv/gc/` が `/nix/store/...` への symlink を持つため、別 runner で
+      # restore すると参照先実体が無く `no substituter that can build it` で失敗する。
+      # cache-nix-action は `/nix/store` 自体を cache するので symlink 先の実体も揃う。
+      # Refs: https://github.com/nix-community/cache-nix-action
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('devenv.nix', 'devenv.lock', 'devenv.yaml') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          # GHA cache の上限 (10GB/repo) を考慮し /nix/store を 5GB に GC してから保存
+          gc-max-store-size-linux: 5G
+          # 古い cache を整理（primary-key と一致するものは保護）
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-created: 0
+          purge-primary-key: never
+      # devenv 公式 cachix を読み取り substituter として併用。
+      # 初回（cache-nix-action が cold な状態）でも devenv 共通の依存物は
+      # ここから引いてこられるので、build from source を回避できる。
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      # node_modules は /nix/store 外に出るので別 cache。
+      # uv venv は `.devenv/state/venv` だが、CI では `setup:install-backend` task が
+      # `uv sync --frozen` で毎回再生成するため cache 不要。
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+            frontend/tooling/*/node_modules
+            drizzle/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/bun.lock', 'drizzle/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+      - name: Install devenv.sh
+        shell: bash
+        run: nix profile add nixpkgs#devenv
+      # `devenv test` (= ci:check aggregator) は process phase で Supabase Docker /
+      # Storybook を起動してしまうため CI では使わず、配下の verify task を直接列挙する。
+      - name: Run verify tasks
+        run: |
+          devenv tasks run \
+            lint-ci:frontend \
+            lint-ci:drizzle \
+            lint-ci:backend-py \
+            lint-ci:functions \
+            lint-ci:fsd \
+            format-check:frontend \
+            format-check:drizzle \
+            format-check:backend-py \
+            format-check:functions \
+            type-check:frontend \
+            type-check:mobile \
+            type-check:backend-py \
+            type-check:functions
+
+  test:
+    name: Unit Tests (frontend + backend-py)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            keep-outputs = true
+            keep-env-derivations = true
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('devenv.nix', 'devenv.lock', 'devenv.yaml') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 5G
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-created: 0
+          purge-primary-key: never
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+            frontend/tooling/*/node_modules
+            drizzle/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/bun.lock', 'drizzle/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+      - name: Install devenv.sh
+        shell: bash
+        run: nix profile add nixpkgs#devenv
+      - name: Run unit tests
+        run: unit-test

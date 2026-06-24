@@ -1,0 +1,76 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "hello": "Hello",
+    "goodbye": "Goodbye",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "close": "Close",
+    "open": "Open",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "settings": "Settings"
+  },
+  "HomePage": {
+    "title": "Welcome to Next.js!",
+    "description": "Get started by editing the page.",
+    "learn": "Learn Next.js"
+  },
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "locale": "{locale, select, en {English} ja {日本語} other {Unknown}}"
+  },
+  "CheckoutSuccess": {
+    "title": "Thank you for your purchase!",
+    "description": "Your order has been processed successfully.",
+    "backToHome": "Back to Home"
+  },
+  "Pricing": {
+    "title": "Choose your plan",
+    "description": "Select the plan that best fits your needs.",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "oneTime": "one-time",
+    "subscribe": "Subscribe",
+    "purchase": "Purchase",
+    "currentPlan": "Current Plan",
+    "mostPopular": "Most Popular"
+  },
+  "Subscription": {
+    "title": "Your Subscription",
+    "status": "Status",
+    "active": "Active",
+    "canceled": "Canceled",
+    "pastDue": "Past Due",
+    "trialing": "Trialing",
+    "currentPeriodEnd": "Renews on",
+    "manageSubscription": "Manage Subscription",
+    "noSubscription": "No active subscription",
+    "viewPlans": "View Plans"
+  },
+  "Loading": {
+    "page": "Loading page...",
+    "dashboard": "Loading dashboard...",
+    "backendInfo": "Loading backend response..."
+  },
+  "ErrorBoundary": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. You can try again or return home.",
+    "retry": "Try again",
+    "backHome": "Back to home",
+    "globalTitle": "Application error",
+    "globalDescription": "The application failed to load. Please reload the page."
+  }
+}

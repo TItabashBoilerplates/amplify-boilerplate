@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": ["mcp__context7", "mcp__playwright", "mcp__magicuidesign"]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["context7", "magicuidesign", "playwright"],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path | select(endswith(\".js\") or endswith(\".ts\") or endswith(\".jsx\") or endswith(\".tsx\") or endswith(\".json\"))' | xargs -r bunx biome check --write"
+          }
+        ]
+      }
+    ]
+  }
+}

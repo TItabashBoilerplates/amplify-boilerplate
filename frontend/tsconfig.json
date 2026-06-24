@@ -1,0 +1,15 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./apps/mobile" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/native-ui" },
+    { "path": "./packages/types" },
+    { "path": "./packages/tokens" },
+    { "path": "./packages/api-client" },
+    { "path": "./packages/onesignal" },
+    { "path": "./packages/app" },
+    { "path": "./packages/client/supabase" }
+  ]
+}

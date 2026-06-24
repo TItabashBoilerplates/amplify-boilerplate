@@ -1,0 +1,32 @@
+{
+  "name": "@workspace/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./store": "./store/index.ts",
+    "./providers": "./providers/index.ts",
+    "./providers/native": "./providers/native.ts",
+    "./hooks": "./hooks/index.ts",
+    "./types": "./types/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/client-supabase": "workspace:*",
+    "@workspace/types": "workspace:*",
+    "zustand": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "react": "19.2.1",
+    "typescript": "^5.8.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}
