@@ -15,6 +15,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 - **Amplify バックエンド（auth/data/storage/functions）の変更は `frontend/packages/backend/amplify/` を編集**し、`ampx sandbox` で反映する
 - **バックエンドの既定は TypeScript（Amplify Functions / Node `defineFunction`）。Python（backend-py）は特殊要件（LLM/長時間/Python固有）のときだけ**（`.claude/rules/backend-architecture.md`）
 - **TS のパッケージマネージャは bun（`bun add`/`bun install`）。npm/pnpm/yarn 禁止。Python は uv**（`.claude/rules/backend-architecture.md`）
+- **生成AI: 対話的=SSE ストリーミング / 長時間エージェント=バックグラウンド処理 + DB ステータス + Amplify リアルタイム(AppSync サブスク)監視。LLM は LangChain**（`.claude/rules/generative-ai.md`）
 
 ## 最優先の設計思想: FSD × モノレポ
 

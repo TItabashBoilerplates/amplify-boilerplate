@@ -77,6 +77,7 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 | **Secrets & env vars** — `secret()`, `ampx sandbox secret`, branch secrets (SSM), function `environment`/typed `env`, `NEXT_PUBLIC_*`, `amplify_outputs.json` | [references/secrets-and-env.md](references/secrets-and-env.md) |
 | **Mobile (Expo / React Native)** — native deps/polyfills, dev client, `Amplify.configure`/AsyncStorage, auth, data+realtime, storage (file URIs), Pinpoint push, monorepo sharing | [references/react-native.md](references/react-native.md) |
 | **Wider AWS (SQS / Bedrock / EventBridge / …)** — integrating other AWS services via custom CDK: `createStack`, IAM grants, SQS event sources, Bedrock (AI Kit + Lambda/boto3), `addOutput` | [references/aws-services.md](references/aws-services.md) |
+| **Generative AI** — interactive **SSE streaming** (Hono streamSSE + Lambda RESPONSE_STREAM, LangChain/Bedrock) vs long agents (background job + DB status + AppSync subscription monitoring) | [references/generative-ai.md](references/generative-ai.md) |
 
 ## Always-true conventions
 
