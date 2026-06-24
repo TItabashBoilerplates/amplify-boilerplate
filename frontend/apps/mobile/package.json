@@ -12,7 +12,9 @@
     "lint:fsd": "eslint . --max-warnings 0 --rule 'boundaries/element-types: error'"
   },
   "dependencies": {
+    "@workspace/auth": "workspace:*",
     "@workspace/native-ui": "workspace:*",
+    "aws-amplify": "^6.18.0",
     "@expo/vector-icons": "^15.0.3",
     "@gluestack-ui/button": "^1.0.14",
     "@gluestack-ui/nativewind-utils": "^1.0.28",

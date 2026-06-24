@@ -1,6 +1,9 @@
-import type { User as SupabaseUser } from '@supabase/supabase-js'
+import type { AuthUser } from '@workspace/auth'
 
-export type AuthUser = SupabaseUser
+/**
+ * 認証ユーザー（Cognito / Amplify Auth）。`@workspace/auth` の型を再利用。
+ */
+export type { AuthUser }
 
 export interface User {
   id: string

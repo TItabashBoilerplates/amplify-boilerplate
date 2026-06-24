@@ -1,2 +1,3 @@
 // API client exports
-// Add Supabase client and other API utilities as needed
+// データアクセスは @workspace/data-client（Amplify Data）と aws-amplify を利用する
+export {}
