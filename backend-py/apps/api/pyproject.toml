@@ -8,6 +8,10 @@ dependencies = [
     "fastapi",
     "starlette",
     "uvicorn[standard]",
+    # AWS Lambda adapter (ASGI -> Lambda) for Amplify custom function
+    "mangum",
+    # Cognito JWT verification
+    "pyjwt[crypto]",
     # Shared workspace package
     "core",
 ]

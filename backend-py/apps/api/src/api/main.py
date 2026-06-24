@@ -1,4 +1,8 @@
-"""Uvicorn entrypoint for `uv run --package api api` and Railway."""
+"""Uvicorn entrypoint for local development (`uv run --package api api`).
+
+For AWS Lambda (Amplify custom function) the handler is
+`api.lambda_handler.handler` (Mangum), not this module.
+"""
 
 from __future__ import annotations
 

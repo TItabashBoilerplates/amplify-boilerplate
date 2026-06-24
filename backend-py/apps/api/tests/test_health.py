@@ -1,7 +1,5 @@
 """Health check endpoint tests."""
 
-import os
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,13 +7,6 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Create a test client for the FastAPI application."""
-    os.environ.setdefault(
-        "POSTGRES_URL",
-        "postgresql://postgres:postgres@localhost:54322/postgres",
-    )
-    os.environ.setdefault("SUPABASE_URL", "http://localhost:54321")
-    os.environ.setdefault("SUPABASE_PUBLISHABLE_KEY", "test-key")
-
     from api.app import app
 
     return TestClient(app)

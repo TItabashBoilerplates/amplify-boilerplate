@@ -8,4 +8,4 @@ UNAUTHORIZED = "Unauthorized"
 FAILED_TO_GET_USER = "Failed to get user"
 
 # Configuration errors
-SUPABASE_CONFIG_NOT_SET = "supabase url or anon key is not set"
+COGNITO_CONFIG_NOT_SET = "Cognito user pool id or app client id is not set"
