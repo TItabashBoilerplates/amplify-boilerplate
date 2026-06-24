@@ -40,6 +40,7 @@
 | キーワード / 文脈 | 起動候補 Skill |
 |---|---|
 | Amplify / Cognito / 認証 / AppSync / DynamoDB / S3 / Data / Storage / ampx / amplify_outputs | `amplify-gen2`（最優先）, `data-fetching`, `tanstack-query` |
+| Amplify × モバイル（Expo / React Native）/ プッシュ通知(Pinpoint) / mobile auth・data・storage | `amplify-gen2`（最優先・`references/react-native.md`）, `building-native-ui`, `native-data-fetching` |
 | Next.js / App Router / Server Components / Cache | `nextjs`, `next-best-practices`, `next-cache-components`, `next-upgrade` |
 | データモデル / スキーマ / 認可（a.schema, allow.*） | `data-fetching`, `monorepo` |
 | FSD / レイヤー / スライス | `fsd`, `feature-sliced-design` |
