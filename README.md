@@ -1,13 +1,17 @@
-# shadcn-boilerplate
+# amplify-boilerplate
+
+AWS Amplify Gen2 ベースのフルスタック・ボイラープレート（FSD + モノレポ）。
+インフラはすべて AWS（Cognito / AppSync+DynamoDB / S3 / Lambda / SNS / Amplify Hosting）。
 
 ## Description
 
-This is a full-stack application boilerplate with a multi-platform frontend and backend services:
+This is a full-stack application boilerplate with a multi-platform frontend and AWS-native backend:
 
 - **Frontend (Web)**: Next.js 16, React 19, shadcn/ui, TailwindCSS 4, Bun
 - **Frontend (Mobile)**: Expo 55, React Native 0.82, gluestack-ui, NativeWind 5
-- **Backend**: FastAPI (Python) with Supabase Edge Functions (Deno)
-- **Database**: PostgreSQL with Drizzle ORM for schema management and pgvector extension
+- **Backend**: AWS Amplify Gen2 — Cognito (auth), AppSync + DynamoDB (data), S3 (storage),
+  FastAPI on Lambda (Python custom function), SNS (notifications)
+- **Hosting**: AWS Amplify Hosting (CI/CD, branch previews)
 
 ## Tech Stack
 
@@ -20,9 +24,14 @@ This is a full-stack application boilerplate with a multi-platform frontend and 
 | **State**             | TanStack Query v5 (server), Zustand (global)     |
 | **Architecture**      | Feature Sliced Design (FSD)                      |
 | **i18n**              | next-intl (en, ja)                               |
-| **Backend**           | FastAPI (Python), Supabase Edge Functions (Deno) |
-| **Database**          | PostgreSQL, Drizzle ORM, pgvector                |
-| **Auth**              | Supabase Auth                                    |
+| **Auth**              | Amazon Cognito (Amplify Auth, Email OTP)         |
+| **Data**              | AWS AppSync + DynamoDB (Amplify Data)            |
+| **Storage**           | Amazon S3 (Amplify Storage)                      |
+| **Backend (compute)** | FastAPI on AWS Lambda (Amplify custom function, Python) |
+| **Notifications**     | Amazon SNS (Pinpoint for mobile push: follow-up) |
+| **Secrets**           | Amplify secrets (SSM Parameter Store)            |
+| **Hosting / CI-CD**   | AWS Amplify Hosting (`amplify.yml`)              |
+| **Payments**          | Polar (外部 SaaS、維持)                          |
 
 ## Project Structure Highlights
 
@@ -30,9 +39,9 @@ This is a full-stack application boilerplate with a multi-platform frontend and 
 
 This project uses an **independent monorepo structure without a root package.json**:
 
-- **`drizzle/`**: Database schema management (independent package, Bun)
 - **`frontend/`**: Next.js 16 + Expo monorepo (Bun workspace, Turbo build system)
-- **`backend-py/`**: Python FastAPI (uv, independent)
+  - **`packages/backend/`**: Amplify Gen2 backend (`amplify/`: auth/data/storage/functions)
+- **`backend-py/`**: Python FastAPI (uv) — packaged onto Lambda by the Amplify custom function
 
 Each directory has its own dependencies and node_modules/, cleanly separated.
 
@@ -42,7 +51,7 @@ Using optimal package managers for each component (バージョンは devenv が
 
 - **Frontend**: Bun (fast, Node.js compatible)
 - **Backend Python**: uv (Rust-based, fast dependency management)
-- **Drizzle**: Bun (same as frontend)
+- **Amplify CLI**: `ampx` (`@aws-amplify/backend-cli`)
 - **Edge Functions**: Deno (built-in package manager)
 
 ### ni Commands (Package Manager Abstraction)
