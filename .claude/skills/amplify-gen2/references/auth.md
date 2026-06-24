@@ -16,7 +16,8 @@ Backend lives in `frontend/packages/backend/amplify/auth/resource.ts`; clients i
 4. [Next.js server-side auth (SSR)](#4-nextjs-server-side-auth-ssr)
 5. [Authorization groups → Data `allow.groups`](#5-authorization-groups--data-allowgroups)
 6. [Modify with CDK](#6-modify-with-cdk)
-7. [Gotchas](#7-gotchas)
+7. [Other client APIs: sign-up, password, attributes, account, guest](#7-other-client-apis-sign-up-password-attributes-account-guest)
+8. [Gotchas](#8-gotchas)
 
 ---
 
@@ -367,7 +368,107 @@ Add a Lambda trigger by attaching a `defineFunction` to `auth` (e.g.
 
 ---
 
-## 7. Gotchas
+## 7. Other client APIs: sign-up, password, attributes, account, guest
+
+This repo's default flow is passwordless Email OTP (§2), but Cognito + `aws-amplify/auth`
+also expose the full account lifecycle. Reach for these when adding password login, profile
+editing, or self-service account management. Wrap FSD-style: put each call in a
+`features/<x>/api/*.ts` (client) module returning `{ success } | { error }`, like §2.
+
+### Password-based sign-up
+
+To allow password registration, keep `loginWith.email: true` (and optionally a password
+policy) in `defineAuth`. Client flow:
+
+```ts
+import { signUp, confirmSignUp, autoSignIn, resendSignUpCode } from 'aws-amplify/auth'
+
+// 1) register — autoSignIn lets the user be signed in right after confirmation
+const { nextStep } = await signUp({
+  username: email,
+  password,
+  options: {
+    userAttributes: { email, name },
+    autoSignIn: { authFlowType: 'USER_AUTH' },
+  },
+})
+// nextStep.signUpStep: 'CONFIRM_SIGN_UP' | 'COMPLETE_AUTO_SIGN_IN' | 'DONE'
+
+// 2) confirm the emailed code
+await confirmSignUp({ username: email, confirmationCode: code })
+
+// 3) finish auto sign-in (when nextStep is COMPLETE_AUTO_SIGN_IN)
+await autoSignIn()
+
+// resend the sign-up code
+await resendSignUpCode({ username: email })
+```
+
+Password sign-in is the same `signIn` as §2 but with `password` (default flow):
+`await signIn({ username: email, password })` → may return `nextStep.signInStep`
+(`CONFIRM_SIGN_IN_WITH_*`, `RESET_PASSWORD`, `DONE`).
+
+### Password reset & change
+
+```ts
+import { resetPassword, confirmResetPassword, updatePassword } from 'aws-amplify/auth'
+
+// forgot password — sends a code
+const { nextStep } = await resetPassword({ username: email })
+// nextStep.resetPasswordStep: 'CONFIRM_RESET_PASSWORD_WITH_CODE' | 'DONE'
+
+await confirmResetPassword({ username: email, confirmationCode: code, newPassword })
+
+// change password for the signed-in user
+await updatePassword({ oldPassword, newPassword })
+```
+
+### User attributes
+
+```ts
+import {
+  fetchUserAttributes,
+  updateUserAttributes,
+  confirmUserAttribute,
+  sendUserAttributeVerificationCode,
+} from 'aws-amplify/auth'
+
+const attrs = await fetchUserAttributes() // Record<string, string> (email, name, ...)
+
+const { nextStep } = await updateUserAttributes({
+  userAttributes: { name: 'New Name', 'custom:plan': 'pro' },
+})
+// changing email/phone returns nextStep CONFIRM_ATTRIBUTE_WITH_CODE:
+await sendUserAttributeVerificationCode({ userAttributeKey: 'email' })
+await confirmUserAttribute({ userAttributeKey: 'email', confirmationCode: code })
+```
+
+> Custom attributes must first be declared in `defineAuth({ userAttributes: { 'custom:plan': ... } })`.
+
+### Delete account
+
+```ts
+import { deleteUser } from 'aws-amplify/auth'
+await deleteUser() // permanently deletes the signed-in Cognito user; sign them out after
+```
+
+### Guest (unauthenticated) access
+
+Amplify Gen2 provisions a Cognito **identity pool** alongside the user pool. Guest access is
+governed by `allow.guest()` rules on Data/Storage resources (which use the identity pool's
+unauthenticated role) — there is no separate `allowGuestAccess` flag to flip in `defineAuth`.
+
+```ts
+import { fetchAuthSession } from 'aws-amplify/auth'
+// Works without a signed-in user; returns guest (unauth) AWS credentials + identityId
+const { credentials, identityId } = await fetchAuthSession()
+```
+
+Pair with Data `allow.guest()` / Storage `allow.guest().to(['read'])` to expose public data.
+
+---
+
+## 8. Gotchas
 
 - **`getCurrentUser` throws when unauthenticated** — it does not return `null`. Always wrap in
   `.catch(() => null)` (server) or `try/catch` (client) before branching.
