@@ -76,6 +76,7 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 | `defineBackend`, custom CDK (`createStack`/`addOutput`), `ampx` commands, `amplify.yml`, hosting | [references/backend-and-deploy.md](references/backend-and-deploy.md) |
 | **Secrets & env vars** — `secret()`, `ampx sandbox secret`, branch secrets (SSM), function `environment`/typed `env`, `NEXT_PUBLIC_*`, `amplify_outputs.json` | [references/secrets-and-env.md](references/secrets-and-env.md) |
 | **Mobile (Expo / React Native)** — native deps/polyfills, dev client, `Amplify.configure`/AsyncStorage, auth, data+realtime, storage (file URIs), Pinpoint push, monorepo sharing | [references/react-native.md](references/react-native.md) |
+| **Wider AWS (SQS / Bedrock / EventBridge / …)** — integrating other AWS services via custom CDK: `createStack`, IAM grants, SQS event sources, Bedrock (AI Kit + Lambda/boto3), `addOutput` | [references/aws-services.md](references/aws-services.md) |
 
 ## Always-true conventions
 
