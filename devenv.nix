@@ -71,6 +71,21 @@
     type-check-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run mypy apps packages'';
     test-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run pytest'';
 
+    # ---------- Agent skills ----------
+    # エージェントスキル（.agents/skills, .claude/skills へ symlink）を最新に更新する。
+    # enterShell でも 1 日 1 回バックグラウンド自動実行されるが、手動で即時更新したいとき用。
+    skills-update.exec = ''
+      set -euo pipefail
+      cd "$DEVENV_ROOT"
+      echo "→ updating agent skills to latest (skills update -p)"
+      bunx -y skills update -p -y
+      mkdir -p "$DEVENV_ROOT/.devenv"
+      date +%s > "$DEVENV_ROOT/.devenv/skills-last-update"
+      echo "✓ skills updated"
+    '';
+    # skills-lock.json から決定論的に復元（最新化せず固定したいとき）。
+    skills-restore.exec = ''cd "$DEVENV_ROOT" && bunx -y skills experimental_install'';
+
     # ---------- Aggregate ----------
     lint.exec = ''lint-frontend && lint-backend-py'';
     format.exec = ''format-frontend && format-backend-py'';
@@ -87,5 +102,25 @@
     echo "  sandbox              Amplify backend (ampx sandbox)"
     echo "  dev-web / dev-mobile dev servers"
     echo "  lint / format / type-check-* / unit-test"
+    echo "  skills-update        refresh agent skills to latest"
+
+    # --- エージェントスキルの自動更新（スロットル付き・バックグラウンド・非ブロッキング） ---
+    # 毎回の direnv 有効化でネットワーク待ちが入らないよう、間隔（既定 24h）を空けて
+    # バックグラウンドで `skills update` を回す。オフライン/失敗でもシェル起動は止めない。
+    # 無効化: SKILLS_AUTOUPDATE=0 / 間隔変更: SKILLS_AUTOUPDATE_INTERVAL=<秒>
+    if [ "''${SKILLS_AUTOUPDATE:-1}" != "0" ] && command -v bunx >/dev/null 2>&1; then
+      _skills_marker="$DEVENV_ROOT/.devenv/skills-last-update"
+      _skills_interval="''${SKILLS_AUTOUPDATE_INTERVAL:-86400}"
+      _skills_now=$(date +%s)
+      _skills_last=0
+      [ -f "$_skills_marker" ] && _skills_last=$(cat "$_skills_marker" 2>/dev/null || echo 0)
+      if [ "$(( _skills_now - _skills_last ))" -ge "$_skills_interval" ]; then
+        mkdir -p "$DEVENV_ROOT/.devenv"
+        echo "$_skills_now" > "$_skills_marker"
+        echo "  (skills) refreshing agent skills in background…"
+        ( cd "$DEVENV_ROOT" && bunx -y skills update -p -y \
+            > "$DEVENV_ROOT/.devenv/skills-update.log" 2>&1 & )
+      fi
+    fi
   '';
 }

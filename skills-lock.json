@@ -217,7 +217,7 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/claude-api/SKILL.md",
-      "computedHash": "3d1c50b50f7640b225dcd9b3b29a3983406b342c22e9f0ed4cb65a92451b7bf2"
+      "computedHash": "9f19be17e56542510e93d2943227c776ecbbe978307fc43d660dd04b346ef395"
     },
     "configuring-vpc-endpoints-for-private-aws-service-access": {
       "source": "aws/agent-toolkit-for-aws",
@@ -240,7 +240,7 @@
     "connecting-to-data-source": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/analytics-skills/connecting-to-data-source/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/connecting-to-data-source/SKILL.md",
       "computedHash": "36f6f1d468f2f7e633e318626f9a63ce3880122ba532597690d832afe5351ba6"
     },
     "connecting-vpcs-with-peering": {
@@ -269,7 +269,7 @@
     "creating-data-lake-table": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/storage-skills/creating-data-lake-table/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/creating-data-lake-table/SKILL.md",
       "computedHash": "eaab9881b01b12b9a4813c37f3f7f811b8ce47ba3305d8c1c0beac5940acf305"
     },
     "creating-ec2-image-builder-pipeline": {
@@ -342,7 +342,7 @@
     "exploring-data-catalog": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/analytics-skills/exploring-data-catalog/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/exploring-data-catalog/SKILL.md",
       "computedHash": "1368a34faf5fbe85c3683890ca605031451bf4b20af9c74ea185a1aa0f8eab0e"
     },
     "expo-api-routes": {
@@ -390,7 +390,7 @@
     "finding-data-lake-assets": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/analytics-skills/finding-data-lake-assets/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/finding-data-lake-assets/SKILL.md",
       "computedHash": "db987f7f95ddb9a3c9993777f4354c6a74863c9dbcbfaeb0e230e239ead7ab08"
     },
     "framework-selection": {
@@ -424,7 +424,7 @@
     "ingesting-into-data-lake": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/analytics-skills/ingesting-into-data-lake/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/ingesting-into-data-lake/SKILL.md",
       "computedHash": "79e666572b594dd86914daba251385ddefb683fca13a0a040c351f6205b69610"
     },
     "langchain-dependencies": {
@@ -538,7 +538,7 @@
     "querying-data-lake": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/analytics-skills/querying-data-lake/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/querying-data-lake/SKILL.md",
       "computedHash": "e5ed83b5e962d1af57024574cc6e9a0385a6b6f8329048112f0bd43a9b2b2dac"
     },
     "rds-db2": {
@@ -607,7 +607,7 @@
     "storing-and-querying-vectors": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/storage-skills/storing-and-querying-vectors/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/storing-and-querying-vectors/SKILL.md",
       "computedHash": "69cc65e65f440f1f172cd0aeb9eb9a75bf0ea192188d854eeab4450cb7a29f4f"
     },
     "stripe-best-practices": {

@@ -10,7 +10,7 @@
 
 | 種類 | 使い方 | 例 |
 |---|---|---|
-| **Scripts** (PATH 直結) | コマンド名を直接打つ | `bootstrap`, `lint`, `format`, `type-check-frontend`, `type-check-backend-py`, `unit-test`, `dev-web`, `dev-mobile`, `storybook`, `sandbox`, `sandbox-once`, `sandbox-delete`, `lint-frontend`, `format-backend-py` |
+| **Scripts** (PATH 直結) | コマンド名を直接打つ | `bootstrap`, `lint`, `format`, `type-check-frontend`, `type-check-backend-py`, `unit-test`, `dev-web`, `dev-mobile`, `storybook`, `sandbox`, `sandbox-once`, `sandbox-delete`, `lint-frontend`, `format-backend-py`, `skills-update`, `skills-restore` |
 | **Processes** (常駐サービス) | `devenv up [PROCESSES...]` | `devenv up` (dev サーバ群), `devenv up web` |
 
 scripts は devenv shell（direnv 自動アクティベート含む）下で PATH 上に存在する。direnv 未活性のセッションでは `devenv shell -- <command>` 経由で呼び出す。
@@ -50,6 +50,7 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Sandbox 破棄** | `sandbox-delete` |
 | **本番/ブランチデプロイ** | Amplify Hosting が `amplify.yml` に従い `ampx pipeline-deploy` を実行（CI） |
 | **依存ブートストラップ** | `bootstrap`（frontend: bun / backend-py: uv）。通常は `devenv shell` 進入時に自動 |
+| **エージェントスキル更新** | `skills-update`（最新化）/ `skills-restore`（lock から復元）。`devenv shell` 進入時に 1 日 1 回バックグラウンド自動更新（`SKILLS_AUTOUPDATE=0` で無効・`SKILLS_AUTOUPDATE_INTERVAL=<秒>` で間隔変更） |
 
 > ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
 
