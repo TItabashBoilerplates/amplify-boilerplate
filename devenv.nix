@@ -73,7 +73,7 @@
 
     # ---------- Agent skills ----------
     # エージェントスキル（.agents/skills, .claude/skills へ symlink）を最新に更新する。
-    # enterShell でも 1 日 1 回バックグラウンド自動実行されるが、手動で即時更新したいとき用。
+    # enterShell でも 1 日 1 回（同期・ロック付き）自動実行されるが、手動で即時更新したいとき用。
     skills-update.exec = ''
       set -euo pipefail
       cd "$DEVENV_ROOT"
@@ -104,22 +104,48 @@
     echo "  lint / format / type-check-* / unit-test"
     echo "  skills-update        refresh agent skills to latest"
 
-    # --- エージェントスキルの自動更新（スロットル付き・バックグラウンド・非ブロッキング） ---
-    # 毎回の direnv 有効化でネットワーク待ちが入らないよう、間隔（既定 24h）を空けて
-    # バックグラウンドで `skills update` を回す。オフライン/失敗でもシェル起動は止めない。
+    # --- エージェントスキルの自動更新（同期・ロック・スロットル付き） ---
+    # 半端な更新中の状態で Claude Code 等を起動しないことを保証するため、更新は
+    # *同期*で行い（シェルは完了まで待つ）、ロックで多重実行・他シェルの割り込みを防ぐ。
+    #   - 24h に 1 回だけ実行（マーカー: .devenv/skills-last-update）
+    #   - 実行中はロック（.devenv/skills-update.lock）。別シェル/起動は完了まで待機 →
+    #     torn read（書きかけスキルの読み取り）が起きない
+    #   - オフライン/失敗でも最終的にはシェルへ抜ける（マーカーは前進させ毎回の再試行を防止）
     # 無効化: SKILLS_AUTOUPDATE=0 / 間隔変更: SKILLS_AUTOUPDATE_INTERVAL=<秒>
     if [ "''${SKILLS_AUTOUPDATE:-1}" != "0" ] && command -v bunx >/dev/null 2>&1; then
+      mkdir -p "$DEVENV_ROOT/.devenv"
       _skills_marker="$DEVENV_ROOT/.devenv/skills-last-update"
+      _skills_lock="$DEVENV_ROOT/.devenv/skills-update.lock"
       _skills_interval="''${SKILLS_AUTOUPDATE_INTERVAL:-86400}"
-      _skills_now=$(date +%s)
+
+      # クラッシュで取り残されたロックを掃除（>10分は stale とみなす）
+      if [ -d "$_skills_lock" ]; then
+        _lock_ts=$(cat "$_skills_lock/ts" 2>/dev/null || echo 0)
+        if [ "$(( $(date +%s) - _lock_ts ))" -ge 600 ]; then rm -rf "$_skills_lock"; fi
+      fi
+
+      # 他シェルが更新中なら、その完了を待ってから入室（半端状態で起動しない）
+      _skills_waited=0
+      while [ -d "$_skills_lock" ] && [ "$_skills_waited" -lt 180 ]; do
+        [ "$_skills_waited" = 0 ] && echo "  (skills) update in progress — waiting for completion…"
+        sleep 2; _skills_waited=$(( _skills_waited + 2 ))
+      done
+
       _skills_last=0
       [ -f "$_skills_marker" ] && _skills_last=$(cat "$_skills_marker" 2>/dev/null || echo 0)
-      if [ "$(( _skills_now - _skills_last ))" -ge "$_skills_interval" ]; then
-        mkdir -p "$DEVENV_ROOT/.devenv"
-        echo "$_skills_now" > "$_skills_marker"
-        echo "  (skills) refreshing agent skills in background…"
-        ( cd "$DEVENV_ROOT" && bunx -y skills update -p -y \
-            > "$DEVENV_ROOT/.devenv/skills-update.log" 2>&1 & )
+      if [ "$(( $(date +%s) - _skills_last ))" -ge "$_skills_interval" ]; then
+        # ロック取得は mkdir で atomic に。取れなければ他が走っている → スキップ
+        if mkdir "$_skills_lock" 2>/dev/null; then
+          date +%s > "$_skills_lock/ts"
+          echo "  (skills) updating agent skills to latest… (synchronous, up to ~90s; SKILLS_AUTOUPDATE=0 to disable)"
+          ( cd "$DEVENV_ROOT" && bunx -y skills update -p -y ) \
+            > "$DEVENV_ROOT/.devenv/skills-update.log" 2>&1 \
+            && echo "  (skills) up to date" \
+            || echo "  (skills) some skills could not be updated — see .devenv/skills-update.log"
+          # 毎回の再試行（~90s ブロック）を避けるため、結果に依らずマーカーを前進
+          date +%s > "$_skills_marker"
+          rm -rf "$_skills_lock"
+        fi
       fi
     fi
   '';

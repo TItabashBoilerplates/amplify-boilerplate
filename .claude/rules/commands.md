@@ -50,7 +50,7 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Sandbox 破棄** | `sandbox-delete` |
 | **本番/ブランチデプロイ** | Amplify Hosting が `amplify.yml` に従い `ampx pipeline-deploy` を実行（CI） |
 | **依存ブートストラップ** | `bootstrap`（frontend: bun / backend-py: uv）。通常は `devenv shell` 進入時に自動 |
-| **エージェントスキル更新** | `skills-update`（最新化）/ `skills-restore`（lock から復元）。`devenv shell` 進入時に 1 日 1 回バックグラウンド自動更新（`SKILLS_AUTOUPDATE=0` で無効・`SKILLS_AUTOUPDATE_INTERVAL=<秒>` で間隔変更） |
+| **エージェントスキル更新** | `skills-update`（最新化）/ `skills-restore`（lock から復元）。`devenv shell` 進入時に 1 日 1 回**同期・ロック付き**で自動更新（更新完了までシェルは待機 → 半端な状態で起動しない。`SKILLS_AUTOUPDATE=0` で無効・`SKILLS_AUTOUPDATE_INTERVAL=<秒>` で間隔変更） |
 
 > ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
 
