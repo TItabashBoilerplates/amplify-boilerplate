@@ -14,4 +14,6 @@ export type { AuthFormState, LoginFormProps, VerifyOTPFormProps } from './model/
 
 // UI Components
 export { LoginForm } from './ui/LoginForm'
+export { PasskeyManager } from './ui/PasskeyManager'
+export { SocialSignInButtons } from './ui/SocialSignInButtons'
 export { VerifyOTPForm } from './ui/VerifyOTPForm'

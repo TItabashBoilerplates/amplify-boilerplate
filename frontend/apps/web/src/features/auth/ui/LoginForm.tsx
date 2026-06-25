@@ -7,6 +7,7 @@ import { Mail } from 'lucide-react'
 import { useActionState, useState } from 'react'
 import { signInWithOtp } from '../api'
 import type { AuthFormState, LoginFormProps } from '../model/types'
+import { SocialSignInButtons } from './SocialSignInButtons'
 
 /**
  * OTP送信フォームコンポーネント
@@ -89,43 +90,58 @@ export function LoginForm({ className }: LoginFormProps) {
   }
 
   return (
-    <form action={formAction} className={`space-y-4 ${className ?? ''}`}>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email Address</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="your.email@example.com"
-            required
-            disabled={pending}
-            className="pl-10"
-            autoComplete="email"
-          />
+    <div className={`space-y-4 ${className ?? ''}`}>
+      <form action={formAction} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="your.email@example.com"
+              required
+              disabled={pending}
+              className="pl-10"
+              autoComplete="email"
+            />
+          </div>
+        </div>
+
+        {state.message && (
+          <div
+            className={`rounded-lg border p-4 text-sm ${
+              state.success
+                ? 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400'
+                : 'border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400'
+            }`}
+          >
+            {state.message}
+          </div>
+        )}
+
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? 'Sending...' : 'Send One-Time Password'}
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          We&apos;ll send you a 6-digit code to verify your email.
+        </p>
+      </form>
+
+      {/* ソーシャルログイン（バックエンドで externalProviders を有効化したプロバイダのみ表示）。
+          未有効化なら providers={[]} で非表示にできる。 */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
         </div>
       </div>
 
-      {state.message && (
-        <div
-          className={`rounded-lg border p-4 text-sm ${
-            state.success
-              ? 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400'
-              : 'border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400'
-          }`}
-        >
-          {state.message}
-        </div>
-      )}
-
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? 'Sending...' : 'Send One-Time Password'}
-      </Button>
-
-      <p className="text-center text-sm text-muted-foreground">
-        We&apos;ll send you a 6-digit code to verify your email.
-      </p>
-    </form>
+      <SocialSignInButtons />
+    </div>
   )
 }
