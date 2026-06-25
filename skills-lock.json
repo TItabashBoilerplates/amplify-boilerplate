@@ -6,6 +6,48 @@
       "sourceType": "github",
       "computedHash": "25ffa798578026fcfdc5bdbe5b10ec2d2cd1784f8a94344c0ac055f3a82b57d4"
     },
+    "agents-build": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-build/SKILL.md",
+      "computedHash": "87fa214b04fac77e33072137fb582cc54189bfe0f557073ead5c0b6f5e763106"
+    },
+    "agents-connect": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-connect/SKILL.md",
+      "computedHash": "cea438a5e1659acec605ee83949d95dd4d47f5fd16e9864774740f3b57d95a02"
+    },
+    "agents-debug": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-debug/SKILL.md",
+      "computedHash": "4d7b12d5948f89ca25e0df9290f3e4454501e252671aa07ba5cce8d885fbe61e"
+    },
+    "agents-deploy": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-deploy/SKILL.md",
+      "computedHash": "087c4f8831cc136053422986866ce9a6634bb0a836ed61d205c5faee2ecc98d3"
+    },
+    "agents-get-started": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-get-started/SKILL.md",
+      "computedHash": "7c41e3311565a21d53e130de1bb2b9b47085a2fc36015cfe5773224caa94ec26"
+    },
+    "agents-harden": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-harden/SKILL.md",
+      "computedHash": "163d71b4459ba2e396aa518f4973bc3a8dfc780749bbf1b9cb850ee5e4133956"
+    },
+    "agents-optimize": {
+      "source": "aws/agent-toolkit-for-aws",
+      "sourceType": "github",
+      "skillPath": "plugins/aws-agents/skills/agents-optimize/SKILL.md",
+      "computedHash": "438777454dd381afe831c00ffdc8e61f29810562aa251170ddb0c2714c5580cb"
+    },
     "amazon-aurora-mysql": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
