@@ -33,6 +33,9 @@ env/**
 
 # AWS Amplify (Gen2) — generated outputs / sandbox / CDK assets
 **/amplify_outputs*.json
+# ただし CI 用スタブ（公開情報のみ・シークレットなし）は追跡する。
+# CI は型チェック/ビルド前にこれを amplify_outputs.json へコピーする。
+!**/amplify_outputs.ci.json
 **/amplifyconfiguration*.json
 **/.amplify/
 amplify/.attributes.json

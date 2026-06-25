@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ただし雛形（非機密）は追跡する
+!.env.example
+!**/.env.example
 
 # vercel
 .vercel

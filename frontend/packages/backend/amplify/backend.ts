@@ -76,6 +76,29 @@ tsRestApi.addEnvironment('COGNITO_APP_CLIENT_ID', userPoolClient.userPoolClientI
 const restApiUrl = tsRestApi.addFunctionUrl({ authType: FunctionUrlAuthType.NONE, cors })
 const mcpUrl = tsMcp.addFunctionUrl({ authType: FunctionUrlAuthType.NONE, cors })
 
+// --- 本番デフォルト: データ保護（PITR + 削除保護）-------------------------
+// Amplify Data（AppSync + DynamoDB）の各モデルテーブルに対し、
+// ポイントインタイムリカバリ（PITR, 35日）と削除保護を既定で有効化する。
+// Amplify Data のテーブルは素の CfnTable ではなく AmplifyDynamoDbTable カスタム
+// リソースで管理されるため、`amplifyDynamoDbTables` 経由で boolean を立てる。
+// @see https://docs.amplify.aws/nextjs/build-a-backend/add-aws-services/deletion-backup-resources/
+for (const table of Object.values(backend.data.resources.cfnResources.amplifyDynamoDbTables)) {
+  table.pointInTimeRecoveryEnabled = true
+  table.deletionProtectionEnabled = true
+}
+
+// --- 本番デフォルト: Lambda の X-Ray アクティブトレーシング -----------------
+// `defineFunction` は tracing オプションを持たず、L2 の `tracing` は構築時専用のため、
+// 合成済み関数には L1（CfnFunction）の `tracingConfig` を上書きして有効化する。
+// @see https://docs.amplify.aws/nextjs/build-a-backend/functions/modify-resources-with-cdk/
+for (const fn of [backend.api, backend.restApi, backend.mcp]) {
+  fn.resources.cfnResources.cfnFunction.tracingConfig = { mode: 'Active' }
+}
+
+// --- 本番デフォルト: Cognito User Pool の削除保護 --------------------------
+// 誤削除でユーザーディレクトリが消えないよう保護する（本番想定の既定）。
+backend.auth.resources.cfnResources.cfnUserPool.deletionProtection = 'ACTIVE'
+
 // フロントエンドが参照できるよう amplify_outputs.json の custom に出力
 backend.addOutput({
   custom: {

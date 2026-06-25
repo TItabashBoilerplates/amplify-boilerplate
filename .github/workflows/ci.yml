@@ -26,9 +26,15 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Biome (lint + format check)
         run: bun run lint:ci
-      # 注: web の type-check / build は amplify_outputs.json（生成物）に依存するため
-      # CI では実行しない。Amplify Hosting のビルド（amplify.yml）が backend デプロイ後に
-      # 出力を生成してから Next.js をビルドする。
+      # amplify_outputs.json は生成物（gitignore）。CI では AWS にデプロイせず型チェック/ビルドを
+      # 通すため、公開情報のみのスタブ（apps/web/amplify_outputs.ci.json, シークレットなし）を
+      # 配置する。実環境の出力は Amplify Hosting が backend デプロイ後に生成する（amplify.yml）。
+      - name: Stub amplify_outputs.json (no secrets; type-check/build only)
+        run: cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
+      - name: Type check (tsc)
+        run: bun run type-check
+      - name: Build (next build)
+        run: bun run --filter @workspace/web build
 
   backend-py:
     name: Backend (ruff + mypy + pytest)

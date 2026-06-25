@@ -1,0 +1,36 @@
+{
+  "version": "1",
+  "auth": {
+    "aws_region": "us-east-1",
+    "user_pool_id": "us-east-1_ciplaceholder",
+    "user_pool_client_id": "ciplaceholderclientid00000000",
+    "identity_pool_id": "us-east-1:00000000-0000-0000-0000-000000000000",
+    "username_attributes": ["email"],
+    "standard_required_attributes": ["email"],
+    "user_verification_types": ["email"],
+    "unauthenticated_identities_enabled": true,
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_uppercase": true,
+      "require_numbers": true,
+      "require_symbols": true
+    }
+  },
+  "data": {
+    "aws_region": "us-east-1",
+    "url": "https://ciplaceholder.appsync-api.us-east-1.amazonaws.com/graphql",
+    "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
+    "authorization_types": ["AMAZON_COGNITO_USER_POOLS", "AWS_IAM"]
+  },
+  "storage": {
+    "aws_region": "us-east-1",
+    "bucket_name": "ci-placeholder-bucket"
+  },
+  "custom": {
+    "backendApiUrl": "https://ci-placeholder.lambda-url.us-east-1.on.aws/",
+    "restApiUrl": "https://ci-placeholder.lambda-url.us-east-1.on.aws/",
+    "mcpUrl": "https://ci-placeholder.lambda-url.us-east-1.on.aws/mcp",
+    "notificationsTopicArn": "arn:aws:sns:us-east-1:000000000000:ci-placeholder"
+  }
+}
