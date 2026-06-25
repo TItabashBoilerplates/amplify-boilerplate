@@ -5,8 +5,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
-import { ConfigureAmplifyClientSide } from '@/shared/lib/amplify'
 import { routing } from '@/shared/config/i18n'
+import { ConfigureAmplifyClientSide } from '@/shared/lib/amplify'
 import '@workspace/ui/styles/globals.css'
 
 const geistSans = Geist({

@@ -40,7 +40,7 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
         if ('error' in result) {
           return {
             success: false,
-            message: result.error,
+            message: result.error ?? 'Verification failed',
           }
         }
 

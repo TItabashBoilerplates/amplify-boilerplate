@@ -1,5 +1,5 @@
 import type { Schema } from '@workspace/backend'
-import { generateClient } from 'aws-amplify/data'
+import { type Client, generateClient } from 'aws-amplify/data'
 
 /**
  * @workspace/data-client - Amplify Data（AppSync + DynamoDB）クライアント
@@ -10,7 +10,9 @@ import { generateClient } from 'aws-amplify/data'
  * @packageDocumentation
  */
 
-let client: ReturnType<typeof generateClient<Schema>> | undefined
+// 明示注釈: 推論型は `@aws-amplify/api-graphql` 内部型を相対パス参照してしまい
+// TS2742（移植不能）になるため、直接依存 `aws-amplify` 由来の `Client<Schema>` で型付けする。
+let client: Client<Schema> | undefined
 
 /**
  * Amplify Data クライアントを取得する（遅延初期化・シングルトン）。
@@ -24,7 +26,7 @@ let client: ReturnType<typeof generateClient<Schema>> | undefined
  * const { data: todos } = await getDataClient().models.Todo.list()
  * ```
  */
-export function getDataClient() {
+export function getDataClient(): Client<Schema> {
   if (!client) {
     client = generateClient<Schema>()
   }

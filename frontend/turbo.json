@@ -56,10 +56,7 @@
       "outputs": ["storybook-static/**"]
     }
   },
-  "globalEnv": [
-    "AWS_BRANCH",
-    "AWS_APP_ID"
-  ],
+  "globalEnv": ["AWS_BRANCH", "AWS_APP_ID"],
   "boundaries": {
     "tags": {
       "app": {

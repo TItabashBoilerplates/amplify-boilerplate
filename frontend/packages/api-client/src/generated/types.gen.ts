@@ -4,6 +4,939 @@ export type ClientOptions = {
     baseUrl: 'http://127.0.0.1:4040' | (string & {});
 };
 
+/**
+ * AnalyzeUploadRequest
+ *
+ * Body for upload analysis (snake_case; mirrors the frontend api fn).
+ */
+export type AnalyzeUploadRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Asset Id
+     */
+    asset_id: string;
+    /**
+     * Revision Id
+     */
+    revision_id: string;
+};
+
+/**
+ * AnalyzeUploadResponse
+ */
+export type AnalyzeUploadResponse = {
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Role
+     */
+    role: string;
+};
+
+/**
+ * BootstrapProjectRequest
+ *
+ * Body of ``POST /v1/projects/bootstrap``.
+ */
+export type BootstrapProjectRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+};
+
+/**
+ * BootstrapProjectResponse
+ */
+export type BootstrapProjectResponse = {
+    /**
+     * Agent Memory Id
+     */
+    agent_memory_id: string;
+    /**
+     * Anthropic Agent Id
+     */
+    anthropic_agent_id: string;
+    /**
+     * Anthropic Environment Id
+     */
+    anthropic_environment_id: string;
+    /**
+     * Created
+     */
+    created: boolean;
+};
+
+/**
+ * ContextRefPayload
+ *
+ * A connected context node (style / bible / document), reference-only.
+ *
+ * Its ``text`` is injected into the prompt (document bodies are re-loaded
+ * server-side from ``revision_id``); style → ``style_guide_id``, bible/document
+ * → ``metadata.context_refs`` for edge projection. Never binds a sheet.
+ */
+export type ContextRefPayload = {
+    /**
+     * Kind
+     */
+    kind: 'style' | 'character' | 'scene' | 'design' | 'world_map' | 'document';
+    /**
+     * Entity Id
+     */
+    entity_id: string;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Revision Id
+     */
+    revision_id?: string | null;
+    /**
+     * Label
+     */
+    label?: string | null;
+};
+
+/**
+ * DispatchRequest
+ *
+ * Body of `POST /v1/agents/dispatch`.
+ */
+export type DispatchRequest = {
+    tenant: ProjectTenantContext;
+    source: IngressSource;
+    project: ProjectRef;
+    thread: ThreadRef;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Attachments
+     */
+    attachments?: Array<IngressAttachment>;
+    /**
+     * Media References
+     */
+    media_references?: Array<MediaReference>;
+    /**
+     * Asset Id
+     */
+    asset_id?: string | null;
+};
+
+/**
+ * DocumentImageInputPayload
+ *
+ * An image node connected as a visual source for document generation.
+ */
+export type DocumentImageInputPayload = {
+    /**
+     * Revision Id
+     */
+    revision_id: string;
+    /**
+     * Label
+     */
+    label?: string | null;
+};
+
+/**
+ * GenerateAudioRequest
+ *
+ * Body for human audio generation (snake_case; mirrors the MCP tool args).
+ */
+export type GenerateAudioRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Model Slug
+     */
+    model_slug: string;
+    /**
+     * Kind
+     */
+    kind: 'text_to_music' | 'video_to_sfx';
+    /**
+     * Idempotency Key
+     */
+    idempotency_key: string;
+    /**
+     * Asset Id
+     */
+    asset_id?: string | null;
+    /**
+     * Asset Title
+     */
+    asset_title?: string | null;
+    /**
+     * Prompt
+     */
+    prompt?: string | null;
+    /**
+     * Lyrics
+     */
+    lyrics?: string | null;
+    /**
+     * Is Instrumental
+     */
+    is_instrumental?: boolean | null;
+    /**
+     * Lyrics Optimizer
+     */
+    lyrics_optimizer?: boolean | null;
+    /**
+     * Input Video Revision Id
+     */
+    input_video_revision_id?: string | null;
+    /**
+     * Input Video Url
+     */
+    input_video_url?: string | null;
+    /**
+     * Cfg Strength
+     */
+    cfg_strength?: number | null;
+    /**
+     * Duration
+     */
+    duration?: number | null;
+};
+
+/**
+ * GenerateDocumentRequest
+ *
+ * Body for human document (text deliverable) generation (snake_case).
+ */
+export type GenerateDocumentRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Mode
+     */
+    mode: string;
+    /**
+     * Idempotency Key
+     */
+    idempotency_key: string;
+    /**
+     * Instruction
+     */
+    instruction?: string | null;
+    /**
+     * Image Inputs
+     */
+    image_inputs?: Array<DocumentImageInputPayload> | null;
+    /**
+     * Context Refs
+     */
+    context_refs?: Array<ContextRefPayload> | null;
+};
+
+/**
+ * GenerateDocumentResponse
+ *
+ * Generated body + lineage metadata for the frontend to persist.
+ */
+export type GenerateDocumentResponse = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Input Image Revision Ids
+     */
+    input_image_revision_ids: Array<string>;
+    /**
+     * Context Refs
+     */
+    context_refs: Array<{
+        [key: string]: string | null;
+    }>;
+    /**
+     * Style Guide Id
+     */
+    style_guide_id?: string | null;
+};
+
+/**
+ * GenerateImageRequest
+ *
+ * Body for human image generation (snake_case; mirrors the MCP tool args).
+ */
+export type GenerateImageRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Model Slug
+     */
+    model_slug: string;
+    /**
+     * Prompt
+     */
+    prompt: string;
+    /**
+     * Idempotency Key
+     */
+    idempotency_key: string;
+    /**
+     * Context Refs
+     */
+    context_refs?: Array<ContextRefPayload> | null;
+    /**
+     * Semantic Type
+     */
+    semantic_type?: string | null;
+    /**
+     * Asset Id
+     */
+    asset_id?: string | null;
+    /**
+     * Asset Title
+     */
+    asset_title?: string | null;
+    /**
+     * Aspect Ratio
+     */
+    aspect_ratio?: string | null;
+    /**
+     * Image Size
+     */
+    image_size?: string | null;
+    /**
+     * Resolution
+     */
+    resolution?: string | null;
+    /**
+     * Quality
+     */
+    quality?: string | null;
+    /**
+     * Output Format
+     */
+    output_format?: string | null;
+    /**
+     * Num Images
+     */
+    num_images?: number | null;
+    /**
+     * Seed
+     */
+    seed?: number | null;
+    /**
+     * Reference Image Url
+     */
+    reference_image_url?: string | null;
+    /**
+     * Input Image Revision Id
+     */
+    input_image_revision_id?: string | null;
+    /**
+     * Mask Url
+     */
+    mask_url?: string | null;
+    /**
+     * Character Bible Id
+     */
+    character_bible_id?: string | null;
+    /**
+     * Scene Concept Id
+     */
+    scene_concept_id?: string | null;
+    /**
+     * World Map Id
+     */
+    world_map_id?: string | null;
+    /**
+     * Design Bible Id
+     */
+    design_bible_id?: string | null;
+    /**
+     * Stage Map Kind
+     */
+    stage_map_kind?: string | null;
+    /**
+     * Orientation
+     */
+    orientation?: string | null;
+    /**
+     * Reference Base Revision Id
+     */
+    reference_base_revision_id?: string | null;
+    /**
+     * Derivation Kind
+     */
+    derivation_kind?: string | null;
+    /**
+     * Design Kind
+     */
+    design_kind?: string | null;
+};
+
+/**
+ * GenerateMediaResponse
+ */
+export type GenerateMediaResponse = {
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Generation Id
+     */
+    generation_id: string;
+    /**
+     * Request Id
+     */
+    request_id: string;
+    /**
+     * Asset Id
+     */
+    asset_id?: string | null;
+    /**
+     * Expected Completion Seconds
+     */
+    expected_completion_seconds: number;
+};
+
+/**
+ * GenerateResponse
+ */
+export type GenerateResponse = {
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Generation Id
+     */
+    generation_id: string;
+    /**
+     * Request Id
+     */
+    request_id: string;
+    /**
+     * Asset Id
+     */
+    asset_id?: string | null;
+};
+
+/**
+ * GenerateVideoRequest
+ *
+ * Body for human video generation (snake_case; mirrors the MCP tool args).
+ */
+export type GenerateVideoRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Model Slug
+     */
+    model_slug: string;
+    /**
+     * Prompt
+     */
+    prompt: string;
+    /**
+     * Idempotency Key
+     */
+    idempotency_key: string;
+    /**
+     * Asset Id
+     */
+    asset_id?: string | null;
+    /**
+     * Asset Title
+     */
+    asset_title?: string | null;
+    /**
+     * Image Url
+     */
+    image_url?: string | null;
+    /**
+     * Input Image Revision Id
+     */
+    input_image_revision_id?: string | null;
+    /**
+     * End Image Url
+     */
+    end_image_url?: string | null;
+    /**
+     * Input End Image Revision Id
+     */
+    input_end_image_revision_id?: string | null;
+    /**
+     * Image Urls
+     */
+    image_urls?: Array<string> | null;
+    /**
+     * Video Urls
+     */
+    video_urls?: Array<string> | null;
+    /**
+     * Audio Urls
+     */
+    audio_urls?: Array<string> | null;
+    /**
+     * Input Image Revision Ids
+     */
+    input_image_revision_ids?: Array<string> | null;
+    /**
+     * Input Video Revision Ids
+     */
+    input_video_revision_ids?: Array<string> | null;
+    /**
+     * Input Audio Revision Ids
+     */
+    input_audio_revision_ids?: Array<string> | null;
+    /**
+     * Duration
+     */
+    duration?: number | 'auto' | null;
+    /**
+     * Resolution
+     */
+    resolution?: string | null;
+    /**
+     * Aspect Ratio
+     */
+    aspect_ratio?: string | null;
+    /**
+     * Generate Audio
+     */
+    generate_audio?: boolean | null;
+    /**
+     * I2V Exception
+     */
+    i2v_exception?: string | null;
+    /**
+     * Video Mode Exception
+     */
+    video_mode_exception?: string | null;
+    /**
+     * Shot Id
+     */
+    shot_id?: string | null;
+    /**
+     * Generation Group Id
+     */
+    generation_group_id?: string | null;
+};
+
+/**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+    /**
+     * Detail
+     */
+    detail?: Array<ValidationError>;
+};
+
+/**
+ * HealthCheckResponse
+ *
+ * Response payload for the health check endpoint.
+ */
+export type HealthCheckResponse = {
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * IngressAttachment
+ *
+ * Single user-attached file rehosted into Supabase Storage by the ingress.
+ */
+export type IngressAttachment = {
+    /**
+     * Storage Bucket
+     */
+    storage_bucket: string;
+    /**
+     * Storage Path
+     */
+    storage_path: string;
+    /**
+     * Signed Url
+     */
+    signed_url: string;
+    /**
+     * Mime
+     */
+    mime: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+    /**
+     * Original Filename
+     */
+    original_filename: string;
+    /**
+     * Order
+     */
+    order: number;
+    /**
+     * Revision Id
+     */
+    revision_id?: string | null;
+};
+
+/**
+ * IngressSource
+ *
+ * Where the user message came from.
+ *
+ * `thread_id` here is the **external** composite key (e.g. Slack
+ * workspace:channel:thread_ts) used for tagging, not the internal UUID.
+ *
+ * ``external_message_id`` is the platform-side id of the *user's* message
+ * that triggered this dispatch (Slack ``event.ts`` / Discord message
+ * snowflake). Used to attach an "in progress" reaction immediately on
+ * ingress and to remove it just before the agent's reply is fanned out.
+ * None on web (no reaction concept).
+ */
+export type IngressSource = {
+    /**
+     * Platform
+     */
+    platform: 'web' | 'slack' | 'discord';
+    /**
+     * User Id
+     */
+    user_id: string;
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+    /**
+     * User Display
+     */
+    user_display?: string | null;
+    /**
+     * Extras
+     */
+    extras?: {
+        [key: string]: string;
+    };
+    /**
+     * External Message Id
+     */
+    external_message_id?: string | null;
+};
+
+/**
+ * MediaReference
+ *
+ * User-selected reference to existing project content (revision/character/scene).
+ *
+ * Unlike ``IngressAttachment``, this is **not** a chat-only upload — it
+ * points at content that already lives in the project catalog. The agent
+ * is expected to hydrate it via MCP tools (see ``media_reference_kinds``).
+ */
+export type MediaReference = {
+    /**
+     * Kind
+     */
+    kind: 'revision' | 'character' | 'scene' | 'stage_map' | 'world_map' | 'shot' | 'asset' | 'style_guide';
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Order
+     */
+    order: number;
+};
+
+/**
+ * ProjectRef
+ *
+ * Local project record needed to ensure / use Anthropic Managed Agents resources.
+ *
+ * Three Anthropic resource ids ride on the project row:
+ *
+ * * ``agent_memory_id`` — long-lived memory store per project.
+ * * ``anthropic_agent_id`` — per-project Managed Agent (cloned from the
+ * template in ``backend-py/app/agent-spec/director.agent.yaml`` with
+ * ``metadata.project_id`` filled in). Provisioned by ``ensure_project_agent``.
+ * * ``anthropic_environment_id`` — per-project sandbox environment (cloned
+ * from ``backend-py/app/agent-spec/director.environment.yaml``). Provisioned
+ * together with the agent.
+ *
+ * Session lifecycle is managed per-thread (``threads.agent_session_id``) —
+ * main chat @OPUSIA mentions create a fresh thread + session, threaded
+ * mentions reuse the thread's existing session.
+ */
+export type ProjectRef = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Owner Type
+     */
+    owner_type: 'user' | 'organization';
+    /**
+     * Owner Id
+     */
+    owner_id: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Agent Memory Id
+     */
+    agent_memory_id?: string | null;
+    /**
+     * Anthropic Agent Id
+     */
+    anthropic_agent_id?: string | null;
+    /**
+     * Anthropic Environment Id
+     */
+    anthropic_environment_id?: string | null;
+    /**
+     * Gemini Agent Id
+     */
+    gemini_agent_id?: string | null;
+    /**
+     * Agent Runtime
+     */
+    agent_runtime?: string;
+    /**
+     * Agent Spec Hash
+     */
+    agent_spec_hash?: string | null;
+    /**
+     * Gemini Agent Spec Hash
+     */
+    gemini_agent_spec_hash?: string | null;
+};
+
+/**
+ * ProjectTenantContext
+ *
+ * Owner / tenant identity for a project.
+ */
+export type ProjectTenantContext = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Owner Type
+     */
+    owner_type: 'user' | 'organization';
+    /**
+     * Owner Id
+     */
+    owner_id: string;
+};
+
+/**
+ * PublishSkillsResponse
+ *
+ * 202 body for the publish-skills endpoint (work runs in the background).
+ */
+export type PublishSkillsResponse = {
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Project Id
+     */
+    project_id: string;
+};
+
+/**
+ * ThreadRef
+ *
+ * Local thread record (per-platform conversation surface).
+ *
+ * Each thread owns its own Anthropic Managed Agents session; main chat
+ * mentions are routed to a fresh thread so sessions are not shared across
+ * distinct conversational threads (Slack-style scoping).
+ */
+export type ThreadRef = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Platform
+     */
+    platform: 'web' | 'slack' | 'discord';
+    /**
+     * Workspace Id
+     */
+    workspace_id?: string | null;
+    /**
+     * External Channel Id
+     */
+    external_channel_id?: string | null;
+    /**
+     * External Thread Id
+     */
+    external_thread_id?: string | null;
+    /**
+     * Agent Session Id
+     */
+    agent_session_id?: string | null;
+    /**
+     * Session Status
+     */
+    session_status?: 'idle' | 'running' | 'terminated' | null;
+    /**
+     * Agent Runtime
+     */
+    agent_runtime?: string | null;
+    /**
+     * Gemini Previous Interaction Id
+     */
+    gemini_previous_interaction_id?: string | null;
+    /**
+     * Gemini Environment Id
+     */
+    gemini_environment_id?: string | null;
+};
+
+/**
+ * ValidationError
+ */
+export type ValidationError = {
+    /**
+     * Location
+     */
+    loc: Array<string | number>;
+    /**
+     * Message
+     */
+    msg: string;
+    /**
+     * Error Type
+     */
+    type: string;
+};
+
+/**
+ * WebDispatchRequest
+ *
+ * Body of `POST /v1/web/dispatch` — frontend-originated web message.
+ *
+ * Authenticated via Supabase JWT (the user's own access token). The frontend
+ * Server Action has already INSERTed the user's row into ``messages`` /
+ * ``threads`` (RLS-checked) before calling this endpoint, so backend-py
+ * only resolves project + thread for dispatch context and schedules the
+ * agent stream consumption in the background.
+ */
+export type WebDispatchRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+    /**
+     * Current Asset Id
+     */
+    current_asset_id?: string | null;
+    /**
+     * Attachments
+     */
+    attachments?: Array<IngressAttachment>;
+    /**
+     * Media References
+     */
+    media_references?: Array<MediaReference>;
+};
+
+/**
+ * WebDispatchResponse
+ *
+ * Response body for ``POST /v1/web/dispatch``.
+ */
+export type WebDispatchResponse = {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+};
+
+/**
+ * WebStopRequest
+ *
+ * Body of ``POST /v1/web/stop`` — user-initiated halt of a running turn.
+ *
+ * Sent when the user presses the stop button with an empty composer (a
+ * non-empty composer routes through ``/dispatch`` as a steering
+ * interrupt instead). No message text — this only signals "stop".
+ */
+export type WebStopRequest = {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+};
+
+/**
+ * WebStopResponse
+ *
+ * Response body for ``POST /v1/web/stop``.
+ */
+export type WebStopResponse = {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+};
+
 export type HealthcheckHealthcheckGetData = {
     body?: never;
     path?: never;
@@ -13,13 +946,262 @@ export type HealthcheckHealthcheckGetData = {
 
 export type HealthcheckHealthcheckGetResponses = {
     /**
-     * Response Healthcheck Healthcheck Get
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: string;
-    };
+    200: HealthCheckResponse;
 };
 
 export type HealthcheckHealthcheckGetResponse = HealthcheckHealthcheckGetResponses[keyof HealthcheckHealthcheckGetResponses];
+
+export type DispatchV1AgentsDispatchPostData = {
+    body: DispatchRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/agents/dispatch';
+};
+
+export type DispatchV1AgentsDispatchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DispatchV1AgentsDispatchPostError = DispatchV1AgentsDispatchPostErrors[keyof DispatchV1AgentsDispatchPostErrors];
+
+export type DispatchV1AgentsDispatchPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: unknown;
+};
+
+export type PublishSkillsV1WebProjectsProjectIdSkillsPublishPostData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/v1/web/projects/{project_id}/skills/publish';
+};
+
+export type PublishSkillsV1WebProjectsProjectIdSkillsPublishPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PublishSkillsV1WebProjectsProjectIdSkillsPublishPostError = PublishSkillsV1WebProjectsProjectIdSkillsPublishPostErrors[keyof PublishSkillsV1WebProjectsProjectIdSkillsPublishPostErrors];
+
+export type PublishSkillsV1WebProjectsProjectIdSkillsPublishPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: PublishSkillsResponse;
+};
+
+export type PublishSkillsV1WebProjectsProjectIdSkillsPublishPostResponse = PublishSkillsV1WebProjectsProjectIdSkillsPublishPostResponses[keyof PublishSkillsV1WebProjectsProjectIdSkillsPublishPostResponses];
+
+export type DispatchV1WebDispatchPostData = {
+    body: WebDispatchRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/dispatch';
+};
+
+export type DispatchV1WebDispatchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DispatchV1WebDispatchPostError = DispatchV1WebDispatchPostErrors[keyof DispatchV1WebDispatchPostErrors];
+
+export type DispatchV1WebDispatchPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: WebDispatchResponse;
+};
+
+export type DispatchV1WebDispatchPostResponse = DispatchV1WebDispatchPostResponses[keyof DispatchV1WebDispatchPostResponses];
+
+export type StopV1WebStopPostData = {
+    body: WebStopRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/stop';
+};
+
+export type StopV1WebStopPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StopV1WebStopPostError = StopV1WebStopPostErrors[keyof StopV1WebStopPostErrors];
+
+export type StopV1WebStopPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: WebStopResponse;
+};
+
+export type StopV1WebStopPostResponse = StopV1WebStopPostResponses[keyof StopV1WebStopPostResponses];
+
+export type BootstrapV1ProjectsBootstrapPostData = {
+    body: BootstrapProjectRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/projects/bootstrap';
+};
+
+export type BootstrapV1ProjectsBootstrapPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BootstrapV1ProjectsBootstrapPostError = BootstrapV1ProjectsBootstrapPostErrors[keyof BootstrapV1ProjectsBootstrapPostErrors];
+
+export type BootstrapV1ProjectsBootstrapPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: BootstrapProjectResponse;
+};
+
+export type BootstrapV1ProjectsBootstrapPostResponse = BootstrapV1ProjectsBootstrapPostResponses[keyof BootstrapV1ProjectsBootstrapPostResponses];
+
+export type GenerateImageV1WebGenerationsImagePostData = {
+    body: GenerateImageRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/generations/image';
+};
+
+export type GenerateImageV1WebGenerationsImagePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GenerateImageV1WebGenerationsImagePostError = GenerateImageV1WebGenerationsImagePostErrors[keyof GenerateImageV1WebGenerationsImagePostErrors];
+
+export type GenerateImageV1WebGenerationsImagePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerateResponse;
+};
+
+export type GenerateImageV1WebGenerationsImagePostResponse = GenerateImageV1WebGenerationsImagePostResponses[keyof GenerateImageV1WebGenerationsImagePostResponses];
+
+export type GenerateVideoV1WebGenerationsVideoPostData = {
+    body: GenerateVideoRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/generations/video';
+};
+
+export type GenerateVideoV1WebGenerationsVideoPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GenerateVideoV1WebGenerationsVideoPostError = GenerateVideoV1WebGenerationsVideoPostErrors[keyof GenerateVideoV1WebGenerationsVideoPostErrors];
+
+export type GenerateVideoV1WebGenerationsVideoPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerateMediaResponse;
+};
+
+export type GenerateVideoV1WebGenerationsVideoPostResponse = GenerateVideoV1WebGenerationsVideoPostResponses[keyof GenerateVideoV1WebGenerationsVideoPostResponses];
+
+export type GenerateAudioV1WebGenerationsAudioPostData = {
+    body: GenerateAudioRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/generations/audio';
+};
+
+export type GenerateAudioV1WebGenerationsAudioPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GenerateAudioV1WebGenerationsAudioPostError = GenerateAudioV1WebGenerationsAudioPostErrors[keyof GenerateAudioV1WebGenerationsAudioPostErrors];
+
+export type GenerateAudioV1WebGenerationsAudioPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerateMediaResponse;
+};
+
+export type GenerateAudioV1WebGenerationsAudioPostResponse = GenerateAudioV1WebGenerationsAudioPostResponses[keyof GenerateAudioV1WebGenerationsAudioPostResponses];
+
+export type GenerateDocumentV1WebGenerationsDocumentPostData = {
+    body: GenerateDocumentRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/generations/document';
+};
+
+export type GenerateDocumentV1WebGenerationsDocumentPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GenerateDocumentV1WebGenerationsDocumentPostError = GenerateDocumentV1WebGenerationsDocumentPostErrors[keyof GenerateDocumentV1WebGenerationsDocumentPostErrors];
+
+export type GenerateDocumentV1WebGenerationsDocumentPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerateDocumentResponse;
+};
+
+export type GenerateDocumentV1WebGenerationsDocumentPostResponse = GenerateDocumentV1WebGenerationsDocumentPostResponses[keyof GenerateDocumentV1WebGenerationsDocumentPostResponses];
+
+export type AnalyzeUploadV1WebUploadsAnalyzePostData = {
+    body: AnalyzeUploadRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/web/uploads/analyze';
+};
+
+export type AnalyzeUploadV1WebUploadsAnalyzePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AnalyzeUploadV1WebUploadsAnalyzePostError = AnalyzeUploadV1WebUploadsAnalyzePostErrors[keyof AnalyzeUploadV1WebUploadsAnalyzePostErrors];
+
+export type AnalyzeUploadV1WebUploadsAnalyzePostResponses = {
+    /**
+     * Successful Response
+     */
+    202: AnalyzeUploadResponse;
+};
+
+export type AnalyzeUploadV1WebUploadsAnalyzePostResponse = AnalyzeUploadV1WebUploadsAnalyzePostResponses[keyof AnalyzeUploadV1WebUploadsAnalyzePostResponses];

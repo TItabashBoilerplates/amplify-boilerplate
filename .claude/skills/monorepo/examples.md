@@ -209,8 +209,8 @@ export async function requestEmailOtp(email: string) {
 }
 ```
 
-検証ページでは `confirmSignIn({ challengeResponse: otp })` で OTP を確認し、再送は
-`resendSignInCode()` を使う。
+検証ページでは `confirmSignIn({ challengeResponse: otp })` で OTP を確認する。再送専用 API は
+無い（`resendSignInCode` は存在しない）ため、`signIn(...)` を同条件で再実行して再送する。
 
 ---
 

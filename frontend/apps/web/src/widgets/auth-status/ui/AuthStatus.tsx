@@ -36,7 +36,7 @@ export function AuthStatus() {
           <span className="font-medium">User Email:</span> {user?.email || 'N/A'}
         </p>
         <p>
-          <span className="font-medium">User ID:</span> {user?.id || 'N/A'}
+          <span className="font-medium">User ID:</span> {user?.userId || 'N/A'}
         </p>
       </div>
     </div>

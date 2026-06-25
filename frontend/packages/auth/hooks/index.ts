@@ -4,5 +4,5 @@
  * @module @workspace/auth/hooks
  */
 
-export { useAuth, useAuthUser, useIsAuthenticated } from './useAuth'
 export { useAuthStore } from '../store/authStore'
+export { useAuth, useAuthUser, useIsAuthenticated } from './useAuth'

@@ -33,14 +33,13 @@ export function UserAvatar({ user, size = 'md', className }: UserAvatarProps) {
     lg: 'h-12 w-12',
   }
 
-  // 表示名の最初の文字を取得（フォールバック用）
-  const initial =
-    user.display_name?.charAt(0).toUpperCase() || user.account_name.charAt(0).toUpperCase()
+  // 表示名（無ければメール）の最初の文字を取得（フォールバック用）
+  const initial = user.displayName?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className ?? ''}`}>
       {/* TODO: プロフィール画像URLがある場合は表示 */}
-      <AvatarImage src={undefined} alt={user.display_name || user.account_name} />
+      <AvatarImage src={undefined} alt={user.displayName || user.email} />
       <AvatarFallback>{initial || <User className="h-4 w-4" />}</AvatarFallback>
     </Avatar>
   )

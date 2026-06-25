@@ -49,7 +49,8 @@ const user = useAuthUser()
 const isAuthenticated = useIsAuthenticated()
 
 // 低レベルの認証操作は aws-amplify/auth を直接使う（passwordless Email OTP）
-import { signIn, confirmSignIn, resendSignInCode, signOut } from 'aws-amplify/auth'
+// ※ 再送専用 API は無い（resendSignInCode は存在しない）。signIn を再実行して再送する。
+import { signIn, confirmSignIn, signOut } from 'aws-amplify/auth'
 
 // 1. メールで OTP をリクエスト
 await signIn({

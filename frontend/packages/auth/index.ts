@@ -11,6 +11,6 @@
 export { useAuth, useAuthUser, useIsAuthenticated } from './hooks'
 // Providers（Web）
 export { AuthProvider } from './providers/AuthProvider'
+export type { AuthState, AuthUser } from './store/authStore'
 // Store
 export { useAuthStore } from './store/authStore'
-export type { AuthState, AuthUser } from './store/authStore'

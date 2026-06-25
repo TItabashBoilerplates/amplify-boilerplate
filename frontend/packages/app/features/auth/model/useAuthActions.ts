@@ -5,7 +5,7 @@
  * クライアント関数を、Mobile はこのフックを利用できる。
  */
 
-import { confirmSignIn, resendSignInCode, signIn, signOut } from 'aws-amplify/auth'
+import { confirmSignIn, signIn, signOut } from 'aws-amplify/auth'
 import { useCallback, useState } from 'react'
 
 /**
@@ -73,11 +73,17 @@ export function useAuthActions() {
     [run]
   )
 
-  /** OTP コードを再送信 */
+  /**
+   * OTP コードを再送信。
+   * `USER_AUTH` フローには専用 resend API が無いため、`signIn` を再実行して新コードを送る。
+   */
   const resendOtp = useCallback(
     (email: string) =>
       run(async () => {
-        await resendSignInCode({ username: email })
+        await signIn({
+          username: email,
+          options: { authFlowType: 'USER_AUTH', preferredChallenge: 'EMAIL_OTP' },
+        })
       }),
     [run]
   )

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { HealthcheckHealthcheckGetData, HealthcheckHealthcheckGetResponses } from './types.gen';
+import type { AnalyzeUploadV1WebUploadsAnalyzePostData, AnalyzeUploadV1WebUploadsAnalyzePostErrors, AnalyzeUploadV1WebUploadsAnalyzePostResponses, BootstrapV1ProjectsBootstrapPostData, BootstrapV1ProjectsBootstrapPostErrors, BootstrapV1ProjectsBootstrapPostResponses, DispatchV1AgentsDispatchPostData, DispatchV1AgentsDispatchPostErrors, DispatchV1AgentsDispatchPostResponses, DispatchV1WebDispatchPostData, DispatchV1WebDispatchPostErrors, DispatchV1WebDispatchPostResponses, GenerateAudioV1WebGenerationsAudioPostData, GenerateAudioV1WebGenerationsAudioPostErrors, GenerateAudioV1WebGenerationsAudioPostResponses, GenerateDocumentV1WebGenerationsDocumentPostData, GenerateDocumentV1WebGenerationsDocumentPostErrors, GenerateDocumentV1WebGenerationsDocumentPostResponses, GenerateImageV1WebGenerationsImagePostData, GenerateImageV1WebGenerationsImagePostErrors, GenerateImageV1WebGenerationsImagePostResponses, GenerateVideoV1WebGenerationsVideoPostData, GenerateVideoV1WebGenerationsVideoPostErrors, GenerateVideoV1WebGenerationsVideoPostResponses, HealthcheckHealthcheckGetData, HealthcheckHealthcheckGetResponses, PublishSkillsV1WebProjectsProjectIdSkillsPublishPostData, PublishSkillsV1WebProjectsProjectIdSkillsPublishPostErrors, PublishSkillsV1WebProjectsProjectIdSkillsPublishPostResponses, StopV1WebStopPostData, StopV1WebStopPostErrors, StopV1WebStopPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -22,3 +22,185 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  * Healthcheck
  */
 export const healthcheckHealthcheckGet = <ThrowOnError extends boolean = false>(options?: Options<HealthcheckHealthcheckGetData, ThrowOnError>) => (options?.client ?? client).get<HealthcheckHealthcheckGetResponses, unknown, ThrowOnError>({ url: '/healthcheck', ...options });
+
+/**
+ * Dispatch
+ *
+ * Schedule a Managed Agents dispatch and return 202 immediately.
+ *
+ * If a previous ``dispatch_user_message`` task for the same ``thread_id``
+ * is still provisioning, redirect via ``[user.interrupt, user.message]``
+ * instead of spawning a parallel task (per Anthropic Managed Agents docs).
+ * This preserves all session context (memory, conversation history, vault,
+ * MCP binding) — only the in-flight generation is cancelled. Once
+ * provision returns, the Edge Function ``poll-dispatches`` (Phase 8) owns
+ * event consumption.
+ */
+export const dispatchV1AgentsDispatchPost = <ThrowOnError extends boolean = false>(options: Options<DispatchV1AgentsDispatchPostData, ThrowOnError>) => (options.client ?? client).post<DispatchV1AgentsDispatchPostResponses, DispatchV1AgentsDispatchPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/agents/dispatch',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Publish Skills
+ *
+ * Publish a project's custom skills to its managed-agent vendor.
+ *
+ * Editor/admin only. Refuses (422) if it would exceed the session skill cap,
+ * and (409) if a publish is already in flight for this project. The upload
+ * (Gemini polls ACTIVE up to ~5 min) runs in a background task so the request
+ * returns 202; per-skill status lands in ``skills.metadata.publish`` and
+ * re-provision happens automatically on the project's next dispatch.
+ */
+export const publishSkillsV1WebProjectsProjectIdSkillsPublishPost = <ThrowOnError extends boolean = false>(options: Options<PublishSkillsV1WebProjectsProjectIdSkillsPublishPostData, ThrowOnError>) => (options.client ?? client).post<PublishSkillsV1WebProjectsProjectIdSkillsPublishPostResponses, PublishSkillsV1WebProjectsProjectIdSkillsPublishPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/projects/{project_id}/skills/publish',
+    ...options
+});
+
+/**
+ * Dispatch
+ *
+ * Schedule a web-originated dispatch and return 202 immediately.
+ *
+ * Routes to the Gemini code path when the resolved thread's
+ * ``agent_runtime`` is ``gemini_managed`` and
+ * ``settings.gemini_runtime_enabled`` is true. The Anthropic path is
+ * unchanged for every other combination (legacy ``NULL`` runtime, the
+ * feature flag off, ``deep_agents``, etc.).
+ */
+export const dispatchV1WebDispatchPost = <ThrowOnError extends boolean = false>(options: Options<DispatchV1WebDispatchPostData, ThrowOnError>) => (options.client ?? client).post<DispatchV1WebDispatchPostResponses, DispatchV1WebDispatchPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/dispatch',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Stop
+ *
+ * Stop the running turn on a thread (user pressed stop, empty composer).
+ *
+ * Sends the runtime-appropriate stop signal (Anthropic ``user.interrupt``
+ * / Gemini ``interactions.cancel``) and flips the thread to idle so the
+ * web 'thinking' indicator clears immediately. Idempotent: stopping a
+ * thread that is not running is a 200 no-op.
+ */
+export const stopV1WebStopPost = <ThrowOnError extends boolean = false>(options: Options<StopV1WebStopPostData, ThrowOnError>) => (options.client ?? client).post<StopV1WebStopPostResponses, StopV1WebStopPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/stop',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Bootstrap
+ *
+ * Provision (or confirm) the project's Anthropic resources.
+ *
+ * Creates / verifies three Anthropic resources tied to this project:
+ *
+ * * memory store (long-lived, project-scoped knowledge layer)
+ * * per-project agent (cloned from
+ * ``backend-py/app/agent-spec/director.agent.yaml``)
+ * * per-project environment (cloned from
+ * ``backend-py/app/agent-spec/director.environment.yaml``)
+ *
+ * All three operations are idempotent — re-bootstrapping a project that
+ * already has the resources short-circuits with ``created=False``.
+ */
+export const bootstrapV1ProjectsBootstrapPost = <ThrowOnError extends boolean = false>(options: Options<BootstrapV1ProjectsBootstrapPostData, ThrowOnError>) => (options.client ?? client).post<BootstrapV1ProjectsBootstrapPostResponses, BootstrapV1ProjectsBootstrapPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/projects/bootstrap',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Generate Image
+ *
+ * Reserve credits + submit an image generation as the authenticated user.
+ */
+export const generateImageV1WebGenerationsImagePost = <ThrowOnError extends boolean = false>(options: Options<GenerateImageV1WebGenerationsImagePostData, ThrowOnError>) => (options.client ?? client).post<GenerateImageV1WebGenerationsImagePostResponses, GenerateImageV1WebGenerationsImagePostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/generations/image',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Generate Video
+ *
+ * Reserve credits + submit a video generation as the authenticated user.
+ */
+export const generateVideoV1WebGenerationsVideoPost = <ThrowOnError extends boolean = false>(options: Options<GenerateVideoV1WebGenerationsVideoPostData, ThrowOnError>) => (options.client ?? client).post<GenerateVideoV1WebGenerationsVideoPostResponses, GenerateVideoV1WebGenerationsVideoPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/generations/video',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Generate Audio
+ *
+ * Reserve credits + submit a music/SFX generation as the authenticated user.
+ */
+export const generateAudioV1WebGenerationsAudioPost = <ThrowOnError extends boolean = false>(options: Options<GenerateAudioV1WebGenerationsAudioPostData, ThrowOnError>) => (options.client ?? client).post<GenerateAudioV1WebGenerationsAudioPostResponses, GenerateAudioV1WebGenerationsAudioPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/generations/audio',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Generate Document
+ *
+ * Generate a document body from connected inputs (Gemini multimodal).
+ */
+export const generateDocumentV1WebGenerationsDocumentPost = <ThrowOnError extends boolean = false>(options: Options<GenerateDocumentV1WebGenerationsDocumentPostData, ThrowOnError>) => (options.client ?? client).post<GenerateDocumentV1WebGenerationsDocumentPostResponses, GenerateDocumentV1WebGenerationsDocumentPostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/generations/document',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Analyze Upload
+ *
+ * Classify an uploaded revision with Gemini and bind it to its role bible.
+ */
+export const analyzeUploadV1WebUploadsAnalyzePost = <ThrowOnError extends boolean = false>(options: Options<AnalyzeUploadV1WebUploadsAnalyzePostData, ThrowOnError>) => (options.client ?? client).post<AnalyzeUploadV1WebUploadsAnalyzePostResponses, AnalyzeUploadV1WebUploadsAnalyzePostErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/web/uploads/analyze',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

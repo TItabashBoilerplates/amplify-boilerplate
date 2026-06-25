@@ -1,7 +1,7 @@
 'use client'
 
-import { Amplify } from 'aws-amplify'
 import outputs from 'amplify-outputs'
+import { Amplify } from 'aws-amplify'
 
 /**
  * クライアント側で Amplify を初期化する。

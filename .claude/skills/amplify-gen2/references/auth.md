@@ -132,7 +132,7 @@ export const auth = defineAuth({
 `preferredChallenge: 'EMAIL_OTP'`:
 
 ```typescript
-import { signIn, confirmSignIn, resendSignInCode } from 'aws-amplify/auth'
+import { signIn, confirmSignIn } from 'aws-amplify/auth'
 
 // Step 1 — start sign-in; Cognito emails a one-time code.
 const { nextStep } = await signIn({
@@ -149,10 +149,16 @@ if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_EMAIL_CODE') {
 }
 ```
 
-**Resend** the code:
+**Resend** the code — the `USER_AUTH` sign-in flow has **no dedicated resend API**
+(`resendSignInCode` does **not** exist in `aws-amplify@6`; `resendSignUpCode` is only for
+the password sign-**up** flow). Re-invoke `signIn` with the same options to restart the
+challenge and send a fresh code:
 
 ```typescript
-await resendSignInCode({ username: email })
+await signIn({
+  username: email,
+  options: { authFlowType: 'USER_AUTH', preferredChallenge: 'EMAIL_OTP' },
+})
 ```
 
 **Sign out:**
