@@ -469,6 +469,12 @@
       "skillPath": "plugins/aws-data-analytics/skills/finding-data-lake-assets/SKILL.md",
       "computedHash": "db987f7f95ddb9a3c9993777f4354c6a74863c9dbcbfaeb0e230e239ead7ab08"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336"
+    },
     "gemini-api-dev": {
       "source": "google-gemini/gemini-skills",
       "sourceType": "github",
@@ -745,6 +751,12 @@
       "skillPath": "skills/core-skills/signing-in-to-aws/SKILL.md",
       "computedHash": "721b70d3e162a1d6b76567ff183ff49a1368e3c25b5c9792371668b7e9256857"
     },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
+    },
     "storing-and-querying-vectors": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
@@ -792,6 +804,12 @@
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/storage-skills/troubleshooting-s3-files/SKILL.md",
       "computedHash": "eadb4b3f99c8bc303ee2213e6594709ccbd903c79c4ecbbe65a5d9f170cc3111"
+    },
+    "turborepo": {
+      "source": "vercel/turborepo",
+      "sourceType": "github",
+      "skillPath": "skills/turborepo/SKILL.md",
+      "computedHash": "b7c3165ae67a2892d6195a5b2cba15c8d96341f5c64ddd0d3ce4225c94a2ae83"
     },
     "two-factor-authentication-best-practices": {
       "source": "better-auth/skills",
