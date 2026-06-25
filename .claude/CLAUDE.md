@@ -13,6 +13,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 - **モジュール・パッケージは必ず最新バージョンを調査し、最新の API を使用**
 - **ビルド・テスト・リント等は devenv のコマンド（scripts または `devenv tasks run`）を使用**（`.claude/rules/commands.md`）
 - **Amplify バックエンド（auth/data/storage/functions）の変更は `frontend/packages/backend/amplify/` を編集**し、`ampx sandbox` で反映する
+- **AWS ファースト: 必要機能は AWS エコシステム内で賄う。外部 SaaS は AWS で要件的に厳しい場合のみ（理由明記+ユーザー確認）。例外は決済 Polar のみ**（`.claude/rules/aws-first.md`）
 - **バックエンドの既定は TypeScript（Amplify Functions / Node `defineFunction`）。Python（backend-py）は特殊要件（LLM/長時間/Python固有）のときだけ**（`.claude/rules/backend-architecture.md`）
 - **TS のパッケージマネージャは bun（`bun add`/`bun install`）。npm/pnpm/yarn 禁止。Python は uv**（`.claude/rules/backend-architecture.md`）
 - **生成AI: 対話的=SSE / 背景処理(≤15分)=worker Lambda+DBステータス / 超長時間(>15分)・サンドボックス=Amazon Bedrock AgentCore。監視は Amplify リアルタイム(AppSync サブスク)。LLM は LangChain**（`.claude/rules/generative-ai.md`）
