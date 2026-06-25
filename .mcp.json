@@ -32,6 +32,17 @@
 		"gemini-api-docs-mcp": {
 			"type": "http",
 			"url": "https://gemini-api-docs-mcp.dev"
+		},
+		"aws-mcp": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"mcp-proxy-for-aws@latest",
+				"https://aws-mcp.us-east-1.api.aws/mcp",
+				"--metadata",
+				"AWS_REGION=ap-northeast-1"
+			],
+			"env": {}
 		}
 	}
 }
