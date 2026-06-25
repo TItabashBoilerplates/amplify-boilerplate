@@ -1,9 +1,16 @@
 {
   "version": 1,
   "skills": {
+    "add-app-clip": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/add-app-clip/SKILL.md",
+      "computedHash": "29ef48adaaa77de01e90380460991b8be1a63e3530e3e7cdafc792443439bf73"
+    },
     "agent-email-inbox": {
       "source": "resend/resend-skills",
       "sourceType": "github",
+      "skillPath": "skills/agent-email-inbox/SKILL.md",
       "computedHash": "25ffa798578026fcfdc5bdbe5b10ec2d2cd1784f8a94344c0ac055f3a82b57d4"
     },
     "agents-build": {
@@ -201,17 +208,20 @@
     "better-auth-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
+      "skillPath": "better-auth/best-practices/SKILL.md",
       "computedHash": "a4c830509e85557b59339d8d93a4e243e9e59c686e7678854d39230e12c2a6dc"
     },
     "better-auth-security-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
+      "skillPath": "security/SKILL.md",
       "computedHash": "5717187bba9c22030c7174c74012f01c359f21e2ce87e0eb80e24244d8b8c915"
     },
     "building-native-ui": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "342df93f481a0dba919f372d6c7b40d2b4bf5b51dd24363aea2e5d0bae27a6fa"
+      "skillPath": "plugins/expo/skills/building-native-ui/SKILL.md",
+      "computedHash": "b4c017a718e9ff4d2ba06515006beda3358bd5b1f4ff31f49c90b7e51118811b"
     },
     "claude-api": {
       "source": "anthropics/skills",
@@ -252,6 +262,7 @@
     "create-auth-skill": {
       "source": "better-auth/skills",
       "sourceType": "github",
+      "skillPath": "better-auth/create-auth/SKILL.md",
       "computedHash": "31c027d02dbf1faa37f58191f574b9443143042fb2b684fe32df53ab0270487c"
     },
     "creating-amazon-aurora-db-cluster-with-instances": {
@@ -299,17 +310,26 @@
     "deep-agents-core": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "8cbf6f61f42b2482472f53a99e23607f16017e1e16ca037409c6c8fcfcbcc395"
+      "skillPath": "config/skills/deep-agents-core/SKILL.md",
+      "computedHash": "78899a8217572be9156b0c03f280fea7c250ce29e89a87fc18499766ec67159c"
     },
     "deep-agents-memory": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "b7b0facdff17b6f3ad77019e30a697175389e06ec7260780f49d5b3a1d28ad2a"
+      "skillPath": "config/skills/deep-agents-memory/SKILL.md",
+      "computedHash": "54e4fd1e876f5e13bee1b52812a84befe00e8336c19d32766557fcb84c5ecf49"
     },
     "deep-agents-orchestration": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "1570f8d88e1233edc3306d28224604172b016aedba0ced2efa2dd8e38e28ae62"
+      "skillPath": "config/skills/deep-agents-orchestration/SKILL.md",
+      "computedHash": "5b039d2c10ef3bd6f6044c70c123060860dc1e1a49c0dc5cc12dde7cd67a3b75"
+    },
+    "deploy-to-vercel": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/deploy-to-vercel/SKILL.md",
+      "computedHash": "03e0eaaa9bf13ba1e7ffa387f5893de6f324c0868c627001f179395a8feaa7c9"
     },
     "deploying-custom-domain-rest-api": {
       "source": "aws/agent-toolkit-for-aws",
@@ -323,15 +343,29 @@
       "skillPath": "skills/specialized-skills/analytics-skills/developing-applications-on-managed-service-for-apache-flink/SKILL.md",
       "computedHash": "b816600704479493ff4981e4539d886928247b8cf679aada2578f64d3a21411d"
     },
+    "eas-update-insights": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/eas-update-insights/SKILL.md",
+      "computedHash": "160b705dd270cfc554c572b8f829cebcce711f1279820f4f55527b0981bf125c"
+    },
+    "ecosystem-primer": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/ecosystem-primer/SKILL.md",
+      "computedHash": "792007c035568732166705ab3b2e01b29fff39f4630e974226e7e2ca5fea4352"
+    },
     "email-and-password-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
+      "skillPath": "better-auth/emailAndPassword/SKILL.md",
       "computedHash": "747d7f73bd9e2ec5317b8ef88dc70f97df716d00e3d02de4051feebaa48b062d"
     },
     "email-best-practices": {
       "source": "resend/resend-skills",
       "sourceType": "github",
-      "computedHash": "73502c047040e1d55b1c90c86b661784279f0956de06d7dc74738c904d122c22"
+      "skillPath": "skills/email-best-practices/SKILL.md",
+      "computedHash": "c7218333381fa335b8a912bd55b3bb58b5b567a174f9e1d8b41940ff82f1a6b6"
     },
     "enabling-lambda-vpc-internet-access": {
       "source": "aws/agent-toolkit-for-aws",
@@ -348,27 +382,68 @@
     "expo-api-routes": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "015c6b849507fda73fcc32d2448f033aaaaa21f5229085342b8421727a90cafb"
+      "skillPath": "plugins/expo/skills/expo-api-routes/SKILL.md",
+      "computedHash": "719b5a8e07c1055760e21c22d8c42c1d79f084d946450f2b72d6db5598f73002"
+    },
+    "expo-brownfield": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-brownfield/SKILL.md",
+      "computedHash": "b7e46eba9d7643fd0488adedabc224914f45af2f0aa20c6ee6516aea81acdff9"
     },
     "expo-cicd-workflows": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "700b20b575fcbe75ad238b41a0bd57938abe495e62dc53e05400712ab01ee7c0"
+      "skillPath": "plugins/expo/skills/expo-cicd-workflows/SKILL.md",
+      "computedHash": "6b5b10d32105e345a3494cf60f1b80165f971fd72e1a0ad355ca9b0b36af1f43"
     },
     "expo-deployment": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "9ea9f16374765c1b16764a51bd43a64098921b33f48e94d9c5c1cce24b335c10"
+      "skillPath": "plugins/expo/skills/expo-deployment/SKILL.md",
+      "computedHash": "f70cd561a2d726f329f45eb0ad262f298c57676a80d7ecf288dc3919a6a7a50d"
     },
     "expo-dev-client": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "234e2633b7fbcef2d479f8fe8ab20d53d08ed3e4beec7c965da4aff5b43affe7"
+      "skillPath": "plugins/expo/skills/expo-dev-client/SKILL.md",
+      "computedHash": "af7b1cc2824db64888aa10d5d8c009b960d2c649dd7be2b86ae6b9f092a73ae6"
+    },
+    "expo-examples": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-examples/SKILL.md",
+      "computedHash": "d1793279706f5e2112023c0a26a2a2909fc7ce3da640812f6f2911a4ad497d6c"
+    },
+    "expo-module": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-module/SKILL.md",
+      "computedHash": "fe91e433d28dcc49439c4edc016e7f931e6f699bc84d65cf6975dd494bc04bfa"
+    },
+    "expo-observe": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-observe/SKILL.md",
+      "computedHash": "4fdd09a1b7067e9c8a2d3db1e6782ae01205858f007c282cba80efd6e7181ad0"
+    },
+    "expo-skill-eval": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/expo-skill-eval/SKILL.md",
+      "computedHash": "dd818d572a91bd88db10167edc2f368152bda3622476ddd23f666908d4c8ed7f"
     },
     "expo-tailwind-setup": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "d39e806942fe880347f161056729b588a3cb0f1796270eebf52633fe11cfdce1"
+      "skillPath": "plugins/expo/skills/expo-tailwind-setup/SKILL.md",
+      "computedHash": "85d932863950a9837dd4ab528c2908eff7c119e8c7f59c47963815ee7341e826"
+    },
+    "expo-ui": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-ui/SKILL.md",
+      "computedHash": "390bace26b19424ef390dc4d2c2c91474be1409151b87f69aa7508f9934ca0cd"
     },
     "exporting-rds-to-s3": {
       "source": "aws/agent-toolkit-for-aws",
@@ -379,24 +454,20 @@
     "feature-sliced-design": {
       "source": "feature-sliced/skills",
       "sourceType": "github",
-      "computedHash": "98020388ca6fb26ac9b060f81eb3064fefce9018e6f660e69419a00adf0801e7"
+      "skillPath": "feature-sliced-design/SKILL.md",
+      "computedHash": "c57a32d524addae35b41b07bbfdd35eea3d85b3d0bd8f4779032eb31b62e5ce9"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
       "skillPath": "skills/find-skills/SKILL.md",
-      "computedHash": "9e1c8b3103f92fa8092568a44fe64858de7c5c9dc65ce4bea8f168080e889cfd"
+      "computedHash": "781bd6d3f9b19f8c9af6b53d8d0e4876d0183841b565db34ca7092ffa412d111"
     },
     "finding-data-lake-assets": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "plugins/aws-data-analytics/skills/finding-data-lake-assets/SKILL.md",
       "computedHash": "db987f7f95ddb9a3c9993777f4354c6a74863c9dbcbfaeb0e230e239ead7ab08"
-    },
-    "framework-selection": {
-      "source": "langchain-ai/langchain-skills",
-      "sourceType": "github",
-      "computedHash": "4077205bed91c048ba47f0db1bd66930bdbdd04e5195dc3d5b265272c5059cd1"
     },
     "gemini-api-dev": {
       "source": "google-gemini/gemini-skills",
@@ -408,18 +479,61 @@
       "source": "google-gemini/gemini-skills",
       "sourceType": "github",
       "skillPath": "skills/gemini-interactions-api/SKILL.md",
-      "computedHash": "dec60481e9f1948b84904622f1444765eefba2809726893428c7c65c0cd435fc"
+      "computedHash": "f818c4fda40bd30c539f87726cacc2b2467ac342d0b103e042b1be5f11b91073"
     },
     "gemini-live-api-dev": {
       "source": "google-gemini/gemini-skills",
       "sourceType": "github",
       "skillPath": "skills/gemini-live-api-dev/SKILL.md",
-      "computedHash": "5cc49b0dcefb59b52577118a7898b51fa1913e1a7fd2986b5735796c3aa81030"
+      "computedHash": "d4d52c9a639bd79fe5eeef0722a9d4d6ed256b99172375b60e96920c8b111836"
     },
     "gluestack-ui-v4": {
       "source": "gluestack/agent-skills",
       "sourceType": "github",
+      "skillPath": "skills/gluestack-ui-v4/SKILL.md",
       "computedHash": "5f00d8934fef415e31bbae36b1cb8bfe59452eeff0e48dea27172d620a00c612"
+    },
+    "gluestack-ui-v4:components": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/components/SKILL.md",
+      "computedHash": "c1b100acc6afb59fa63fc092bd5f2461696fe589718b04e03890817c65ed052c"
+    },
+    "gluestack-ui-v4:creating-components": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/creating-components/SKILL.md",
+      "computedHash": "a79ec532053671a0b32618cc9e44c4a85694513c44ef8c396d0c95206ab5ef23"
+    },
+    "gluestack-ui-v4:performance": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/performance/SKILL.md",
+      "computedHash": "692a326fe609920e0e9c7d3c3ceda33b624c42b9cb1708088c4d4880d2712879"
+    },
+    "gluestack-ui-v4:setup": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/setup/SKILL.md",
+      "computedHash": "bde34d5f1985da8537f9ce7d7637a066ca205b99febdcf402ac981d101279c28"
+    },
+    "gluestack-ui-v4:styling": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/styling/SKILL.md",
+      "computedHash": "ea393839496bc4ddec57c2ce3fadc9be4df2ae642949d46111a910c1ad048521"
+    },
+    "gluestack-ui-v4:validation": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/validation/SKILL.md",
+      "computedHash": "1eb0f3a759313001633fd73f9d2442035d806ee9951da7d719499e96ceb35f72"
+    },
+    "gluestack-ui-v4:variants": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gluestack-ui-v4/variants/SKILL.md",
+      "computedHash": "1c06ca49623da545f9ef7966605510e8d2d17d58aca362e921267c197d500d4c"
     },
     "ingesting-into-data-lake": {
       "source": "aws/agent-toolkit-for-aws",
@@ -430,43 +544,62 @@
     "langchain-dependencies": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "bab5411cdfbdeaa42544c45791d9d3fc18d4cc193f4a3c5e2f6bd567422bffaf"
+      "skillPath": "config/skills/langchain-dependencies/SKILL.md",
+      "computedHash": "d11337493fa4828c12d2d1793fbdf3bb0d5ae67763a03e98b0f1aa3d0ff6825b"
     },
     "langchain-fundamentals": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "ede1b3210a135e2c7eb5ddb51e0aaf3b78fde07cfd9fbe6efaeb4d6c5db60bd2"
+      "skillPath": "config/skills/langchain-fundamentals/SKILL.md",
+      "computedHash": "5a1ded1b185ed95aab2b795f6134ce1ea9c19dddc5d5c8f291b31c0db4f0e379"
     },
     "langchain-middleware": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "7d1931c4439cc4ba0c4cc92e824aa08067b76748911196319b595c91041cdd61"
+      "skillPath": "config/skills/langchain-middleware/SKILL.md",
+      "computedHash": "f8b6897ba1f027d56ff9fffa72d4d27d8e048232fe1e1c13e219df98969d55b0"
     },
     "langchain-rag": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "545c661f6ed9b54cfe078a438052b2742d6122fc022f69db67d1a01aca4c726c"
+      "skillPath": "config/skills/langchain-rag/SKILL.md",
+      "computedHash": "53fa807b2094c4ee9136ff23a9330321c1a22959870e4a1f7bd53b753b623f94"
+    },
+    "langgraph-cli": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/langgraph-cli/SKILL.md",
+      "computedHash": "dec48033a9a80c8d8826d0d4303dfc339a0a9145f3266035663104357b2d9c8f"
     },
     "langgraph-fundamentals": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "d754005c69632037ca79c4daa8177b03e5a0f17f40cde3b0f532b33a8df88ded"
+      "skillPath": "config/skills/langgraph-fundamentals/SKILL.md",
+      "computedHash": "790dd42d79190a6db6a7a82ac9b03fa371402a47d91ff88c1e2731b1ceff1d29"
     },
     "langgraph-human-in-the-loop": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "0e81f1ef881b4c82bdcb5bece6309558f9e53681022f8347f869abc403b48637"
+      "skillPath": "config/skills/langgraph-human-in-the-loop/SKILL.md",
+      "computedHash": "283821ddcbdefb404d5e9c95149364c0962857a6f1e90db33ee5a0062500a88a"
     },
     "langgraph-persistence": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
-      "computedHash": "fc617bfab9d06826cba1097def5c7775f4522a1dabdd1a0111472f9929b1b914"
+      "skillPath": "config/skills/langgraph-persistence/SKILL.md",
+      "computedHash": "0e14611b0310a7a30e9977ba99b00a11b7ea63ebdd7b0c490d03040349ead0ed"
     },
     "launching-ec2-instance-with-best-practices": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/ec2-skills/launching-ec2-instance-with-best-practices/SKILL.md",
       "computedHash": "bbac35ea127c3ecd285c25c89da0a23c47ace16d0a7b359c2e8e5648da6e86d2"
+    },
+    "managed-deep-agents": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/managed-deep-agents/SKILL.md",
+      "computedHash": "e731af48cd4293b2d3606a1b066a9ca0aaca1c421e8190f5668caf95a65f38e0"
     },
     "managing-amazon-msk": {
       "source": "aws/agent-toolkit-for-aws",
@@ -480,35 +613,40 @@
       "skillPath": "skills/specialized-skills/analytics-skills/migrate-to-msk/SKILL.md",
       "computedHash": "484771f36dc28394bbc1a7fb69a09c9e6f79b612e4cb34333f75e79ba20c78cb"
     },
+    "migrate-to-v5": {
+      "source": "gluestack/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gluestack-ui-v4/migrate-to-v5/SKILL.md",
+      "computedHash": "f22017cfce08f837f640a855015c978b9941a698a3ac9aca5bfbc02c3a23cdf8"
+    },
     "modern-web-guidance": {
       "source": "GoogleChrome/modern-web-guidance",
       "sourceType": "github",
       "skillPath": "skills/modern-web-guidance/SKILL.md",
-      "computedHash": "9f19aa0e3b554d33b2709c66bb16ad342403e323761f62d6665fbb424c23148d"
+      "computedHash": "35bcb9ecc1650b7cac4820f5efa2ea74d505458ff276b0761ac29f808592687f"
     },
     "native-data-fetching": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "3cd0ba91f359f9f84cd40f36f356287994a0e952520fac6e03ef7952d0397879"
-    },
-    "next-best-practices": {
-      "source": "vercel-labs/next-skills",
-      "sourceType": "github",
-      "computedHash": "db85045827ebeb83ac8dbc992b69188755eeb74dcf01cbf5e694d58aa494a106"
+      "skillPath": "plugins/expo/skills/native-data-fetching/SKILL.md",
+      "computedHash": "21253dd72e2afa0cc0a6693295f043af3b149fa250c7aedef4d33144e69258ff"
     },
     "next-cache-components": {
-      "source": "vercel-labs/next-skills",
+      "source": "vercel/vercel-plugin",
       "sourceType": "github",
-      "computedHash": "f835d8226c28abf012cc013928e2627c8a7a046de61127ef229be1711bd1f255"
+      "skillPath": "skills/next-cache-components/SKILL.md",
+      "computedHash": "d96627b99b28bd1e9aa1ec454f02c4e9a6bd0be72c36da40852b273592704518"
     },
     "next-upgrade": {
-      "source": "vercel-labs/next-skills",
+      "source": "vercel/vercel-plugin",
       "sourceType": "github",
-      "computedHash": "e3aeb1f9e8a68d24df0c1c2e3c8ab97ede09a7251a2c76988318d02254346979"
+      "skillPath": "skills/next-upgrade/SKILL.md",
+      "computedHash": "befa88b5a0259b68b65b06b4349908289b8eea1825dba34d3212687206e52c91"
     },
     "organization-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
+      "skillPath": "better-auth/organization/SKILL.md",
       "computedHash": "79a5a85b43d10e9fe37582b3506b051a33a991817b938f349099baa5ddba21aa"
     },
     "processing-s3-uploads-with-step-functions": {
@@ -550,17 +688,20 @@
     "react-email": {
       "source": "resend/resend-skills",
       "sourceType": "github",
-      "computedHash": "d1fe70541c06ebf1cc58b774d35634399c466e55684776cfba6768a2079ad79b"
+      "skillPath": "skills/react-email/SKILL.md",
+      "computedHash": "ff40e3355c318e5ef203eb1118cab574454ce65dae01bb268b05a2e244b8041b"
     },
     "resend": {
       "source": "resend/resend-skills",
       "sourceType": "github",
-      "computedHash": "936851c3e22e6de1d416134a9cd170d7540ddebe5a1c0113eef66537c843c6ed"
+      "skillPath": "skills/resend/SKILL.md",
+      "computedHash": "b246db7265df47250a7a55efb02778c2870d18e8030164a23e26a6324e4f4f8b"
     },
     "resend-cli": {
       "source": "resend/resend-skills",
       "sourceType": "github",
-      "computedHash": "8253f110ec3cbaac56153fc9051eeb7d3e8dbba03c31b49981aeb4d6f036d6d7"
+      "skillPath": "skills/resend-cli/SKILL.md",
+      "computedHash": "1855c106e196ebefa8b98c5990ba501bd94c85be48bfc8a36fc3b1d86b93bf42"
     },
     "routing-traffic-with-route53-and-cloudfront": {
       "source": "aws/agent-toolkit-for-aws",
@@ -596,7 +737,7 @@
       "source": "shadcn/ui",
       "sourceType": "github",
       "skillPath": "skills/shadcn/SKILL.md",
-      "computedHash": "2bc6cf38ec7b4a5778a43fabb3e87642c9897ad45e9eb42438b57fd2def6cca8"
+      "computedHash": "ac9d0d69caac7de1d1e5647f3db3bcd2f13af355d6b3a78780fbf7fc80e8dca0"
     },
     "signing-in-to-aws": {
       "source": "aws/agent-toolkit-for-aws",
@@ -614,17 +755,25 @@
       "source": "stripe/ai",
       "sourceType": "github",
       "skillPath": "skills/stripe-best-practices/SKILL.md",
-      "computedHash": "c89653e4f3a289ecdf1a51b3696ee7b18e172131c9803a981088c8d70536c85e"
+      "computedHash": "742352fa4f1d3305157cf03d9c7b74bb8a389f5875215bcc7651632ba45408e9"
     },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "d836a3567233bc5367d3f5f78cf0d90289f2b2385e37d22f450886e435e15c73"
+      "skillPath": "skills/supabase/SKILL.md",
+      "computedHash": "d414d598b9428b3e851c4ce61898649906b19e55aa7415bb42a286bd9ca2ab32"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "d606a1146be6d54fb9e73f718b5320b9acac5ff2ba2d7230a555df4b5a923b4a"
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "0d2c4857a7d6fdcd3fbc46e458fa4c497f029cab89a01548b3defce203003932"
+    },
+    "swarm": {
+      "source": "langchain-ai/langchain-skills",
+      "sourceType": "github",
+      "skillPath": "config/skills/swarm/SKILL.md",
+      "computedHash": "4091bd7cf88d408a0724d4cc2be2c0c0fdf6fbe4bd3e700c4cabed58900823bb"
     },
     "troubleshooting-application-failures": {
       "source": "aws/agent-toolkit-for-aws",
@@ -647,17 +796,68 @@
     "two-factor-authentication-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
+      "skillPath": "better-auth/twoFactor/SKILL.md",
       "computedHash": "7e297aaf887e11fdc03e52bdbf44974e161e8f7c393170ced7dc66cace4f6d46"
     },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "939a6820e0d6ead943bb4ad93cec647815e73fbc04043401773b2138e9e13b69"
+      "skillPath": "plugins/expo/skills/upgrading-expo/SKILL.md",
+      "computedHash": "98d228925a442126789d90783fdd4ae5de33ab690024b575698057d2ffc44b40"
     },
     "use-dom": {
       "source": "expo/skills",
       "sourceType": "github",
-      "computedHash": "8eca0e229f16e3499e5dbf791a79f5a5cba1e98b4af88ca495c903930d7f1ba0"
+      "skillPath": "plugins/expo/skills/use-dom/SKILL.md",
+      "computedHash": "69f08a23f483ce868208b213f96f2a5f2a56847f91a133d58ba6f65dc15b715a"
+    },
+    "vercel-cli-with-tokens": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-cli-with-tokens/SKILL.md",
+      "computedHash": "eb16b20dcbe6ce51e0372083d624e0847af1b09487ec99249227d5a8eddebfc0"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/composition-patterns/SKILL.md",
+      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+    },
+    "vercel-optimize": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-optimize/SKILL.md",
+      "computedHash": "c6898b3425a2e2bdf17cbcf38bb5aece2894ee79096961f4140f984e185a4b70"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
+    "vercel-react-native-skills": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-skills/SKILL.md",
+      "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
+    },
+    "vercel-react-view-transitions": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-view-transitions/SKILL.md",
+      "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    },
+    "writing-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/writing-guidelines/SKILL.md",
+      "computedHash": "25aa3a33a97bddbcb1847ce4a6169106ec25e5b19b15b99c66e75ab383866ef2"
     }
   }
 }
