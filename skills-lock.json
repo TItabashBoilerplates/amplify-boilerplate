@@ -94,7 +94,7 @@
     "amazon-opensearch-service": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
-      "skillPath": "skills/specialized-skills/analytics-skills/amazon-opensearch-service/SKILL.md",
+      "skillPath": "plugins/aws-data-analytics/skills/amazon-opensearch-service/SKILL.md",
       "computedHash": "5adecc55b9aa15d71e65853b948b44ad868480bc83b8fe7b72097aa3ff7201d8"
     },
     "aws-amplify": {
@@ -221,7 +221,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/building-native-ui/SKILL.md",
-      "computedHash": "b4c017a718e9ff4d2ba06515006beda3358bd5b1f4ff31f49c90b7e51118811b"
+      "computedHash": "bed8dace471bc68d4d6e588fa4d72eedac54afe9f4a34ed9921da3ff994463a0"
     },
     "claude-api": {
       "source": "anthropics/skills",
@@ -443,7 +443,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-ui/SKILL.md",
-      "computedHash": "390bace26b19424ef390dc4d2c2c91474be1409151b87f69aa7508f9934ca0cd"
+      "computedHash": "96b8e9190119110df2ec0efcd4f67fe7c8f686c0a022b28d3efa2533b3167536"
     },
     "exporting-rds-to-s3": {
       "source": "aws/agent-toolkit-for-aws",
