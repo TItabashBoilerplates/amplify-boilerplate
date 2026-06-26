@@ -1,5 +1,7 @@
 import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Preview } from '@storybook/react'
+import { NextIntlClientProvider } from 'next-intl'
+import enMessages from '../apps/web/src/shared/config/i18n/messages/en.json'
 import '@workspace/ui/styles/globals.css'
 
 // TODO: Mobile UI が有効化されたらコメントを解除
@@ -18,6 +20,12 @@ const preview: Preview = {
     },
   },
   decorators: [
+    // i18n（next-intl）: useTranslations を使う Story を描画できるようにする。
+    (Story) => (
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <Story />
+      </NextIntlClientProvider>
+    ),
     // Theme switching for Web components
     withThemeByClassName({
       themes: {

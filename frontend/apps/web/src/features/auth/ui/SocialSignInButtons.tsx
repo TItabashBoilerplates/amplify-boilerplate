@@ -2,6 +2,7 @@
 
 import { type SocialProvider, signInWithSocial } from '@workspace/app'
 import { Button } from '@workspace/ui/components/button'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 /**
@@ -9,9 +10,6 @@ import { useState } from 'react'
  *
  * バックエンドの `loginWith.externalProviders`（`amplify/auth/resource.ts`）で
  * 有効化したプロバイダだけを `providers` に渡す。未設定のプロバイダは押すと失敗する。
- *
- * NOTE: テキストは未 i18n（auth スライス全体が未対応のため統一）。
- *       i18n 化は auth フィーチャー全体のフォローアップで対応する。
  *
  * @example
  * ```tsx
@@ -24,17 +22,11 @@ export interface SocialSignInButtonsProps {
   className?: string
 }
 
-const LABELS: Record<SocialProvider, string> = {
-  Google: 'Continue with Google',
-  Apple: 'Continue with Apple',
-  Facebook: 'Continue with Facebook',
-  Amazon: 'Continue with Amazon',
-}
-
 export function SocialSignInButtons({
   providers = ['Google', 'Apple'],
   className,
 }: SocialSignInButtonsProps) {
+  const t = useTranslations('auth')
   const [pending, setPending] = useState<SocialProvider | null>(null)
   const [error, setError] = useState('')
 
@@ -60,7 +52,7 @@ export function SocialSignInButtons({
           disabled={pending !== null}
           onClick={() => handleClick(provider)}
         >
-          {pending === provider ? 'Redirecting…' : LABELS[provider]}
+          {pending === provider ? t('redirecting') : t('continueWithProvider', { provider })}
         </Button>
       ))}
 

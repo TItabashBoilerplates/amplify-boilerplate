@@ -8,6 +8,7 @@ import {
 } from '@workspace/app'
 import { Button } from '@workspace/ui/components/button'
 import { KeyRound, Loader2, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
 /**
@@ -17,13 +18,14 @@ import { useCallback, useEffect, useState } from 'react'
  * バックエンドで `loginWith.webAuthn` を有効化していないと登録に失敗する。
  *
  * Hydration 回避のため mounted ガードを使い、クライアントでのみデータ取得する
- * （`frontend/CLAUDE.md` の Rule 2）。テキストは未 i18n（auth スライス全体に合わせる）。
+ * （`frontend/CLAUDE.md` の Rule 2）。
  */
 export interface PasskeyManagerProps {
   className?: string
 }
 
 export function PasskeyManager({ className }: PasskeyManagerProps) {
+  const t = useTranslations('auth')
   const [mounted, setMounted] = useState(false)
   const [credentials, setCredentials] = useState<PasskeyCredential[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,10 +80,10 @@ export function PasskeyManager({ className }: PasskeyManagerProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <KeyRound className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Passkeys</h3>
+          <h3 className="text-lg font-semibold">{t('passkeysTitle')}</h3>
         </div>
         <Button type="button" size="sm" disabled={busy} onClick={handleRegister}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add passkey'}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('addPasskey')}
         </Button>
       </div>
 
@@ -92,11 +94,9 @@ export function PasskeyManager({ className }: PasskeyManagerProps) {
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading passkeys…</p>
+        <p className="text-sm text-muted-foreground">{t('loadingPasskeys')}</p>
       ) : credentials.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No passkeys yet. Add one to sign in without a code.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('noPasskeys')}</p>
       ) : (
         <ul className="space-y-2">
           {credentials.map((credential) => (
@@ -112,7 +112,7 @@ export function PasskeyManager({ className }: PasskeyManagerProps) {
                 variant="ghost"
                 size="icon"
                 disabled={busy}
-                aria-label="Delete passkey"
+                aria-label={t('deletePasskey')}
                 onClick={() => handleDelete(credential.credentialId)}
               >
                 <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />

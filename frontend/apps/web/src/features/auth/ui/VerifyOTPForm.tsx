@@ -4,6 +4,7 @@ import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
 import { KeyRound } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
 import { resendOtp, verifyOtp } from '../api'
 import type { AuthFormState, VerifyOTPFormProps } from '../model/types'
@@ -27,8 +28,9 @@ import type { AuthFormState, VerifyOTPFormProps } from '../model/types'
  * ```
  */
 export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
+  const t = useTranslations('auth')
   const [resending, setResending] = useState(false)
-  const [resendMessage, setResendMessage] = useState('')
+  const [resend, setResend] = useState<{ text: string; isError: boolean } | null>(null)
 
   const [state, formAction, pending] = useActionState(
     async (_prevState: AuthFormState, formData: FormData): Promise<AuthFormState> => {
@@ -40,19 +42,19 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
         if ('error' in result) {
           return {
             success: false,
-            message: result.error ?? 'Verification failed',
+            message: result.error ?? t('verifyFailed'),
           }
         }
 
         // 成功時は verifyOtp 内で redirect されるため、ここには到達しない
         return {
           success: true,
-          message: 'Verification successful! Redirecting...',
+          message: t('verifySuccess'),
         }
       } catch (error) {
         return {
           success: false,
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          message: error instanceof Error ? error.message : t('unexpectedError'),
         }
       }
     },
@@ -61,18 +63,21 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
 
   const handleResendOtp = async () => {
     setResending(true)
-    setResendMessage('')
+    setResend(null)
 
     try {
       const result = await resendOtp(email)
 
       if ('error' in result) {
-        setResendMessage(result.error ?? 'An error occurred')
+        setResend({ text: result.error ?? t('genericError'), isError: true })
       } else {
-        setResendMessage('New code sent! Check your email.')
+        setResend({ text: t('resendSuccess'), isError: false })
       }
     } catch (error) {
-      setResendMessage(error instanceof Error ? error.message : 'Failed to resend code')
+      setResend({
+        text: error instanceof Error ? error.message : t('resendFailed'),
+        isError: true,
+      })
     } finally {
       setResending(false)
     }
@@ -81,15 +86,15 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
   return (
     <div className={`space-y-6 ${className ?? ''}`}>
       <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-bold">Verify Your Email</h2>
+        <h2 className="text-2xl font-bold">{t('verifyTitle')}</h2>
         <p className="text-muted-foreground">
-          Enter the 6-digit code sent to <strong>{email}</strong>
+          {t.rich('verifyBody', { email, strong: (chunks) => <strong>{chunks}</strong> })}
         </p>
       </div>
 
       <form action={formAction} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="token">One-Time Password</Label>
+          <Label htmlFor="token">{t('otpLabel')}</Label>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -121,12 +126,12 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
         )}
 
         <Button type="submit" disabled={pending} className="w-full">
-          {pending ? 'Verifying...' : 'Verify Code'}
+          {pending ? t('verifying') : t('verifyButton')}
         </Button>
       </form>
 
       <div className="space-y-2 text-center">
-        <p className="text-sm text-muted-foreground">Didn&apos;t receive the code?</p>
+        <p className="text-sm text-muted-foreground">{t('didntReceiveCode')}</p>
         <Button
           type="button"
           variant="outline"
@@ -134,18 +139,18 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
           disabled={resending}
           className="w-full"
         >
-          {resending ? 'Sending...' : 'Resend Code'}
+          {resending ? t('sending') : t('resendButton')}
         </Button>
 
-        {resendMessage && (
+        {resend && (
           <p
             className={`text-sm ${
-              resendMessage.includes('sent')
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-red-600 dark:text-red-400'
+              resend.isError
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-green-600 dark:text-green-400'
             }`}
           >
-            {resendMessage}
+            {resend.text}
           </p>
         )}
       </div>
