@@ -56,7 +56,7 @@
 - 定期的に依存関係を更新してください:
   ```bash
   # Frontend
-  cd frontend && bun update
+  cd frontend && pnpm update
 
   # Backend
   cd backend-py/app && uv lock --upgrade

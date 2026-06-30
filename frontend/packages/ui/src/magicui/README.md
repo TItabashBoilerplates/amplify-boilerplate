@@ -143,7 +143,7 @@ import { AnimatedBeam, type AnimatedBeamProps } from '@/shared/ui/magicui'
 依存関係がインストールされていることを確認してください：
 
 ```bash
-bun add motion
+pnpm add motion
 ```
 
 ## アニメーション設定

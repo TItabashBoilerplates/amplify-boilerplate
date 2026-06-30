@@ -70,7 +70,7 @@
   Python=`langchain-aws`。直 SDK は LangChain 未対応機能のときだけ（理由をコメント）。
 - **バックエンドは TypeScript の Amplify Function が既定**（`.claude/rules/backend-architecture.md`）。
   Python（`backend-py`）は LangGraph の複雑なエージェント等、特殊要件のときのみ。
-- **依存追加は bun**（`bun add @langchain/aws ...`）。Python は `uv add --package <member> langchain-aws`。
+- **依存追加は bun**（`pnpm add @langchain/aws ...`）。Python は `uv add --package <member> langchain-aws`。
 - Bedrock はリージョン単位でモデルアクセス有効化が必要。IAM は最小権限
   （`bedrock:InvokeModel` / `bedrock:InvokeModelWithResponseStream`、`references/aws-services.md`）。
 - 認可: ジョブの**読み取り/監視は owner**、**ワーカーの書き込みは IAM/ロール**（非 owner）で行う。

@@ -79,7 +79,7 @@ export default async function DashboardPage() {
 
 ```bash
 # Add shadcn/ui components
-bunx shadcn@latest add button card input
+pnpm dlx shadcn@latest add button card input
 ```
 
 ### Styling
@@ -104,13 +104,13 @@ bunx shadcn@latest add button card input
 ## Development Commands
 
 ```bash
-bun install                 # Install dependencies
-bun run dev                 # Development server
-bun run build               # Production build
-bun run lint                # Biome lint
-bun run format              # Biome format
-bun run type-check          # TypeScript check
-bun run test                # Vitest tests
+pnpm install                # Install dependencies
+pnpm run dev                # Development server
+pnpm run build              # Production build
+pnpm run lint               # Biome lint
+pnpm run format             # Biome format
+pnpm run type-check         # TypeScript check
+pnpm run test               # Vitest tests
 ```
 
 ## Testing

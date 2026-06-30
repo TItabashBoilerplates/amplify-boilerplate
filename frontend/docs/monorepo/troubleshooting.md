@@ -26,13 +26,13 @@
 
 ```bash
 cd frontend
-bun add -D turbo @turbo/gen
+pnpm add -D turbo @turbo/gen
 ```
 
 または、グローバルインストール:
 
 ```bash
-bun add -g turbo
+pnpm add -g turbo
 ```
 
 ---
@@ -79,7 +79,7 @@ EOF
 # キャッシュをクリア
 cd frontend
 rm -rf .turbo
-bun run build
+pnpm run build
 ```
 
 ---
@@ -135,8 +135,8 @@ bun run build
 ```bash
 cd frontend
 rm -rf node_modules
-rm bun.lockb
-bun install
+rm pnpm-lock.yamlb
+pnpm install
 ```
 
 ---
@@ -169,7 +169,7 @@ bun install
 
 ```bash
 cd frontend
-bun install
+pnpm install
 ```
 
 ---
@@ -200,7 +200,7 @@ bun install
 
 ## shadcn/uiの問題
 
-### ❌ エラー: `bunx shadcn@canary add button` でコンポーネントが追加されない
+### ❌ エラー: `pnpm dlx shadcn@canary add button` でコンポーネントが追加されない
 
 **原因:** `components.json`のパス設定が間違っている
 
@@ -229,7 +229,7 @@ bun install
 
 ```bash
 cd apps/web
-bunx shadcn@canary init --monorepo
+pnpm dlx shadcn@canary init --monorepo
 ```
 
 2. プロンプトで正しいパスを指定:
@@ -314,7 +314,7 @@ const config: Config = {
 
 ```bash
 cd apps/web
-bun add -D @types/node @types/react @types/react-dom
+pnpm add -D @types/node @types/react @types/react-dom
 ```
 
 ---
@@ -378,10 +378,10 @@ export default config
 
 ```bash
 cd frontend
-bun run clean
+pnpm run clean
 rm -rf node_modules .turbo
-bun install
-bun run build
+pnpm install
+pnpm run build
 ```
 
 2. `turbo.json`の`dependsOn`を確認:
@@ -424,15 +424,15 @@ bun run build
 
 ```bash
 # 2回目のビルドが高速になるか確認
-bun run build
-bun run build
+pnpm run build
+pnpm run build
 ```
 
 ---
 
 ## パフォーマンスの問題
 
-### ⚠️ `bun install`が遅い
+### ⚠️ `pnpm install`が遅い
 
 **解決方法:**
 
@@ -442,11 +442,11 @@ bun run build
 rm -rf ~/.bun/install/cache
 ```
 
-2. `bun.lockb`を削除して再インストール:
+2. `pnpm-lock.yamlb`を削除して再インストール:
 
 ```bash
-rm bun.lockb
-bun install
+rm pnpm-lock.yamlb
+pnpm install
 ```
 
 ---
@@ -477,7 +477,7 @@ turbo link
 1. Next.js 16のTurbopackを使用（デフォルト有効）:
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 2. 不要なパッケージをワークスペースから除外:
@@ -520,7 +520,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 3. 開発サーバーを再起動:
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 ---
@@ -534,7 +534,7 @@ bun run dev
 ```bash
 # .nextキャッシュを削除
 rm -rf apps/web/.next
-bun run dev
+pnpm run dev
 ```
 
 ---
@@ -654,10 +654,10 @@ find . -name "dist" -type d -prune -exec rm -rf {} +
 rm -rf .turbo
 
 # ロックファイル削除
-rm bun.lockb
+rm pnpm-lock.yamlb
 
 # 再インストール
-bun install
+pnpm install
 ```
 
 ---
@@ -705,7 +705,7 @@ cat build.log
 bun update
 
 # 未使用の依存関係を確認
-bunx depcheck
+pnpm dlx depcheck
 
 # キャッシュのクリーンアップ
 rm -rf .turbo/cache/*

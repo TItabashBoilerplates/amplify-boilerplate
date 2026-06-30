@@ -26,7 +26,7 @@ globs: []
 
 ```bash
 # DO NOT
-cd frontend && bun run biome check --write
+cd frontend && pnpm run biome check --write
 cd backend-py && uv run ruff check
 npx tsc --noEmit
 make lint                       # ❌ Makefile は削除済み

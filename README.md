@@ -59,11 +59,11 @@ Using optimal package managers for each component (バージョンは devenv が
 
 | ni              | Bun equivalent       | 説明                           |
 | --------------- | -------------------- | ------------------------------ |
-| `ni`            | `bun install`        | 依存関係をインストール         |
-| `ni package`    | `bun add package`    | パッケージを追加               |
-| `ni -D package` | `bun add -d package` | 開発依存として追加             |
-| `nr script`     | `bun run script`     | package.json のスクリプト実行  |
-| `nlx command`   | `bunx command`       | パッケージを一時的に実行       |
+| `ni`            | `pnpm install`        | 依存関係をインストール         |
+| `ni package`    | `pnpm add package`    | パッケージを追加               |
+| `ni -D package` | `pnpm add -d package` | 開発依存として追加             |
+| `nr script`     | `pnpm run script`     | package.json のスクリプト実行  |
+| `nlx command`   | `pnpm dlx command`       | パッケージを一時的に実行       |
 
 ### Frontend Packages
 
@@ -235,7 +235,7 @@ cd shadcn-boilerplate
 
 `devenv shell` に入っただけで以下は **自動実行** される（`setup:*` task / `before = [ "devenv:enterShell" ]` + `execIfModified`）:
 
-- Frontend 依存関係のインストール（`bun install --frozen-lockfile`）
+- Frontend 依存関係のインストール（`pnpm install --frozen-lockfile`）
 - Backend Python 依存関係のインストール（`uv sync --frozen --group dev`）
 
 ### 5. シークレットの設定（Amplify secrets）
@@ -430,7 +430,7 @@ sandbox
 ```yaml
 # amplify.yml（抜粋）— Amplify Hosting がブランチ push を契機に実行
 # backend: ampx pipeline-deploy --branch <branch> --app-id <app-id>
-# frontend: bun install && bun run build
+# frontend: pnpm install && pnpm run build
 ```
 
 - バックエンド（auth/data/storage/functions）は `ampx pipeline-deploy` で当該ブランチ環境にデプロイ

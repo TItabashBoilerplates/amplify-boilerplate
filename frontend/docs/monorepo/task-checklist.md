@@ -14,7 +14,7 @@
 - [ ] `frontend/`ディレクトリに移動
 
 ### Turborepoインストール
-- [ ] `bun add -D turbo @turbo/gen`を実行
+- [ ] `pnpm add -D turbo @turbo/gen`を実行
 - [ ] `turbo --version`でインストール確認
 
 ### 設定ファイル作成
@@ -29,9 +29,9 @@
 - [ ] `packageManager`を`"bun@1.2.0"`に設定
 
 ### 検証
-- [ ] `bun install`を実行
+- [ ] `pnpm install`を実行
 - [ ] エラーがないことを確認
-- [ ] `bunx turbo --version`でバージョン表示を確認
+- [ ] `pnpm dlx turbo --version`でバージョン表示を確認
 
 **✅ Phase 1完了:** すべてのチェック項目が完了したら次へ
 
@@ -46,7 +46,7 @@
 - [ ] `mkdir -p scripts`
 
 ### 既存ファイルのバックアップ
-- [ ] `cp bun.lock bun.lock.backup`
+- [ ] `cp pnpm-lock.yaml pnpm-lock.yaml.backup`
 - [ ] Gitでコミット（`git add . && git commit -m "Backup before restructure"`）
 
 ### ファイル移動（apps/webへ）
@@ -69,8 +69,8 @@
 - [ ] スクリプトを調整（`dev`, `build`, `lint`など）
 
 ### 検証
-- [ ] `cd apps/web && bun install`
-- [ ] `bun run dev`で開発サーバー起動
+- [ ] `cd apps/web && pnpm install`
+- [ ] `pnpm run dev`で開発サーバー起動
 - [ ] `http://localhost:3000`にアクセスして画面表示を確認
 - [ ] Ctrl+Cでサーバー停止
 
@@ -102,11 +102,11 @@
 
 ### apps/webから@workspace/ui参照
 - [ ] `apps/web/package.json`の`dependencies`に`"@workspace/ui": "workspace:*"`を追加
-- [ ] `cd apps/web && bun install`
+- [ ] `cd apps/web && pnpm install`
 
 ### shadcn/ui モノレポモード有効化
 - [ ] `cd apps/web`
-- [ ] `bunx shadcn@canary init --monorepo`を実行
+- [ ] `pnpm dlx shadcn@canary init --monorepo`を実行
 - [ ] プロンプトに回答：
   - [ ] TypeScript: Yes
   - [ ] Style: New York
@@ -119,7 +119,7 @@
   - [ ] Utils alias: `@/lib/utils`
 
 ### 検証
-- [ ] `bunx shadcn@canary add button`を実行
+- [ ] `pnpm dlx shadcn@canary add button`を実行
 - [ ] `packages/ui/components/ui/button.tsx`に追加されることを確認
 - [ ] コンポーネントが重複していないか確認
 
@@ -146,7 +146,7 @@
 - [ ] shebang追加（`#!/usr/bin/env bun`）
 
 ### 型生成実行
-- [ ] `cd frontend && bun run scripts/generate-types.ts`
+- [ ] `cd frontend && pnpm run scripts/generate-types.ts`
 - [ ] `packages/types/src/database.ts`が生成されることを確認
 
 ### index.tsの作成
@@ -156,7 +156,7 @@
 
 ### apps/webから型をインポート
 - [ ] `apps/web/package.json`の`dependencies`に`"@workspace/types": "workspace:*"`を追加
-- [ ] `cd apps/web && bun install`
+- [ ] `cd apps/web && pnpm install`
 
 ### 検証
 - [ ] `apps/web/src/`内で`import type { Database } from '@workspace/types'`をテスト
@@ -199,11 +199,11 @@
 - [ ] 必要に応じて`baseUrl`を調整
 
 ### 検証
-- [ ] `cd apps/web && bun run type-check`
+- [ ] `cd apps/web && pnpm run type-check`
 - [ ] 型エラーがないことを確認
-- [ ] `bun run lint`
+- [ ] `pnpm run lint`
 - [ ] Lintエラーがないことを確認
-- [ ] `bun run build`
+- [ ] `pnpm run build`
 - [ ] ビルドが成功することを確認
 
 **✅ Phase 5完了:** すべてのチェック項目が完了したら次へ
@@ -214,15 +214,15 @@
 
 ### クリーンビルド
 - [ ] `cd frontend`
-- [ ] `bun run clean`
+- [ ] `pnpm run clean`
 - [ ] `rm -rf node_modules`
-- [ ] `rm bun.lockb`
-- [ ] `bun install`
-- [ ] `bun run build`
+- [ ] `rm pnpm-lock.yamlb`
+- [ ] `pnpm install`
+- [ ] `pnpm run build`
 - [ ] ビルドエラーがないことを確認
 
 ### 開発サーバー起動
-- [ ] `bun run dev`
+- [ ] `pnpm run dev`
 - [ ] `http://localhost:3000`にアクセス
 
 ### 機能確認
@@ -234,13 +234,13 @@
 - [ ] 型エラーがブラウザのコンソールに出ていない
 
 ### Turborepoキャッシュ確認
-- [ ] `bun run build`を再実行
+- [ ] `pnpm run build`を再実行
 - [ ] キャッシュヒットのメッセージが表示される
 - [ ] ビルド時間が短縮されている
 
 ### shadcn/ui コンポーネント追加テスト
 - [ ] `cd apps/web`
-- [ ] `bunx shadcn@canary add dialog`
+- [ ] `pnpm dlx shadcn@canary add dialog`
 - [ ] `packages/ui/components/ui/dialog.tsx`に追加される
 - [ ] `apps/web`側で`import { Dialog } from '@workspace/ui/components/dialog'`が動作する
 
@@ -261,7 +261,7 @@
   - [ ] `node_modules/`
   - [ ] `.turbo/`
   - [ ] `*.log`
-  - [ ] `bun.lockb`（既に存在）
+  - [ ] `pnpm-lock.yamlb`（既に存在）
 - [ ] `git add .`
 - [ ] `git commit -m "feat: migrate frontend to monorepo with Turborepo"`
 
@@ -277,7 +277,7 @@
 ### チームへの共有
 - [ ] 移行完了をチームに通知
 - [ ] ドキュメントの場所を共有
-- [ ] 新しいコマンドを説明（`bun run dev`, `bun run ui:add`など）
+- [ ] 新しいコマンドを説明（`pnpm run dev`, `pnpm run ui:add`など）
 
 ---
 
@@ -291,10 +291,10 @@
 
 ### バックアップから復元
 - [ ] `cp package.json.backup package.json`
-- [ ] `cp bun.lock.backup bun.lockb`
+- [ ] `cp pnpm-lock.yaml.backup pnpm-lock.yamlb`
 - [ ] `rm -rf apps/ packages/ tooling/ scripts/`
 - [ ] `rm turbo.json`
-- [ ] `bun install`
+- [ ] `pnpm install`
 
 ---
 

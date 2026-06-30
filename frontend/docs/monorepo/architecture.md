@@ -123,7 +123,7 @@ frontend/
 │
 ├── turbo.json                     # Turborepo設定
 ├── package.json                   # ルートworkspace定義
-├── bun.lockb                      # Bunロックファイル
+├── pnpm-lock.yamlb                      # Bunロックファイル
 └── README.md
 ```
 
@@ -424,7 +424,7 @@ import { createSupabaseClient } from '@workspace/api-client'
 
 ## 📊 ビルドフロー
 
-### 開発時（`bun run dev`）
+### 開発時（`pnpm run dev`）
 
 ```
 1. Turborepo が turbo.json を読み込み
@@ -438,7 +438,7 @@ import { createSupabaseClient } from '@workspace/api-client'
 5. ホットリロード
 ```
 
-### 本番ビルド（`bun run build`）
+### 本番ビルド（`pnpm run build`）
 
 ```
 1. Turborepo が依存関係を解析
@@ -464,7 +464,7 @@ import { createSupabaseClient } from '@workspace/api-client'
 
 ```bash
 cd frontend/apps
-bunx create-expo-app mobile
+pnpm dlx create-expo-app mobile
 ```
 
 ```
@@ -479,7 +479,7 @@ apps/
 
 ```bash
 cd frontend/apps
-bunx create-next-app@latest docs
+pnpm dlx create-next-app@latest docs
 ```
 
 ```

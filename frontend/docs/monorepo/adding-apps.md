@@ -108,7 +108,7 @@ mkdir -p src/features/user-management
 
 ```bash
 cd frontend
-bun install
+pnpm install
 ```
 
 ### Step 5: 開発サーバーの起動
@@ -116,11 +116,11 @@ bun install
 ```bash
 # 管理画面のみ起動
 cd apps/admin
-bun run dev
+pnpm run dev
 
 # または、すべてのアプリを並列起動（Turborepo）
 cd frontend
-bun run dev
+pnpm run dev
 ```
 
 ### Step 6: 管理画面専用UIの作成
@@ -179,7 +179,7 @@ export default async function DashboardPage() {
 
 ```bash
 cd frontend/apps
-bunx create-expo-app mobile
+pnpm dlx create-expo-app mobile
 cd mobile
 ```
 
@@ -373,7 +373,7 @@ turbo build
 ```bash
 # 1. 依存関係のインストール
 cd frontend
-bun install
+pnpm install
 
 # 2. 型チェック
 turbo type-check

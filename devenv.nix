@@ -7,7 +7,7 @@
 # バックエンドのローカル実行は `ampx sandbox`（per-developer のクラウド sandbox）で行う。
 #
 # 主要コマンド:
-#   bootstrap   依存インストール（frontend: bun / backend-py: uv）
+#   bootstrap   依存インストール（frontend: pnpm / backend-py: uv）
 #   sandbox     Amplify バックエンドの sandbox 起動（amplify_outputs.json 生成）
 #   dev-web     Next.js (web) 開発サーバ
 #   dev-mobile  Expo (mobile) 開発サーバ
@@ -17,7 +17,7 @@
   # ===== Languages =====
   languages.javascript = {
     enable = true;
-    bun.enable = true;
+    pnpm.enable = true;
   };
   languages.typescript.enable = true;
   languages.python = {
@@ -37,21 +37,21 @@
     # ---------- Install ----------
     bootstrap.exec = ''
       set -euo pipefail
-      echo "→ frontend: bun install"
-      (cd "$DEVENV_ROOT/frontend" && bun install)
+      echo "→ frontend: pnpm install"
+      (cd "$DEVENV_ROOT/frontend" && pnpm install)
       echo "→ backend-py: uv sync"
       (cd "$DEVENV_ROOT/backend-py" && uv sync --all-packages --all-groups)
     '';
 
     # ---------- Amplify backend (sandbox) ----------
-    sandbox.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && bun run sandbox "$@"'';
-    sandbox-once.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && bun run sandbox:once "$@"'';
-    sandbox-delete.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && bun run sandbox:delete "$@"'';
+    sandbox.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox "$@"'';
+    sandbox-once.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox:once "$@"'';
+    sandbox-delete.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox:delete "$@"'';
 
     # ---------- Dev servers ----------
-    dev-web.exec = ''cd "$DEVENV_ROOT/frontend" && bun run --filter @workspace/web dev "$@"'';
-    dev-mobile.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && bun run start "$@"'';
-    storybook.exec = ''cd "$DEVENV_ROOT/frontend" && bun run storybook'';
+    dev-web.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run --filter @workspace/web dev "$@"'';
+    dev-mobile.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run start "$@"'';
+    storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run storybook'';
 
     # ---------- Backend services (opt-in, on demand) ----------
     # REST API (FastAPI) — also runnable as the `backend` process via `devenv up`.
@@ -60,10 +60,10 @@
     dev-mcp.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run --package mcp-server mcp-server "$@"'';
 
     # ---------- Quality: frontend ----------
-    lint-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && bun run lint'';
-    format-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && bun run format'';
-    type-check-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && bun run type-check'';
-    test-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && bun run test'';
+    lint-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run lint'';
+    format-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run format'';
+    type-check-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run type-check'';
+    test-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run test'';
 
     # ---------- Quality: backend-py ----------
     lint-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run ruff check --fix apps packages'';
@@ -78,13 +78,13 @@
       set -euo pipefail
       cd "$DEVENV_ROOT"
       echo "→ updating agent skills to latest (skills update -p)"
-      bunx -y skills update -p -y
+      pnpm dlx skills update -p -y
       mkdir -p "$DEVENV_ROOT/.devenv"
       date +%s > "$DEVENV_ROOT/.devenv/skills-last-update"
       echo "✓ skills updated"
     '';
     # skills-lock.json から決定論的に復元（最新化せず固定したいとき）。
-    skills-restore.exec = ''cd "$DEVENV_ROOT" && bunx -y skills experimental_install'';
+    skills-restore.exec = ''cd "$DEVENV_ROOT" && pnpm dlx skills experimental_install'';
 
     # ---------- Aggregate ----------
     lint.exec = ''lint-frontend && lint-backend-py'';
@@ -98,7 +98,7 @@
 
   enterShell = ''
     echo "amplify-boilerplate — devenv ready"
-    echo "  bootstrap            deps (bun + uv)"
+    echo "  bootstrap            deps (pnpm + uv)"
     echo "  sandbox              Amplify backend (ampx sandbox)"
     echo "  dev-web / dev-mobile dev servers"
     echo "  lint / format / type-check-* / unit-test"
@@ -112,7 +112,7 @@
     #     torn read（書きかけスキルの読み取り）が起きない
     #   - オフライン/失敗でも最終的にはシェルへ抜ける（マーカーは前進させ毎回の再試行を防止）
     # 無効化: SKILLS_AUTOUPDATE=0 / 間隔変更: SKILLS_AUTOUPDATE_INTERVAL=<秒>
-    if [ "''${SKILLS_AUTOUPDATE:-1}" != "0" ] && command -v bunx >/dev/null 2>&1; then
+    if [ "''${SKILLS_AUTOUPDATE:-1}" != "0" ] && command -v pnpm >/dev/null 2>&1; then
       mkdir -p "$DEVENV_ROOT/.devenv"
       _skills_marker="$DEVENV_ROOT/.devenv/skills-last-update"
       _skills_lock="$DEVENV_ROOT/.devenv/skills-update.lock"
@@ -138,7 +138,7 @@
         if mkdir "$_skills_lock" 2>/dev/null; then
           date +%s > "$_skills_lock/ts"
           echo "  (skills) updating agent skills to latest… (synchronous, up to ~90s; SKILLS_AUTOUPDATE=0 to disable)"
-          ( cd "$DEVENV_ROOT" && bunx -y skills update -p -y ) \
+          ( cd "$DEVENV_ROOT" && pnpm dlx skills update -p -y ) \
             > "$DEVENV_ROOT/.devenv/skills-update.log" 2>&1 \
             && echo "  (skills) up to date" \
             || echo "  (skills) some skills could not be updated — see .devenv/skills-update.log"

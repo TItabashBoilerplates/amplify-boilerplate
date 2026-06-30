@@ -111,10 +111,10 @@ This project uses a **platform-specific UI approach**:
 
 ```bash
 # From frontend directory
-bun run ui:add:web button card input dialog
+pnpm run ui:add:web button card input dialog
 
 # Or directly
-cd packages/ui && bunx shadcn@canary add button
+cd packages/ui && pnpm dlx shadcn@canary add button
 ```
 
 Components are installed to `packages/ui/components/`.
@@ -134,10 +134,10 @@ Components are installed to `packages/ui/components/`.
 
 ```bash
 # From frontend directory
-bun run ui:add:mobile button card input
+pnpm run ui:add:mobile button card input
 
 # Or directly
-cd packages/native-ui && bunx gluestack-ui@latest add button --use-bun
+cd packages/native-ui && pnpm dlx gluestack-ui@latest add button
 ```
 
 Components are installed to `packages/native-ui/components/`.
@@ -153,7 +153,7 @@ import { colors, radius } from '@workspace/tokens'
 
 Generate CSS files:
 ```bash
-bun run tokens:build
+pnpm run tokens:build
 ```
 
 ### TailwindCSS 4 with CSS Variables
@@ -195,7 +195,7 @@ Theme configuration: `packages/tokens/` and `apps/web/app/globals.css`
 ```bash
 # Setup
 # `devenv shell` 進入 (direnv 経由含む) で setup:* タスクが自動実行され
-# bun install / uv sync が完了する。明示的な init コマンドは不要。
+# pnpm install / uv sync が完了する。明示的な init コマンドは不要。
 
 # Start development server
 dev-web                 # Next.js (web) dev サーバ
@@ -395,10 +395,10 @@ Packages can reference each other using `@workspace/` prefix:
 ```bash
 # Add to specific package
 cd apps/web
-bun add <package-name>
+pnpm add <package-name>
 
 # Add to workspace root (dev dependencies)
-bun add -D <package-name>
+pnpm add -D <package-name>
 ```
 
 ## Environment Variables
@@ -475,7 +475,7 @@ This monorepo deploys on **AWS Amplify Hosting**. Amplify Hosting builds and dep
 - **Backend**: `ampx pipeline-deploy --branch <branch> --app-id <app-id>` provisions the
   Amplify Gen2 backend (Cognito / AppSync+DynamoDB / S3 / functions) for that branch and
   emits `amplify_outputs.json`. This is run by Amplify Hosting CI, **not locally**.
-- **Frontend**: `bun install && bun run build` builds the Next.js web app, consuming the
+- **Frontend**: `pnpm install && pnpm run build` builds the Next.js web app, consuming the
   `amplify_outputs.json` produced by the backend phase.
 
 #### Deployment Workflow

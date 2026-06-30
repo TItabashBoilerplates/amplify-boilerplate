@@ -56,8 +56,8 @@ import {
 
 ```bash
 cd frontend
-bun run ui:add <component-name>
-# Example: bun run ui:add table select checkbox
+pnpm run ui:add <component-name>
+# Example: pnpm run ui:add table select checkbox
 ```
 
 ### 4. Using TailwindCSS CSS Variables

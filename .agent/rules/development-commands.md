@@ -1,6 +1,6 @@
 # Development Commands
 
-すべて devenv の **scripts** (PATH 直結) または `devenv up [PROCESSES...]` を使用する。Makefile は **deprecated**（削除済み）。直接 `bun run` / `uv run` / `bunx ampx` / `cd frontend && ...` 等での実行は禁止。
+すべて devenv の **scripts** (PATH 直結) または `devenv up [PROCESSES...]` を使用する。Makefile は **deprecated**（削除済み）。直接 `bun run` / `uv run` / `pnpm dlx ampx` / `cd frontend && ...` 等での実行は禁止。
 
 正典: `/.claude/rules/commands.md`
 
@@ -113,10 +113,10 @@ build-storybook      # Storybook static build
 
 ```bash
 # 依存追加 (devenv shell 内で ni / nr / nlx 経由)
-ni package           # = bun add package
-ni -D package        # = bun add -d package
-nr <script>          # = bun run <script> (package.json scripts 経由)
-nlx <command>        # = bunx <command>
+ni package           # = pnpm add package
+ni -D package        # = pnpm add -d package
+nr <script>          # = pnpm run <script> (package.json scripts 経由)
+nlx <command>        # = pnpm dlx <command>
 ```
 
 ## Backend Development (Python)

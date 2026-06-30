@@ -15,14 +15,14 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 - **Amplify バックエンド（auth/data/storage/functions）の変更は `frontend/packages/backend/amplify/` を編集**し、`ampx sandbox` で反映する
 - **AWS ファースト: 必要機能は AWS エコシステム内で賄う。外部 SaaS は AWS で要件的に厳しい場合のみ（理由明記+ユーザー確認）。例外は決済 Polar のみ**（`.claude/rules/aws-first.md`）
 - **バックエンドの既定は TypeScript（Amplify Functions / Node `defineFunction`）。Python（backend-py）は特殊要件（LLM/長時間/Python固有）のときだけ**（`.claude/rules/backend-architecture.md`）
-- **TS のパッケージマネージャは bun（`bun add`/`bun install`）。npm/pnpm/yarn 禁止。Python は uv**（`.claude/rules/backend-architecture.md`）
+- **TS のパッケージマネージャは pnpm（`pnpm add`/`pnpm install`）。npm/yarn/bun 禁止（ampx が bun 非対応）。Python は uv**（`.claude/rules/backend-architecture.md`）
 - **生成AI: 対話的=SSE / 背景処理(≤15分)=worker Lambda+DBステータス / 超長時間(>15分)・サンドボックス=Amazon Bedrock AgentCore。監視は Amplify リアルタイム(AppSync サブスク)。LLM は LangChain**（`.claude/rules/generative-ai.md`）
 
 ## 最優先の設計思想: FSD × モノレポ
 
 このボイラープレートの核は **Feature-Sliced Design (FSD)** と **モノレポ**。この2つは何があっても維持する。
 
-- **モノレポ**: `frontend/`（Bun workspace + Turborepo）に web/mobile アプリと共有 `packages/*`。`backend-py/`（uv workspace）に Python。
+- **モノレポ**: `frontend/`（pnpm workspace + Turborepo）に web/mobile アプリと共有 `packages/*`。`backend-py/`（uv workspace）に Python。
 - **FSD**: 各アプリ `src/` は `app → views → widgets → features → entities → shared` のレイヤー階層。上位→下位の依存のみ。各スライスは `index.ts` で Public API を公開。
 - **配置判断**: Web/Mobile 共通ロジックは `packages/*`、アプリ固有は各 `apps/*/src` の FSD レイヤー。詳細は `.claude/rules/render-optimization.md`（state 所有権）/ `.claude/rules/frontend.md`。
 
@@ -49,7 +49,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 
 | Layer                 | Technology                                            |
 | --------------------- | ----------------------------------------------------- |
-| **Frontend (Web)**    | Next.js 16, React 19, TypeScript, Bun                 |
+| **Frontend (Web)**    | Next.js 16, React 19, TypeScript, pnpm                 |
 | **Frontend (Mobile)** | Expo 55, React Native, TypeScript                     |
 | **UI (Web)**          | shadcn/ui, Radix UI, TailwindCSS 4                    |
 | **UI (Mobile)**       | gluestack-ui, NativeWind 5                            |
@@ -85,7 +85,7 @@ packages/backend/amplify/
 
 ```bash
 # Setup
-bootstrap                       # 依存インストール（frontend: bun / backend-py: uv）
+bootstrap                       # 依存インストール（frontend: pnpm / backend-py: uv）
 
 # Amplify backend（Supabase ローカル Docker の代替）
 sandbox                         # ampx sandbox（per-dev クラウド sandbox + amplify_outputs.json 生成）
@@ -122,6 +122,6 @@ unit-test                       # 全 unit test（frontend + backend-py）
 
 | Component                       | Package Manager |
 | ------------------------------- | --------------- |
-| Frontend Web / Mobile           | **Bun**         |
-| Amplify backend (`packages/backend`) | **Bun**（`ampx`） |
+| Frontend Web / Mobile           | **pnpm**        |
+| Amplify backend (`packages/backend`) | **pnpm**（`ampx`） |
 | Backend Python (`backend-py/`)  | **uv**          |

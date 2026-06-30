@@ -1,2 +1,2 @@
 # Note: Generated files (src/generated/) are committed to git
-# Run `bun run generate` to regenerate when backend API changes
+# Run `pnpm run generate` to regenerate when backend API changes

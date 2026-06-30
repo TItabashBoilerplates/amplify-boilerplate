@@ -12,7 +12,7 @@ This is a Next.js frontend application following Feature-Sliced Design (FSD) met
 - **Application**: Next.js 16 application with App Router
 - **UI Framework**: shadcn/ui components with TailwindCSS 4 for styling
 - **Tech Stack**: React 19, TypeScript, Next.js 16, shadcn/ui, Lucide React icons
-- **Package Manager**: Bun for fast package management and script execution
+- **Package Manager**: pnpm (fast, disk-efficient; required because the Amplify `ampx` CLI rejects bun)
 - **Build System**: Next.js built-in build system with Turbopack (default in Next.js 16)
 - **Internationalization**: next-intl for multi-language support (English & Japanese)
 - **State Management**: Zustand for client-side state, TanStack Query for server state
@@ -51,7 +51,7 @@ frontend/
 
 ### Frontend Development
 
-すべて devenv の **scripts** (PATH 直結) または **tasks** (`devenv tasks run <name>`) を使用する。Makefile は **deprecated**（削除済み）。直接 `cd frontend && bun run X` での実行は禁止。
+すべて devenv の **scripts** (PATH 直結) または **tasks** (`devenv tasks run <name>`) を使用する。Makefile は **deprecated**（削除済み）。直接 `cd frontend && pnpm run X` での実行は禁止。
 
 ```bash
 # Amplify backend（Supabase ローカル Docker の代替、AWS 認証情報が必要）
@@ -79,12 +79,12 @@ build-storybook         # Storybook static build
 
 # Package management
 # `devenv shell` 進入時 (direnv 経由含む) に `setup:install-frontend` task が
-# lockfile 変更を検知して bun install を自動実行するので手動実行は通常不要。
+# lockfile 変更を検知して pnpm install を自動実行するので手動実行は通常不要。
 # 個別パッケージ追加は ni / nr / nlx を使う:
-ni package              # 依存追加 (= bun add package)
-ni -D package           # 開発依存追加 (= bun add -d package)
-nr <script>             # package.json scripts 実行 (= bun run <script>)
-nlx <command>           # 一時実行 (= bunx <command>)
+ni package              # 依存追加 (= pnpm add package)
+ni -D package           # 開発依存追加 (= pnpm add -D package)
+nr <script>             # package.json scripts 実行 (= pnpm run <script>)
+nlx <command>           # 一時実行 (= pnpm dlx <command>)
 ```
 
 正典: `/.claude/rules/commands.md`
@@ -104,11 +104,11 @@ nlx <command>           # 一時実行 (= bunx <command>)
 
 ```bash
 # Add basic shadcn/ui components only when MagicUI doesn't provide suitable alternatives
-bunx shadcn@latest add button
-bunx shadcn@latest add card
-bunx shadcn@latest add input
-bunx shadcn@latest add dialog
-bunx shadcn@latest add form
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add card
+pnpm dlx shadcn@latest add input
+pnpm dlx shadcn@latest add dialog
+pnpm dlx shadcn@latest add form
 ```
 
 ## Code Style and Quality
@@ -128,7 +128,7 @@ bunx shadcn@latest add form
 - **Primary Components**: MagicUI components (accessed via MCP) for modern, animated UI elements
 - **Secondary Components**: shadcn/ui components built on Radix UI primitives (fallback only)
 - **Component Placement**: `src/shared/ui/magicui/` for MagicUI, `src/shared/ui/` for shadcn/ui
-- **Package Runner**: Use `bunx` instead of `npx` for shadcn/ui component installation
+- **Package Runner**: Use `pnpm dlx` instead of `npx` for shadcn/ui component installation
 - **Styling**: TailwindCSS with CSS variables for theming
 - **Icons**: Lucide React icon library
 - **Theme Configuration**: CSS variables defined in `src/app/styles/globals.css`
@@ -656,7 +656,8 @@ frontend/
 ├── components.json       # shadcn/ui configuration (points to src/shared/ui)
 ├── next.config.ts        # Next.js configuration
 ├── package.json          # Dependencies and scripts
-├── bun.lock              # Bun lockfile (equivalent to package-lock.json)
+├── pnpm-lock.yaml         # pnpm lockfile
+├── pnpm-workspace.yaml     # pnpm workspace definition
 ├── postcss.config.mjs    # PostCSS configuration for Tailwind
 ├── tailwind.config.ts    # Tailwind CSS configuration
 └── tsconfig.json         # TypeScript configuration with FSD paths

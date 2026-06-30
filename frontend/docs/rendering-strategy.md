@@ -1143,7 +1143,7 @@ Error: useState can only be used in Client Components
 **解決策:**
 - Server Componentを優先
 - 動的インポートを使用
-- バンドルサイズを分析（`bun run build`で確認）
+- バンドルサイズを分析（`pnpm run build`で確認）
 
 ## ベストプラクティス
 

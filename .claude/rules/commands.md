@@ -1,6 +1,6 @@
 # Development Command Policy
 
-**CRITICAL / NON-NEGOTIABLE**: Always use **devenv** commands (scripts on PATH or `devenv tasks run <name>`) for development. Direct execution of underlying tools (bun/uv/biome/ruff/tsc/ampx) is **strictly prohibited**.
+**CRITICAL / NON-NEGOTIABLE**: Always use **devenv** commands (scripts on PATH or `devenv tasks run <name>`) for development. Direct execution of underlying tools (pnpm/uv/biome/ruff/tsc/ampx) is **strictly prohibited**.
 
 **Makefile は deprecated**。`make X` は使わない。誤って叩いた場合は案内メッセージのみが出る。
 
@@ -49,7 +49,7 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Sandbox 1 回デプロイ** | `sandbox-once` |
 | **Sandbox 破棄** | `sandbox-delete` |
 | **本番/ブランチデプロイ** | Amplify Hosting が `amplify.yml` に従い `ampx pipeline-deploy` を実行（CI） |
-| **依存ブートストラップ** | `bootstrap`（frontend: bun / backend-py: uv）。通常は `devenv shell` 進入時に自動 |
+| **依存ブートストラップ** | `bootstrap`（frontend: pnpm / backend-py: uv）。通常は `devenv shell` 進入時に自動 |
 | **エージェントスキル更新** | `skills-update`（最新化）/ `skills-restore`（lock から復元）。`devenv shell` 進入時に 1 日 1 回**同期・ロック付き**で自動更新（更新完了までシェルは待機 → 半端な状態で起動しない。`SKILLS_AUTOUPDATE=0` で無効・`SKILLS_AUTOUPDATE_INTERVAL=<秒>` で間隔変更） |
 
 > ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
@@ -60,15 +60,15 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 
 ```bash
 # ❌ 絶対に直接実行しない
-cd frontend && bun run biome check --write
-cd frontend && bun run biome format --write
-cd frontend && bun run tsc --noEmit
-cd frontend && bun run vitest
+cd frontend && pnpm run biome check --write
+cd frontend && pnpm run biome format --write
+cd frontend && pnpm run tsc --noEmit
+cd frontend && pnpm run vitest
 cd backend-py && uv run ruff check
 cd backend-py && uv run ruff format
 cd backend-py && uv run mypy
 cd backend-py && uv run pytest
-cd frontend/packages/backend && bunx ampx sandbox
+cd frontend/packages/backend && pnpm dlx ampx sandbox
 npx tsc --noEmit
 
 # ❌ Makefile は削除済み — `make X` は `make: *** No targets. Stop.` でエラー終了する
@@ -96,7 +96,7 @@ Direct command execution is allowed ONLY for:
 - **Reading files**: `cat`, `less`, `head`, `tail` (prefer Read tool)
 - **Listing files**: `ls`, `find`, `tree` (prefer Glob tool)
 - **Git operations**: `git status`, `git diff`, `git log` (read-only)
-- **Package info**: `bun list`, `npm list`, `uv pip list` (read-only)
+- **Package info**: `pnpm list`, `npm list`, `uv pip list` (read-only)
 
 ## 品質チェック設計（2 段階構成）
 
