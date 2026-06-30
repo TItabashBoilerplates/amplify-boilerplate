@@ -5,18 +5,11 @@
 # Claude Code on the web の「セットアップスクリプト」欄からこの1本を呼ぶだけで
 # nix / devenv / direnv を導入し、このリポジトリの devenv 環境を構築する。
 #
-#   セットアップスクリプト欄に書く内容（repo を自力特定して呼ぶ）:
-#     #!/bin/bash
-#     set -e
-#     # コンテナ初期化のセットアップ欄では $CLAUDE_PROJECT_DIR が未設定なので repo を特定する
-#     SCRIPT="${CLAUDE_PROJECT_DIR:-}/scripts/setup-web-env.sh"
-#     [ -f "$SCRIPT" ] || SCRIPT="$PWD/scripts/setup-web-env.sh"
-#     [ -f "$SCRIPT" ] || SCRIPT="$(find /home /workspace /root /app -maxdepth 5 -type f -path '*/scripts/setup-web-env.sh' 2>/dev/null | head -n1)"
-#     [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ] || { echo "setup-web-env.sh not found"; exit 1; }
-#     bash "$SCRIPT"
+#   セットアップスクリプト欄に書く内容（1行・repo ルートで実行される）:
+#     bash scripts/setup-web-env.sh
 #
-# - コンテナ初期化時（repo clone 済み）に実行される想定。
-#   セットアップ欄の文脈では $CLAUDE_PROJECT_DIR は未設定（= repo ルートは $PWD か探索で特定）。
+# - コンテナ初期化時（repo clone 済み・CWD = repo ルート）に実行される想定。
+#   セットアップ欄の文脈では $CLAUDE_PROJECT_DIR は未設定なので相対パスで呼ぶ。
 # - 冪等（再実行しても安全）。既に入っているものはスキップする。
 # - 完了後にコンテナ状態はキャッシュされるため、2回目以降のセッション起動は速い。
 #
