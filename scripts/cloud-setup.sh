@@ -28,19 +28,26 @@ fi
 . "$NIX_PROFILE_SCRIPT"
 
 # devenv のバイナリキャッシュ（初回ビルド高速化）
-command -v cachix >/dev/null 2>&1 || nix profile install nixpkgs#cachix
+command -v cachix >/dev/null 2>&1 || nix profile add nixpkgs#cachix
 cachix use devenv || true
 
 # devenv / direnv 本体
-command -v devenv >/dev/null 2>&1 || nix profile install nixpkgs#devenv
-command -v direnv >/dev/null 2>&1 || nix profile install nixpkgs#direnv
+command -v devenv >/dev/null 2>&1 || nix profile add nixpkgs#devenv
+command -v direnv >/dev/null 2>&1 || nix profile add nixpkgs#direnv
 
-# Claude のシェル（別プロセス）で nix と direnv を有効化。~/.bashrc はキャッシュに残る。
+# 対話/teleport シェル用に ~/.bashrc にも有効化を追記（Claude の Bash は非対話なので
+# 効かない点に注意。Claude への引き継ぎは SessionStart フックの $CLAUDE_ENV_FILE が担当）。
+# __ETC_PROFILE_NIX_SOURCED が残ると nix-daemon.sh が早期 return するため unset してから source。
 BASHRC="${HOME:-/root}/.bashrc"
 touch "$BASHRC"
-grep -qF "$NIX_PROFILE_SCRIPT" "$BASHRC" 2>/dev/null \
-  || printf '\n. %s\n' "$NIX_PROFILE_SCRIPT" >> "$BASHRC"
-grep -qF 'direnv hook bash' "$BASHRC" 2>/dev/null \
-  || printf 'eval "$(direnv hook bash)"\n' >> "$BASHRC"
+if ! grep -qF '__ETC_PROFILE_NIX_SOURCED' "$BASHRC" 2>/dev/null; then
+  {
+    echo ''
+    echo '# nix + direnv (added by cloud-setup.sh)'
+    echo 'unset __ETC_PROFILE_NIX_SOURCED'
+    echo ". $NIX_PROFILE_SCRIPT"
+    echo 'eval "$(direnv hook bash)"'
+  } >> "$BASHRC"
+fi
 
 echo "✅ cloud-setup: nix / devenv / direnv ready (devenv activation は SessionStart フックで実施)"
