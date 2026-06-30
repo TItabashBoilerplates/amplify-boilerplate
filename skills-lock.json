@@ -131,7 +131,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-cloudformation/SKILL.md",
-      "computedHash": "3fbb63b4e6ad7624a1646872fd83aad687758dd3dc3d72b2157faabee72d3622"
+      "computedHash": "eaa7a2be8d0641a2710e1d2654954325a4325b36747505d47d82c7c37521e8fa"
     },
     "aws-containers": {
       "source": "aws/agent-toolkit-for-aws",
@@ -173,7 +173,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-observability/SKILL.md",
-      "computedHash": "bbc36e5d5aca0963f51b6ee5fc481ad302549569791dd1f81aecfb00d68c41fc"
+      "computedHash": "6957c1b55a2b365d46d2e95c948773d0a1382f95a8358d34b09dce6e3b678e3a"
     },
     "aws-sdk-js-v3-usage": {
       "source": "aws/agent-toolkit-for-aws",
@@ -227,7 +227,7 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/claude-api/SKILL.md",
-      "computedHash": "9f19be17e56542510e93d2943227c776ecbbe978307fc43d660dd04b346ef395"
+      "computedHash": "07fdb33c48693124c497abb5ffcd6403449aa118a04b5aed5cbf9c82ff60c3f3"
     },
     "configuring-vpc-endpoints-for-private-aws-service-access": {
       "source": "aws/agent-toolkit-for-aws",
@@ -329,7 +329,7 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/deploy-to-vercel/SKILL.md",
-      "computedHash": "03e0eaaa9bf13ba1e7ffa387f5893de6f324c0868c627001f179395a8feaa7c9"
+      "computedHash": "d2b5bcc7c09fdb649129ffc7dd7b647ec1b155736974b974292675afd588cb39"
     },
     "deploying-custom-domain-rest-api": {
       "source": "aws/agent-toolkit-for-aws",
@@ -461,7 +461,7 @@
       "source": "vercel-labs/skills",
       "sourceType": "github",
       "skillPath": "skills/find-skills/SKILL.md",
-      "computedHash": "781bd6d3f9b19f8c9af6b53d8d0e4876d0183841b565db34ca7092ffa412d111"
+      "computedHash": "1c27b1774a4ec17ad4556a72e3c0168beab3af0183b2c1b8aa9e320af3ff41ce"
     },
     "finding-data-lake-assets": {
       "source": "aws/agent-toolkit-for-aws",
@@ -496,7 +496,7 @@
     "gluestack-ui-v4": {
       "source": "gluestack/agent-skills",
       "sourceType": "github",
-      "skillPath": "skills/gluestack-ui-v4/SKILL.md",
+      "skillPath": ".agents/skills/gluestack-ui-v4/SKILL.md",
       "computedHash": "5f00d8934fef415e31bbae36b1cb8bfe59452eeff0e48dea27172d620a00c612"
     },
     "gluestack-ui-v4:components": {
@@ -641,13 +641,13 @@
       "source": "vercel/vercel-plugin",
       "sourceType": "github",
       "skillPath": "skills/next-cache-components/SKILL.md",
-      "computedHash": "d96627b99b28bd1e9aa1ec454f02c4e9a6bd0be72c36da40852b273592704518"
+      "computedHash": "b7ea854c2fb1f4e7ad9acddd64bef2ba547bd1955ba4cf211398dff2cce6dc11"
     },
     "next-upgrade": {
       "source": "vercel/vercel-plugin",
       "sourceType": "github",
       "skillPath": "skills/next-upgrade/SKILL.md",
-      "computedHash": "befa88b5a0259b68b65b06b4349908289b8eea1825dba34d3212687206e52c91"
+      "computedHash": "c90d3b5b6a4f60961c6d7e704d57a4072e69b94280353fdadb038590115a123f"
     },
     "organization-best-practices": {
       "source": "better-auth/skills",
@@ -743,7 +743,7 @@
       "source": "shadcn/ui",
       "sourceType": "github",
       "skillPath": "skills/shadcn/SKILL.md",
-      "computedHash": "ac9d0d69caac7de1d1e5647f3db3bcd2f13af355d6b3a78780fbf7fc80e8dca0"
+      "computedHash": "d81caa0f86aabab65b25e302d454f23a3328760386ed9078345584c0d5c8058e"
     },
     "signing-in-to-aws": {
       "source": "aws/agent-toolkit-for-aws",
@@ -767,7 +767,7 @@
       "source": "stripe/ai",
       "sourceType": "github",
       "skillPath": "skills/stripe-best-practices/SKILL.md",
-      "computedHash": "742352fa4f1d3305157cf03d9c7b74bb8a389f5875215bcc7651632ba45408e9"
+      "computedHash": "4aecf9b7d63a5f63ecbd1fdcb6077e0923a675befa6e9b7aa5d1e51ff28d9dae"
     },
     "supabase": {
       "source": "supabase/agent-skills",
@@ -809,7 +809,7 @@
       "source": "vercel/turborepo",
       "sourceType": "github",
       "skillPath": "skills/turborepo/SKILL.md",
-      "computedHash": "b7c3165ae67a2892d6195a5b2cba15c8d96341f5c64ddd0d3ce4225c94a2ae83"
+      "computedHash": "7e0d0c5688c9cb4a405ba5554ffa5faa9b2f08770c6b9c2c43071fdd883a7ed1"
     },
     "two-factor-authentication-best-practices": {
       "source": "better-auth/skills",
@@ -833,49 +833,49 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/vercel-cli-with-tokens/SKILL.md",
-      "computedHash": "eb16b20dcbe6ce51e0372083d624e0847af1b09487ec99249227d5a8eddebfc0"
+      "computedHash": "a2f596ac516fe8986386f9562f4c94604af9fb6a0fc417d263cbe6dc05117b72"
     },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/composition-patterns/SKILL.md",
-      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+      "computedHash": "f98931159fa9c7fed043bcd18a891a46dcf89ababa38df13a4c5b7b30dc0ce07"
     },
     "vercel-optimize": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/vercel-optimize/SKILL.md",
-      "computedHash": "c6898b3425a2e2bdf17cbcf38bb5aece2894ee79096961f4140f984e185a4b70"
+      "computedHash": "9d4ace02972b9b1c462f097c7322eb32c9f04bba6f2fb5cf482086d402eeec33"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-best-practices/SKILL.md",
-      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+      "computedHash": "3219a1944e404ffc14d1d9d6aef6dd2e3855b81387ee0a044ccbfe14d34c2357"
     },
     "vercel-react-native-skills": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-native-skills/SKILL.md",
-      "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
+      "computedHash": "2e9088a7333666d8c2833b8ff58bd51b955501c42b4c7244f72b4cbf22dafcc4"
     },
     "vercel-react-view-transitions": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-view-transitions/SKILL.md",
-      "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
+      "computedHash": "4fea9144f604256d0a21faaea904b7e205e7676e316721ba5fdd68c2600c7d42"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/web-design-guidelines/SKILL.md",
-      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
     },
     "writing-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/writing-guidelines/SKILL.md",
-      "computedHash": "25aa3a33a97bddbcb1847ce4a6169106ec25e5b19b15b99c66e75ab383866ef2"
+      "computedHash": "e90462d4f801d823603b12c345ad0ff91a7489415274432681d21c7129123c26"
     }
   }
 }
