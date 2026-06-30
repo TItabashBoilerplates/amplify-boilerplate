@@ -352,7 +352,7 @@ importers:
         version: 9.39.4(jiti@2.7.0)
       eslint-config-next:
         specifier: ^16.0.0
-        version: 16.2.9(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
+        version: 16.2.9(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
       tailwindcss:
         specifier: ^4
         version: 4.3.2
@@ -437,6 +437,12 @@ importers:
 
   packages/backend:
     dependencies:
+      '@aws-crypto/client-node':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@aws-sdk/client-dynamodb':
+        specifier: ^3.1076.0
+        version: 3.1076.0
       '@hono/mcp':
         specifier: ^0.3.0
         version: 0.3.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono-rate-limiter@0.5.3(hono@4.12.27))(hono@4.12.27)(zod@4.4.3)
@@ -673,10 +679,10 @@ importers:
         version: 3.3.5
       eslint-config-next:
         specifier: ^16.0.0
-        version: 16.2.9(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
+        version: 16.2.9(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
       eslint-plugin-boundaries:
         specifier: ^5.3.1
-        version: 5.4.0(eslint@9.39.4(jiti@2.7.0))
+        version: 5.4.0(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))
 
   tooling/tailwind:
     devDependencies:
@@ -1341,12 +1347,60 @@ packages:
     peerDependencies:
       '@aws-cdk/cli-plugin-contract': ^2
 
+  '@aws-crypto/branch-keystore-node@5.0.0':
+    resolution: {integrity: sha512-obfPqAPI9W5XrNLwa3TodRd2ywH+7p5AHb9BHY/anRAoWAMYJ8aWjop2oBJCCmOBahtKS475T0mmjHOcgZYTiQ==}
+
+  '@aws-crypto/cache-material@5.0.0':
+    resolution: {integrity: sha512-6qufEs+uCd3oCA7qTxQVNvxyhgI16wlPMDj8KaHCsjOIQqmP+GlT7Hc3WIA5PgSkNOzeEDILfB79EPN8LyEeLQ==}
+
+  '@aws-crypto/caching-materials-manager-node@5.0.0':
+    resolution: {integrity: sha512-RLaXOrlJR4knrNgog4py+4RkBZNEMmgNn5yaeNx/9QdMx6VHmN9fBx2O1t9ei1FjY9M59hdsA6qo2+qTbi2OKQ==}
+
+  '@aws-crypto/client-node@5.0.0':
+    resolution: {integrity: sha512-e5jxzQOJZtOeI1aJH/imu0olZ+2dRdh0sWQBOhsHJyWTVyu4YyrhiZaRuOdgP0DLsJdbsKaykf8HFVayvwH/hw==}
+
   '@aws-crypto/crc32@5.2.0':
     resolution: {integrity: sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg==}
     engines: {node: '>=16.0.0'}
 
   '@aws-crypto/crc32c@5.2.0':
     resolution: {integrity: sha512-+iWb8qaHLYKrNvGRbiYRHSdKRWhto5XlZUEBwDjYNf+ly5SVYG6zEoYIdxvf5R3zyeP16w4PLBn3rH1xc74Rag==}
+
+  '@aws-crypto/decrypt-node@5.0.0':
+    resolution: {integrity: sha512-YhWXt3k46Z7HaMRqlxyYAqdTwrK2dLPTIg2P2l14txnTxnpUUwziDPm76ahOWBfLZ4dCuFptWnjGCnkCtHm3TQ==}
+
+  '@aws-crypto/encrypt-node@5.0.0':
+    resolution: {integrity: sha512-H79qZcdQdA4rZfWYJgwesLX4c1HGHtonJ4Z+DyooAUZWx6zCFs9vox9Mdy5AocRlWnLOjKigy/PZ9axBSOvZRw==}
+
+  '@aws-crypto/hkdf-node@5.0.0':
+    resolution: {integrity: sha512-eGcXVkhnWOab8NJo3lD3WkVzF7/BHuIiJAIckFKvmPUIOmwxS209N23sGwHERzkS/dSFXJ62hEF+FatLSUJ5Qg==}
+
+  '@aws-crypto/kdf-ctr-mode-node@5.0.0':
+    resolution: {integrity: sha512-zCYmmE1k7LYXpm+02OLX2TH0JfeHXUcxcqaGBsnpqgwAQhgepa63emxIbZ6cpm+9W/BXqfg937ksp83es2rhJA==}
+
+  '@aws-crypto/kms-keyring-node@5.0.0':
+    resolution: {integrity: sha512-7eejNCz7AaLkVL5LGeKg5HcwXtvapQYqqocYOk37eHEEYaDbc4LlqxtEXslCk3RR2e68UI2kClO3qb6cu8/8sQ==}
+
+  '@aws-crypto/kms-keyring@5.0.0':
+    resolution: {integrity: sha512-hR5hJ5su4Fe6H8AUksd8VpiAPl/VQ6DQp3SPmRC9hrGvrGXn+XSF6c4h75ul7zmOQk9ARGydKyGpmix1o5LWBA==}
+
+  '@aws-crypto/material-management-node@5.0.0':
+    resolution: {integrity: sha512-PSESkcSfINKDV90ezaKej+eCuFkGtQR7K6eXXCkFrthCRs7ismLCLHz/A3sNIC/1f2I4G2g+w/nGHo00vP7WFg==}
+
+  '@aws-crypto/material-management@5.0.0':
+    resolution: {integrity: sha512-lGDbFYCuL+qXCUhCmXAEH73XqANL+QlHMl1v7sDRvEVuoYqp1U/frMlvdY8W3DwneW3GRiEELYN0bgFBToFd6Q==}
+
+  '@aws-crypto/raw-aes-keyring-node@5.0.0':
+    resolution: {integrity: sha512-16z5TQaiYvsnRo46u8HZp7yIAWhtxqgda2BXbaCXqclzcaEp6spokwZyYl0SdpxNChlXacUEspcvPoOUohNQCg==}
+
+  '@aws-crypto/raw-keyring@5.0.0':
+    resolution: {integrity: sha512-xNQwfkVJuExJtrVXaVkQtyTgERMicUcV3/Qoc9sM9sefUi9Rl+zgtPAjqhN8BavzuSxs13M5OCZm4VE+NlOfww==}
+
+  '@aws-crypto/raw-rsa-keyring-node@5.0.0':
+    resolution: {integrity: sha512-JpPKW0Z4bwwftBN0EpvEcYbZIvlCEtzYK1uaI9Gr5UG7wRgxl/FJd0iWHZVjmWEgKmqVgrd5qPcxH9EMCbxUBg==}
+
+  '@aws-crypto/serialize@5.0.0':
+    resolution: {integrity: sha512-9x8f4boWN4UXDJvaK7aocQN7fh9x9wMjQyRTeJqOky7cXnl76EVRvuUh2Mwcel3xKRP86Ac6Hu06yayGDf4ppg==}
 
   '@aws-crypto/sha1-browser@5.2.0':
     resolution: {integrity: sha512-OH6lveCFfcDjX4dbAvCFSYUjJZjDr/3XJ3xHtjn3Oj5b9RjojQo8npoLeA/bNwkOkrSQ0wgrHzXk4tDRxGKJeg==}
@@ -1402,6 +1456,10 @@ packages:
 
   '@aws-sdk/client-cognito-identity@3.1076.0':
     resolution: {integrity: sha512-hSkEljVcPBXPSsB/GLeVZaNaIzrMLPAj//jg41rNObfMGa7qRvWHXtbDt7UVxXjAFlVw84wCFWNBMBSql5HynQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-dynamodb@3.1076.0':
+    resolution: {integrity: sha512-3qj40tOjHIjOP3EYgP2yM5Hi/ZKZfDhPbtay2QEpAe3ffgSaHWPedzj41B6WH/dopn5D6vhdzzU/YNh6D3hiSw==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-ec2@3.1076.0':
@@ -1516,8 +1574,16 @@ packages:
     resolution: {integrity: sha512-1jmzAXZdQzZKT/edDehSuxBfFo9M90nyLMGV65joOaZusa/p3YEPtPdHhTQ1CWoYq9kBBsMcfMElSbKjAfYTJw==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/dynamodb-codec@3.973.24':
+    resolution: {integrity: sha512-GwHUG+qidyCWIzQM1Jo3DuI58av//NuhbCgCSbS/QsqNalkucqRNARJyJr7QSvAuEsz8fViFR0S4oWpHzt+obA==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/ec2-metadata-service@3.1076.0':
     resolution: {integrity: sha512-MpjGYxe4YuWGOG/XMfZa9Ps8Uihdbkuq7R3oVEdMrDDENwX1zvQ6Ef9XvuYXNaDkTxLJgkr5rmywtpMANSgEZg==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/endpoint-cache@3.972.8':
+    resolution: {integrity: sha512-bBmkG0Dnhfq0/T4Z0PpUr7HkncBVaWvvCbvafeaUM+yC9wa8GGjLJmonq0QL17REB9WivgGeYgWQ5A80Uw5UnQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/lib-storage@3.1076.0':
@@ -1525,6 +1591,10 @@ packages:
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@aws-sdk/client-s3': ^3.1076.0
+
+  '@aws-sdk/middleware-endpoint-discovery@3.972.20':
+    resolution: {integrity: sha512-hxn9KYiTSdjGm64yuAs4043AT4mEfjFdFgxylOmHUgOTnpdy3xogBPDBtQzGxHwJh1+oKWo9Hr1jzOrx1FsG/A==}
+    engines: {node: '>=20.0.0'}
 
   '@aws-sdk/middleware-flexible-checksums@3.974.34':
     resolution: {integrity: sha512-Ac9szPF1cmQDin1XEdipQZGCPtuASUg2Aol/kY5Fzh1ot9/UMqKVfAZtC/ENhqzoLhrJ/6itCO/lzvTD7eDEiA==}
@@ -1569,6 +1639,12 @@ packages:
   '@aws-sdk/util-arn-parser@3.972.19':
     resolution: {integrity: sha512-IXfnfkiPjRYCmQlLvmmTEQS2njoF7Myq9X6xwZVdaXvmV81eZOf7FtDFZTbuuLhM5cLiCoSstjzoYrjo4jVk7w==}
     engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/util-dynamodb@3.996.5':
+    resolution: {integrity: sha512-m9bdmYq3WtbMHAKGALw9XWiMBfKu5T8ukgdJT7Mc/d2oOwDGNFmhsnnkQ18xomoXo/ZHxAuIDi3Y6slsblW1Mg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@aws-sdk/client-dynamodb': ^3.1069.0
 
   '@aws-sdk/util-locate-window@3.965.8':
     resolution: {integrity: sha512-uUbMs1cBZPafD0ohUj6EwNf0fPZ534NvBxHox4hjX+0Rxq5paSYUem7+hi833pYrzrcnBATKIYpR02MDXT5M9g==}
@@ -6290,6 +6366,9 @@ packages:
   '@types/doctrine@0.0.9':
     resolution: {integrity: sha512-eOIHzCUSH7SMfonMG1LsC2f8vxBFtho6NGBznK41R84YzPuvSBzrhEps33IsQiOW9+VL6NQ9DbjQJznk/S4uRA==}
 
+  '@types/duplexify@3.6.5':
+    resolution: {integrity: sha512-fB56ACzlW91UdZ5F3VXplVMDngO8QaX5Y2mjvADtN01TT2TMy4WjF0Lg+tFDvt4uMBeTe4SgaD+qCrA7dL5/tA==}
+
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
@@ -6319,6 +6398,9 @@ packages:
 
   '@types/lodash@4.17.24':
     resolution: {integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==}
+
+  '@types/lru-cache@5.1.1':
+    resolution: {integrity: sha512-ssE3Vlrys7sdIzs5LOxCzTVMsU7i9oa/IaW92wF32JFb3CVczqOkru2xspuKczHEbG3nvmPY7IFqVmGGHdNbYw==}
 
   '@types/mdx@2.0.14':
     resolution: {integrity: sha512-T48PeuJtvLosNTPVhfnIp3i/n3a4g4Bad7YCq5k64D4u7NwDrAotikQ+5+sjtUvBmxCMlbo3dVL+C2dP0rWHzg==}
@@ -6894,6 +6976,9 @@ packages:
 
   asn1.js@4.10.1:
     resolution: {integrity: sha512-p32cOF5q0Zqs9uBiONKYLm6BClCoBCM5O9JfeUSlnQLBTxYdTK+pW+nXflm8UkKd2UYlEbYz5qEi0JuZR9ckSw==}
+
+  asn1.js@5.4.1:
+    resolution: {integrity: sha512-+I//4cYPccV8LdmBLiX8CYvf9Sp3vQsrqu2QNXRcrbiWvcx/UdlFiqUJJzxRQxgsZmvhXhn4cSKeSmoFjVdupA==}
 
   assert@2.1.0:
     resolution: {integrity: sha512-eLHpSK/Y4nhMJ07gDaAzoX/XAKS8PSaojml3M0DM4JpV1LAi5JOJ/p6H/XWrl8L+DzVEvVCW1z3vWAaB9oTsQw==}
@@ -8046,6 +8131,9 @@ packages:
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
+
+  duplexify@4.1.3:
+    resolution: {integrity: sha512-M3BmBhwJRZsSx38lZyhE53Csddgzl5R7xGJNk7CVddZD6CcmwMCH8J+7AprIrQKH7TonKxaCjcv27Qmf+sQ+oA==}
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -10091,6 +10179,10 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
+  lru-cache@6.0.0:
+    resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
+    engines: {node: '>=10'}
+
   lru-cache@8.0.5:
     resolution: {integrity: sha512-MhWWlVnuab1RG5/zMRRcVGXZLCXrZTgfwMikgzCegsPnG62yDQo5JnqKkrK4jO5iKqDAZGItAqN5CtKBCBWRUA==}
     engines: {node: '>=16.14'}
@@ -10434,6 +10526,9 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  mnemonist@0.38.3:
+    resolution: {integrity: sha512-2K9QYubXx/NAjv4VLq1d1Ly8pWNC5L3BrixtdkyTegXWJIqY+zLNDhhX/A+ZwWt70tB1S8H4BE8FLYEFyNoOBw==}
+
   motion-dom@12.42.0:
     resolution: {integrity: sha512-M63h4n8R+quJdNhBwuLlgxM+OLYa9+I/T2pzDRboB9fLXRdbou+Gw7Zury+SkpaCyACP1JHSjHgZ1EgTkBr30w==}
 
@@ -10700,6 +10795,9 @@ packages:
 
   objectorarray@1.0.5:
     resolution: {integrity: sha512-eJJDYkhJFFbBBAxeh8xW+weHlkI28n2ZdQV/J/DNfWfSKlGEf2xcfAbZTv3riEXHAhL9SVOTs2pRmXiSTf78xg==}
+
+  obliterator@1.6.1:
+    resolution: {integrity: sha512-9WXswnqINnnhOG/5SLimUlzuU1hFJUc8zkwyD59Sd+dPOMf05PmnYG/d6Q7HZ+KmgkZJa1PxRso6QdM3sTNHig==}
 
   obug@2.1.3:
     resolution: {integrity: sha512-9miFgM2OFba7hB+pRgvtV84pYTBaoTHohvmIgiRt6dRIzbwEOIaNaP+dIlGs2fNFoB0SeISs0Jz5WFVRid6Xyg==}
@@ -12024,6 +12122,9 @@ packages:
   stream-http@3.2.0:
     resolution: {integrity: sha512-Oq1bLqisTyK3TSCXpPbT4sdeYNdmyZJv1LxpEm2vu1ZhK89kSE5YXwZc3cWk0MagGaKriBh9mCFbVGtO+vY29A==}
 
+  stream-shift@1.0.3:
+    resolution: {integrity: sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ==}
+
   streamx@2.28.0:
     resolution: {integrity: sha512-1Yowhzjf0ivGMrTIkY9hav5TxobO9qIVqUE41fiCGMGgc3CLlf4MY+9AHmZqBWgDTue0fY9zWjYFVyf6Diuobw==}
 
@@ -12703,12 +12804,22 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+    hasBin: true
+
   uuid@11.1.1:
     resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   uuid@7.0.3:
     resolution: {integrity: sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+    hasBin: true
+
+  uuid@9.0.1:
+    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
@@ -13057,6 +13168,9 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+
+  yallist@4.0.0:
+    resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
 
   yallist@5.0.0:
     resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
@@ -14053,6 +14167,42 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
+  '@aws-crypto/branch-keystore-node@5.0.0':
+    dependencies:
+      '@aws-crypto/kms-keyring': 5.0.0
+      '@aws-sdk/client-dynamodb': 3.1076.0
+      '@aws-sdk/client-kms': 3.1076.0
+      '@aws-sdk/util-dynamodb': 3.996.5(@aws-sdk/client-dynamodb@3.1076.0)
+      tslib: 2.8.1
+      uuid: 9.0.1
+
+  '@aws-crypto/cache-material@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      '@types/lru-cache': 5.1.1
+      lru-cache: 6.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/caching-materials-manager-node@5.0.0':
+    dependencies:
+      '@aws-crypto/cache-material': 5.0.0
+      '@aws-crypto/material-management-node': 5.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/client-node@5.0.0':
+    dependencies:
+      '@aws-crypto/branch-keystore-node': 5.0.0
+      '@aws-crypto/caching-materials-manager-node': 5.0.0
+      '@aws-crypto/decrypt-node': 5.0.0
+      '@aws-crypto/encrypt-node': 5.0.0
+      '@aws-crypto/kms-keyring': 5.0.0
+      '@aws-crypto/kms-keyring-node': 5.0.0
+      '@aws-crypto/material-management-node': 5.0.0
+      '@aws-crypto/raw-aes-keyring-node': 5.0.0
+      '@aws-crypto/raw-rsa-keyring-node': 5.0.0
+      tslib: 2.8.1
+
   '@aws-crypto/crc32@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
@@ -14064,6 +14214,90 @@ snapshots:
       '@aws-crypto/util': 5.2.0
       '@aws-sdk/types': 3.973.14
       tslib: 2.8.1
+
+  '@aws-crypto/decrypt-node@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      '@types/duplexify': 3.6.5
+      duplexify: 4.1.3
+      readable-stream: 3.6.2
+      tslib: 2.8.1
+
+  '@aws-crypto/encrypt-node@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      '@types/duplexify': 3.6.5
+      duplexify: 4.1.3
+      readable-stream: 3.6.2
+      tslib: 2.8.1
+
+  '@aws-crypto/hkdf-node@5.0.0':
+    dependencies:
+      tslib: 2.8.1
+
+  '@aws-crypto/kdf-ctr-mode-node@5.0.0':
+    dependencies:
+      tslib: 2.8.1
+
+  '@aws-crypto/kms-keyring-node@5.0.0':
+    dependencies:
+      '@aws-crypto/branch-keystore-node': 5.0.0
+      '@aws-crypto/cache-material': 5.0.0
+      '@aws-crypto/kdf-ctr-mode-node': 5.0.0
+      '@aws-crypto/kms-keyring': 5.0.0
+      '@aws-crypto/material-management-node': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      '@aws-sdk/client-dynamodb': 3.1076.0
+      '@aws-sdk/client-kms': 3.1076.0
+      tslib: 2.8.1
+
+  '@aws-crypto/kms-keyring@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/material-management-node@5.0.0':
+    dependencies:
+      '@aws-crypto/hkdf-node': 5.0.0
+      '@aws-crypto/material-management': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/material-management@5.0.0':
+    dependencies:
+      asn1.js: 5.4.1
+      bn.js: 5.2.4
+      tslib: 2.8.1
+      uuid: 10.0.0
+
+  '@aws-crypto/raw-aes-keyring-node@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.0
+      '@aws-crypto/raw-keyring': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/raw-keyring@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.0
+      '@aws-crypto/serialize': 5.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/raw-rsa-keyring-node@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management-node': 5.0.0
+      '@aws-crypto/raw-keyring': 5.0.0
+      tslib: 2.8.1
+
+  '@aws-crypto/serialize@5.0.0':
+    dependencies:
+      '@aws-crypto/material-management': 5.0.0
+      asn1.js: 5.4.1
+      bn.js: 5.2.4
+      tslib: 2.8.1
+      uuid: 10.0.0
 
   '@aws-crypto/sha1-browser@5.2.0':
     dependencies:
@@ -14221,6 +14455,21 @@ snapshots:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-sdk/core': 3.974.24
       '@aws-sdk/credential-provider-node': 3.972.59
+      '@aws-sdk/types': 3.973.14
+      '@smithy/core': 3.28.0
+      '@smithy/fetch-http-handler': 5.6.1
+      '@smithy/node-http-handler': 4.9.1
+      '@smithy/types': 4.15.0
+      tslib: 2.8.1
+
+  '@aws-sdk/client-dynamodb@3.1076.0':
+    dependencies:
+      '@aws-crypto/sha256-browser': 5.2.0
+      '@aws-crypto/sha256-js': 5.2.0
+      '@aws-sdk/core': 3.974.24
+      '@aws-sdk/credential-provider-node': 3.972.59
+      '@aws-sdk/dynamodb-codec': 3.973.24
+      '@aws-sdk/middleware-endpoint-discovery': 3.972.20
       '@aws-sdk/types': 3.973.14
       '@smithy/core': 3.28.0
       '@smithy/fetch-http-handler': 5.6.1
@@ -14580,12 +14829,24 @@ snapshots:
       '@smithy/types': 4.15.0
       tslib: 2.8.1
 
+  '@aws-sdk/dynamodb-codec@3.973.24':
+    dependencies:
+      '@aws-sdk/core': 3.974.24
+      '@smithy/core': 3.28.0
+      '@smithy/types': 4.15.0
+      tslib: 2.8.1
+
   '@aws-sdk/ec2-metadata-service@3.1076.0':
     dependencies:
       '@aws-sdk/types': 3.973.14
       '@smithy/core': 3.28.0
       '@smithy/node-http-handler': 4.9.1
       '@smithy/types': 4.15.0
+      tslib: 2.8.1
+
+  '@aws-sdk/endpoint-cache@3.972.8':
+    dependencies:
+      mnemonist: 0.38.3
       tslib: 2.8.1
 
   '@aws-sdk/lib-storage@3.1076.0(@aws-sdk/client-s3@3.1076.0)':
@@ -14596,6 +14857,14 @@ snapshots:
       buffer: 5.6.0
       events: 3.3.0
       stream-browserify: 3.0.0
+      tslib: 2.8.1
+
+  '@aws-sdk/middleware-endpoint-discovery@3.972.20':
+    dependencies:
+      '@aws-sdk/endpoint-cache': 3.972.8
+      '@aws-sdk/types': 3.973.14
+      '@smithy/core': 3.28.0
+      '@smithy/types': 4.15.0
       tslib: 2.8.1
 
   '@aws-sdk/middleware-flexible-checksums@3.974.34':
@@ -14678,6 +14947,11 @@ snapshots:
   '@aws-sdk/util-arn-parser@3.972.19':
     dependencies:
       '@aws-sdk/core': 3.974.24
+      tslib: 2.8.1
+
+  '@aws-sdk/util-dynamodb@3.996.5(@aws-sdk/client-dynamodb@3.1076.0)':
+    dependencies:
+      '@aws-sdk/client-dynamodb': 3.1076.0
       tslib: 2.8.1
 
   '@aws-sdk/util-locate-window@3.965.8':
@@ -15636,10 +15910,10 @@ snapshots:
   '@biomejs/cli-win32-x64@2.4.11':
     optional: true
 
-  '@boundaries/elements@1.2.0(eslint@9.39.4(jiti@2.7.0))':
+  '@boundaries/elements@1.2.0(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))':
     dependencies:
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0))
       handlebars: 4.7.8
       is-core-module: 2.16.1
       micromatch: 4.0.8
@@ -16748,7 +17022,7 @@ snapshots:
 
   '@expo/vector-icons@15.1.1(expo-font@14.1.0-canary-20251210-1f163e3)(react-native@0.82.1(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.2.1))(react@19.2.1)':
     dependencies:
-      expo-font: 14.1.0-canary-20251210-1f163e3(expo@55.0.27)(react-native@0.82.1(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.2.1))(react@19.2.1)
+      expo-font: 14.1.0-canary-20251210-1f163e3(expo@55.0.0-canary-20251210-1f163e3)(react-native@0.82.1(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.2.1))(react@19.2.1)
       react: 19.2.1
       react-native: 0.82.1(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.2.1)
 
@@ -20484,6 +20758,10 @@ snapshots:
 
   '@types/doctrine@0.0.9': {}
 
+  '@types/duplexify@3.6.5':
+    dependencies:
+      '@types/node': 24.13.2
+
   '@types/estree@1.0.9': {}
 
   '@types/graceful-fs@4.1.9':
@@ -20509,6 +20787,8 @@ snapshots:
   '@types/json5@0.0.29': {}
 
   '@types/lodash@4.17.24': {}
+
+  '@types/lru-cache@5.1.1': {}
 
   '@types/mdx@2.0.14': {}
 
@@ -21158,6 +21438,13 @@ snapshots:
       bn.js: 4.12.4
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
+
+  asn1.js@5.4.1:
+    dependencies:
+      bn.js: 4.12.4
+      inherits: 2.0.4
+      minimalistic-assert: 1.0.1
+      safer-buffer: 2.1.2
 
   assert@2.1.0:
     dependencies:
@@ -22463,6 +22750,13 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
+  duplexify@4.1.3:
+    dependencies:
+      end-of-stream: 1.4.5
+      inherits: 2.0.4
+      readable-stream: 3.6.2
+      stream-shift: 1.0.3
+
   eastasianwidth@0.2.0: {}
 
   ee-first@1.1.1: {}
@@ -22836,10 +23130,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
+      '@typescript-eslint/parser': 8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
       eslint: 9.39.4(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
     transitivePeerDependencies:
@@ -22856,13 +23151,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-boundaries@5.4.0(eslint@9.39.4(jiti@2.7.0)):
+  eslint-plugin-boundaries@5.4.0(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0)):
     dependencies:
-      '@boundaries/elements': 1.2.0(eslint@9.39.4(jiti@2.7.0))
+      '@boundaries/elements': 1.2.0(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))
       chalk: 4.1.2
       eslint: 9.39.4(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.7.0))
       micromatch: 4.0.8
     transitivePeerDependencies:
       - '@typescript-eslint/parser'
@@ -23972,7 +24267,7 @@ snapshots:
   graphql-tag@2.12.7(graphql@15.10.2):
     dependencies:
       graphql: 15.10.2
-      tslib: 2.3.1
+      tslib: 2.8.1
 
   graphql-transformer-common@4.34.0:
     dependencies:
@@ -24383,7 +24678,7 @@ snapshots:
 
   is-lower-case@2.0.2:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   is-map@2.0.3: {}
 
@@ -24465,7 +24760,7 @@ snapshots:
 
   is-upper-case@2.0.2:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   is-weakmap@2.0.2: {}
 
@@ -24952,6 +25247,10 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lru-cache@6.0.0:
+    dependencies:
+      yallist: 4.0.0
 
   lru-cache@8.0.5: {}
 
@@ -25456,6 +25755,10 @@ snapshots:
 
   mkdirp@1.0.4: {}
 
+  mnemonist@0.38.3:
+    dependencies:
+      obliterator: 1.6.1
+
   motion-dom@12.42.0:
     dependencies:
       motion-utils: 12.39.0
@@ -25743,6 +26046,8 @@ snapshots:
       es-object-atoms: 1.1.2
 
   objectorarray@1.0.5: {}
+
+  obliterator@1.6.1: {}
 
   obug@2.1.3: {}
 
@@ -27435,7 +27740,7 @@ snapshots:
 
   sponge-case@1.0.1:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   sponge-case@2.0.3: {}
 
@@ -27511,6 +27816,8 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
       xtend: 4.0.2
+
+  stream-shift@1.0.3: {}
 
   streamx@2.28.0:
     dependencies:
@@ -27697,7 +28004,7 @@ snapshots:
 
   swap-case@2.0.2:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   swap-case@3.0.3: {}
 
@@ -27843,7 +28150,7 @@ snapshots:
 
   title-case@3.0.3:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   tldts-core@7.4.5: {}
 
@@ -28201,9 +28508,13 @@ snapshots:
 
   utils-merge@1.0.1: {}
 
+  uuid@10.0.0: {}
+
   uuid@11.1.1: {}
 
   uuid@7.0.3: {}
+
+  uuid@9.0.1: {}
 
   validate-npm-package-name@5.0.1: {}
 
@@ -28517,6 +28828,8 @@ snapshots:
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
+
+  yallist@4.0.0: {}
 
   yallist@5.0.0: {}
 
