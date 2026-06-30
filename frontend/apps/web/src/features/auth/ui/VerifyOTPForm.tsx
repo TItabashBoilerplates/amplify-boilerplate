@@ -12,7 +12,7 @@ import type { AuthFormState, VerifyOTPFormProps } from '../model/types'
 /**
  * OTP検証フォームコンポーネント
  *
- * 6桁のOTPコードを入力して認証するフォーム
+ * OTP コードを入力して認証するフォーム（コード長は Cognito 側に依存）
  *
  * @param email - メールアドレス（親コンポーネントから渡される）
  * @param redirectTo - 検証後のリダイレクト先（オプション）
@@ -101,12 +101,12 @@ export function VerifyOTPForm({ email, className }: VerifyOTPFormProps) {
               id="token"
               name="token"
               type="text"
-              placeholder="000000"
+              placeholder="00000000"
               required
               disabled={pending}
               className="pl-10 text-center text-2xl tracking-widest"
-              maxLength={6}
-              pattern="[0-9]{6}"
+              maxLength={8}
+              pattern="[0-9]{6,8}"
               autoComplete="one-time-code"
               inputMode="numeric"
             />

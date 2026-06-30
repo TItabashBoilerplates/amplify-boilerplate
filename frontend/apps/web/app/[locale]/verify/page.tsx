@@ -11,7 +11,7 @@ interface PageProps {
 /**
  * OTP検証ページ（Next.js App Router）
  *
- * メールで受け取った6桁のOTPコードを入力して認証
+ * メールで受け取った OTP コードを入力して認証
  * 国際化対応（ボタンベースの言語切り替え）
  *
  * @param searchParams - URLクエリパラメータ（email）
