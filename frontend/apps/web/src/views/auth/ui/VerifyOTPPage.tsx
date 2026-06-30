@@ -18,7 +18,7 @@ interface VerifyOTPPageProps {
 /**
  * OTP検証ページ
  *
- * メールで受け取った6桁のOTPコードを入力して認証
+ * メールで受け取った OTP コードを入力して認証
  *
  * @param email - 認証対象のメールアドレス
  *
@@ -45,7 +45,7 @@ export function VerifyOTPPage({ email }: VerifyOTPPageProps) {
             <ShieldCheck className="h-6 w-6 text-primary" />
             <CardTitle className="text-2xl">Verify Email</CardTitle>
           </div>
-          <CardDescription>Enter the 6-digit code we sent to your email</CardDescription>
+          <CardDescription>Enter the code we sent to your email</CardDescription>
         </CardHeader>
         <CardContent>
           <VerifyOTPForm email={email} />

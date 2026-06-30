@@ -9,6 +9,7 @@ import { useActionState, useState } from 'react'
 import { signInWithOtp } from '../api'
 import type { AuthFormState, LoginFormProps } from '../model/types'
 import { SocialSignInButtons } from './SocialSignInButtons'
+import { VerifyOTPForm } from './VerifyOTPForm'
 
 /**
  * OTP送信フォームコンポーネント
@@ -73,18 +74,13 @@ export function LoginForm({ className }: LoginFormProps) {
 
   // OTP送信後は検証フォームにリダイレクト
   // または、親コンポーネントで状態管理してもOK
+  // OTP 送信後は同一ページ内で検証フォームを表示する。
+  // 別ページ（/verify）へ遷移すると Amplify の進行中サインインセッション（メモリ保持）が
+  // 失われ confirmSignIn が "session has expired" で失敗するため、ここでインライン表示する。
   if (otpSent) {
     return (
       <div className={`space-y-4 ${className ?? ''}`}>
-        <div className="space-y-2 text-center">
-          <h2 className="text-2xl font-bold">{t('checkEmailTitle')}</h2>
-          <p className="text-muted-foreground">
-            {t.rich('checkEmailBody', { email, strong: (chunks) => <strong>{chunks}</strong> })}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/50 p-4">
-          <p className="text-sm text-muted-foreground">{t('checkEmailInstruction')}</p>
-        </div>
+        <VerifyOTPForm email={email} />
       </div>
     )
   }
