@@ -54,6 +54,7 @@
 | 状態管理 / 取得 (web) | `data-fetching` |
 | 状態管理 / 取得 (mobile) | `native-data-fetching` |
 | 認証ベストプラクティス（email / OTP / 2FA） | `email-and-password-best-practices`, `two-factor-authentication-best-practices`, `organization-best-practices`, `email-best-practices` |
+| 認証 E2E / Email OTP 自動テスト / OTP を CLI 取得 / Gmail 不要の認証検証 / `pnpm e2e:auth` | `e2e-auth` |
 | Stripe / 決済 / サブスク | `stripe-integration`, `stripe-best-practices` |
 | Resend / メール送信 / Webhook | `resend`, `resend-cli`, `send-email`, `react-email`, `email-best-practices`, `agent-email-inbox` |
 | LangChain / LangGraph / LangSmith / エージェント | `langchain` |

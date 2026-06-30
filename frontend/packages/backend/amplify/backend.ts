@@ -1,4 +1,8 @@
 import { defineBackend } from '@aws-amplify/backend'
+import { RemovalPolicy, Stack } from 'aws-cdk-lib'
+import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb'
+import { ServicePrincipal } from 'aws-cdk-lib/aws-iam'
+import { Key } from 'aws-cdk-lib/aws-kms'
 import {
   type Function as CdkFunction,
   FunctionUrlAuthType,
@@ -9,8 +13,13 @@ import { auth } from './auth/resource'
 import { data } from './data/resource'
 import { api } from './functions/api/resource'
 import { mcp } from './functions/mcp/resource'
+import { otpCapture } from './functions/otp-capture/resource'
 import { restApi } from './functions/rest-api/resource'
 import { storage } from './storage/resource'
+
+// E2E テスト専用: Cognito の Email OTP を DynamoDB に記録する CustomEmailSender を配線するか。
+// `AUTH_E2E_OTP_CAPTURE=true ampx sandbox` のときだけ有効。本番/通常 sandbox では一切デプロイしない。
+const e2eOtpCapture = process.env.AUTH_E2E_OTP_CAPTURE === 'true'
 
 /**
  * Amplify Gen2 バックエンド定義のエントリポイント。
@@ -28,6 +37,8 @@ const backend = defineBackend({
   api,
   restApi,
   mcp,
+  // E2E OTP キャプチャ関数は opt-in のときだけ含める（通常デプロイには現れない）
+  ...(e2eOtpCapture ? { otpCapture } : {}),
 })
 
 // --- FastAPI Lambda の配線 -------------------------------------------------
@@ -100,11 +111,55 @@ for (const fn of [backend.api, backend.restApi, backend.mcp]) {
 backend.auth.resources.cfnResources.cfnUserPool.deletionProtection = 'ACTIVE'
 
 // フロントエンドが参照できるよう amplify_outputs.json の custom に出力
-backend.addOutput({
-  custom: {
-    backendApiUrl: apiUrl.url, // FastAPI(Python) Lambda
-    restApiUrl: restApiUrl.url, // REST API(TypeScript/Hono) Lambda
-    mcpUrl: mcpUrl.url, // MCP(TypeScript) Lambda（/mcp）
-    notificationsTopicArn: notificationsTopic.topicArn,
-  },
-})
+const customOutputs: Record<string, string> = {
+  backendApiUrl: apiUrl.url, // FastAPI(Python) Lambda
+  restApiUrl: restApiUrl.url, // REST API(TypeScript/Hono) Lambda
+  mcpUrl: mcpUrl.url, // MCP(TypeScript) Lambda（/mcp）
+  notificationsTopicArn: notificationsTopic.topicArn,
+}
+
+// --- E2E 専用: Cognito CustomEmailSender で Email OTP を DynamoDB にキャプチャ -------
+// AUTH_E2E_OTP_CAPTURE=true のときだけ配線。Gmail 等の外部メールボックスに依存せず、
+// CLI/AI が OTP を取得して認証フローを一気通貫で検証できるようにする。本番では作成しない。
+// @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-email-sender.html
+if (e2eOtpCapture) {
+  // e2eOtpCapture が true のときだけ defineBackend に含めているため非 null
+  const captureFn = backend.otpCapture?.resources.lambda as CdkFunction
+  // KMS/テーブルも auth スタックに同居させ、nested stack 間の参照（循環依存）を作らない。
+  const stack = Stack.of(backend.auth.resources.userPool)
+
+  // OTP 保存テーブル（TTL 10 分・破棄可能）
+  const table = new Table(stack, 'OtpCaptureTable', {
+    partitionKey: { name: 'email', type: AttributeType.STRING },
+    billingMode: BillingMode.PAY_PER_REQUEST,
+    timeToLiveAttribute: 'ttl',
+    removalPolicy: RemovalPolicy.DESTROY,
+  })
+
+  // Cognito が OTP を暗号化 / Lambda が復号するための KMS キー
+  const key = new Key(stack, 'OtpKmsKey', { removalPolicy: RemovalPolicy.DESTROY })
+  const cognito = new ServicePrincipal('cognito-idp.amazonaws.com')
+  key.grant(cognito, 'kms:Encrypt', 'kms:Decrypt', 'kms:GenerateDataKey*', 'kms:CreateGrant')
+  key.grantDecrypt(captureFn)
+  table.grantWriteData(captureFn)
+
+  captureFn.addEnvironment('KEY_ID', key.keyId)
+  captureFn.addEnvironment('KEY_ARN', key.keyArn)
+  captureFn.addEnvironment('CAPTURE_TABLE_NAME', table.tableName)
+
+  // Cognito から関数を invoke 許可（sourceAccount で User Pool ⇄ Lambda の循環参照を回避）
+  captureFn.addPermission('CognitoCustomEmailSenderInvoke', {
+    principal: cognito,
+    sourceAccount: stack.account,
+  })
+
+  // User Pool に CustomEmailSender トリガ + KMS キーを設定（CDK エスケープハッチ）
+  const cfnUserPool = backend.auth.resources.cfnResources.cfnUserPool
+  cfnUserPool.addPropertyOverride('LambdaConfig.CustomEmailSender.LambdaArn', captureFn.functionArn)
+  cfnUserPool.addPropertyOverride('LambdaConfig.CustomEmailSender.LambdaVersion', 'V1_0')
+  cfnUserPool.addPropertyOverride('LambdaConfig.KMSKeyID', key.keyArn)
+
+  customOutputs.otpCaptureTableName = table.tableName
+}
+
+backend.addOutput({ custom: customOutputs })

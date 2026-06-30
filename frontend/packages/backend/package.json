@@ -15,9 +15,12 @@
     "generate-outputs": "ampx generate outputs",
     "generate-graphql-client": "ampx generate graphql-client-code",
     "pipeline-deploy": "ampx pipeline-deploy",
-    "type-check": "tsc --noEmit -p amplify/tsconfig.json"
+    "type-check": "tsc --noEmit -p amplify/tsconfig.json",
+    "e2e:auth": "node scripts/e2e-auth-otp.mjs"
   },
   "dependencies": {
+    "@aws-crypto/client-node": "^5.0.0",
+    "@aws-sdk/client-dynamodb": "^3.1076.0",
     "@hono/mcp": "^0.3.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@workspace/backend-core": "workspace:*",
