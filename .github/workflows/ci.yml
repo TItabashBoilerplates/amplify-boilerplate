@@ -19,22 +19,27 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Biome (lint + format check)
-        run: bun run lint:ci
+        run: pnpm run lint:ci
       # amplify_outputs.json は生成物（gitignore）。CI では AWS にデプロイせず型チェック/ビルドを
       # 通すため、公開情報のみのスタブ（apps/web/amplify_outputs.ci.json, シークレットなし）を
       # 配置する。実環境の出力は Amplify Hosting が backend デプロイ後に生成する（amplify.yml）。
       - name: Stub amplify_outputs.json (no secrets; type-check/build only)
         run: cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
       - name: Type check (tsc)
-        run: bun run type-check
+        run: pnpm run type-check
       - name: Build (next build)
-        run: bun run --filter @workspace/web build
+        run: pnpm run --filter @workspace/web build
 
   backend-py:
     name: Backend (ruff + mypy + pytest)
