@@ -11,11 +11,11 @@ type: feedback
 
 **Why:**
 - 元々 Makefile を使っていたが、2026-04 に devenv tasks/scripts への一本化を実施 (Makefile は deprecated)。
-- 直接 `bun run biome`, `uv run ruff`, `npx tsc` 等を叩くと環境差異・CI 不整合・profile (env) 未読み込みのリスクがある。
+- 直接 `pnpm run biome`, `uv run ruff`, `npx tsc` 等を叩くと環境差異・CI 不整合・profile (env) 未読み込みのリスクがある。
 - devenv profile (既定 local / `-P dev` / `-P staging` / `-P production`) と組み合わせることで、env 切替を含めた一貫した実行環境が保証される。
 
 **How to apply:**
-- コード変更後の品質確認時、`bun run biome`, `uv run ruff`, `npx tsc` 等を直接実行しない。
+- コード変更後の品質確認時、`pnpm run biome`, `uv run ruff`, `npx tsc` 等を直接実行しない。
 - `make X` も使わない（Makefile は deprecation stub になっており、使うと案内のみ表示される）。
 - 代わりに `lint`, `format`, `type-check`, `ci-check` などの devenv scripts を使う。
 - マイグレーション・デプロイなど pipeline 系は `devenv tasks run <namespace:name>` を使う。

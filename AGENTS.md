@@ -65,8 +65,8 @@ e2e / e2e-web / e2e-mobile   # Maestro
 
 ```bash
 # WRONG
-cd frontend && bun run biome check --write
-cd frontend/packages/backend && bunx ampx sandbox
+cd frontend && pnpm run biome check --write
+cd frontend/packages/backend && pnpm dlx ampx sandbox
 npx tsc --noEmit
 make lint           # ❌ Makefile は削除済み
 

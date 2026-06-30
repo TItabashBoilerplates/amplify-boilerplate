@@ -28,7 +28,7 @@ paths: frontend/**/*.{ts,tsx,js,jsx}
 
 ## Monorepo Structure
 
-このプロジェクトは Bun workspace によるモノレポ構成：
+このプロジェクトは pnpm workspace によるモノレポ構成：
 
 ```
 frontend/

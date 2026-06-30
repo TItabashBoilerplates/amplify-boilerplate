@@ -35,17 +35,19 @@
 
 | 対象 | マネージャ | コマンド |
 |---|---|---|
-| **TypeScript / Node**（`frontend/` 全体・Amplify Functions の依存） | **bun** | `bun add <pkg>` / `bun install` |
+| **TypeScript / Node**（`frontend/` 全体・Amplify Functions の依存） | **pnpm** | `pnpm add <pkg>` / `pnpm install` |
 | **Python**（`backend-py/`） | **uv** | `uv add --package <member> <pkg>` / `uv sync` |
-| **CLI runner** | **bunx** | `bunx ampx ...`（npx は使わない）。Amplify backend は devenv script（`sandbox` 等）優先 |
+| **CLI runner** | **pnpm exec / pnpm dlx** | `pnpm exec ampx ...`（npx・bunx は使わない）。Amplify backend は devenv script（`sandbox` 等）優先 |
 
-- **npm / pnpm / yarn は使わない**（TS 側は bun に統一。`frontend/package.json` は `packageManager: bun`）。
-- 例外: Amplify Hosting のビルドイメージに bun が無いため `amplify.yml` の **bootstrap だけ** `npm install -g bun`
-  を許容する（その後は `bun install` / `bunx ampx`）。
+- **npm / yarn / bun は使わない**（TS 側は pnpm に統一。`frontend/package.json` は `packageManager: pnpm`）。
+  Amplify Gen2 CLI（`ampx`）は npm/yarn/pnpm のみ対応で **bun を `UnsupportedPackageManagerError` で拒否する**ため、
+  ampx を回す TS 側は pnpm に統一している。
+- 例外: Amplify Hosting のビルドイメージに pnpm が無いため `amplify.yml` の **bootstrap だけ** `npm install -g pnpm`
+  を許容する（その後は `pnpm install` / `pnpm exec ampx`）。
 
 ## 4. 強制事項
 
 - バックエンドの新規実装で**正当な escalation 理由なく Python を選んだ場合はやり直し**。
-- TS 依存追加に `npm`/`pnpm`/`yarn` を使った場合もやり直し（`bun` を使う）。
+- TS 依存追加に `npm`/`yarn`/`bun` を使った場合もやり直し（`pnpm` を使う）。
 - 関連: `.claude/rules/backend-py.md`（Python 規約）/ `.claude/skills/amplify-gen2`（実装ガイド）/
   `.claude/rules/commands.md`（devenv コマンド）。

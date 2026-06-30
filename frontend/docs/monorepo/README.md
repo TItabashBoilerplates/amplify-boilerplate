@@ -209,19 +209,19 @@ apps/
 
 ```bash
 cd frontend
-bun run dev
+pnpm run dev
 ```
 
 ### ビルド
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 ### shadcn/uiコンポーネント追加
 
 ```bash
-bun run ui:add button
+pnpm run ui:add button
 ```
 
 正しく`packages/ui/components/ui/button.tsx`に追加されます。
@@ -229,7 +229,7 @@ bun run ui:add button
 ### 型生成
 
 ```bash
-bun run generate:types
+pnpm run generate:types
 ```
 
 Supabase型が`packages/types/src/database.ts`に生成されます。
@@ -274,19 +274,19 @@ Supabase型が`packages/types/src/database.ts`に生成されます。
 1. **モバイルアプリの追加**
    ```bash
    cd apps
-   bunx create-expo-app mobile
+   pnpm dlx create-expo-app mobile
    ```
 
 2. **Storybookの導入**
    ```bash
    cd packages/ui
-   bunx storybook@latest init
+   pnpm dlx storybook@latest init
    ```
 
 3. **E2Eテストの追加**
    ```bash
    cd apps/web
-   bunx playwright init
+   pnpm dlx playwright init
    ```
 
 4. **CI/CDの最適化**

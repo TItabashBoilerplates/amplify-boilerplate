@@ -200,8 +200,8 @@
     "test": "turbo test",
     "type-check": "turbo type-check",
     "clean": "turbo clean && rm -rf node_modules",
-    "ui:add": "cd apps/web && bunx shadcn@canary add",
-    "generate:types": "bun run scripts/generate-types.ts"
+    "ui:add": "cd apps/web && pnpm dlx shadcn@canary add",
+    "generate:types": "pnpm run scripts/generate-types.ts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
@@ -541,7 +541,7 @@
 ```json
 "components": "@workspace/ui/components"
 ```
-- `bunx shadcn@canary add button`で追加されるコンポーネントの保存先
+- `pnpm dlx shadcn@canary add button`で追加されるコンポーネントの保存先
 - `packages/ui/components/ui/button.tsx`に追加される
 
 #### `aliases.utils`
@@ -759,7 +759,7 @@ try {
 
 **実行:**
 ```bash
-bun run scripts/generate-types.ts
+pnpm run scripts/generate-types.ts
 ```
 
 ---

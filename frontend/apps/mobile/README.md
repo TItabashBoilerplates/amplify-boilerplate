@@ -41,10 +41,10 @@ import { GluestackUIProvider } from '@workspace/ui/mobile/components/gluestack-u
 
 ```bash
 # From frontend directory
-bun run ui:add:mobile button card input
+pnpm run ui:add:mobile button card input
 
 # Or directly from this directory
-bunx gluestack-ui@latest add button --use-bun
+pnpm dlx gluestack-ui@latest add button --use-bun
 ```
 
 Components are installed to `packages/ui/mobile/components/`.
@@ -69,26 +69,26 @@ Components are installed to `packages/ui/mobile/components/`.
 ```bash
 # Install dependencies (from frontend root)
 cd frontend
-bun install
+pnpm install
 
 # Start Expo development server
 cd apps/mobile
-bun run start
+pnpm run start
 
 # Or with specific platform
-bun run ios      # iOS Simulator
-bun run android  # Android Emulator
-bun run web      # Web browser
+pnpm run ios      # iOS Simulator
+pnpm run android  # Android Emulator
+pnpm run web      # Web browser
 ```
 
 ### Common Commands
 
 ```bash
-bun run start              # Start Expo dev server
-bun run ios                # Run on iOS Simulator
-bun run android            # Run on Android Emulator
-bun run web                # Run in web browser
-bun run type-check         # TypeScript type check
+pnpm run start              # Start Expo dev server
+pnpm run ios                # Run on iOS Simulator
+pnpm run android            # Run on Android Emulator
+pnpm run web                # Run in web browser
+pnpm run type-check         # TypeScript type check
 ```
 
 ## Styling with NativeWind
@@ -196,7 +196,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ```bash
 # Clear Metro cache
-bun run start --clear
+pnpm run start --clear
 ```
 
 ### NativeWind Not Working
@@ -209,7 +209,7 @@ bun run start --clear
 
 ```bash
 # Run type check
-bun run type-check
+pnpm run type-check
 ```
 
 ## Additional Resources

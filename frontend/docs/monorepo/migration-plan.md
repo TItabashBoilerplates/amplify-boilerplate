@@ -27,7 +27,7 @@
 
 ```bash
 cd /Users/tknr/Development/shadcn-boilerplate/frontend
-bun add -D turbo @turbo/gen
+pnpm add -D turbo @turbo/gen
 ```
 
 #### 1.2 `turbo.json`の作成
@@ -101,8 +101,8 @@ bun add -D turbo @turbo/gen
     "test": "turbo test",
     "type-check": "turbo type-check",
     "clean": "turbo clean && rm -rf node_modules",
-    "ui:add": "cd apps/web && bunx shadcn@canary add",
-    "generate:types": "bun run scripts/generate-types.ts"
+    "ui:add": "cd apps/web && pnpm dlx shadcn@canary add",
+    "generate:types": "pnpm run scripts/generate-types.ts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
@@ -120,8 +120,8 @@ bun add -D turbo @turbo/gen
 #### 1.4 検証
 
 ```bash
-bun install
-bunx turbo --version
+pnpm install
+pnpm dlx turbo --version
 ```
 
 ✅ **Phase 1完了確認:** `turbo --version`が表示されればOK
@@ -164,7 +164,7 @@ mv .prettierrc.yaml apps/web/
 
 # バックアップ
 cp package.json package.json.backup
-cp bun.lock bun.lock.backup
+cp pnpm-lock.yaml pnpm-lock.yaml.backup
 ```
 
 #### 2.3 `apps/web/package.json`の作成
@@ -211,8 +211,8 @@ cp bun.lock bun.lock.backup
 
 ```bash
 cd apps/web
-bun install
-bun run dev
+pnpm install
+pnpm run dev
 ```
 
 ✅ **Phase 2完了確認:** `http://localhost:3000`で画面が表示されればOK
@@ -310,7 +310,7 @@ export { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 ```bash
 cd frontend/apps/web
-bunx shadcn@canary init --monorepo
+pnpm dlx shadcn@canary init --monorepo
 ```
 
 **プロンプトへの回答:**
@@ -328,7 +328,7 @@ bunx shadcn@canary init --monorepo
 
 ```bash
 cd frontend/apps/web
-bunx shadcn@canary add button
+pnpm dlx shadcn@canary add button
 
 # 正しく packages/ui/components/ui/ にインストールされるか確認
 ```
@@ -367,7 +367,7 @@ bun init -y
     "./api": "./src/api/index.ts"
   },
   "scripts": {
-    "generate": "bun run ../../scripts/generate-types.ts",
+    "generate": "pnpm run ../../scripts/generate-types.ts",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit"
   },
@@ -401,7 +401,7 @@ console.log('✅ Type generation complete!')
 
 ```bash
 cd frontend
-bun run scripts/generate-types.ts
+pnpm run scripts/generate-types.ts
 ```
 
 #### 4.4 `packages/types/src/index.ts`の作成
@@ -478,9 +478,9 @@ export interface User {
 
 ```bash
 cd frontend/apps/web
-bun run type-check
-bun run lint
-bun run build
+pnpm run type-check
+pnpm run lint
+pnpm run build
 ```
 
 ✅ **Phase 5完了確認:** ビルドエラーがなければOK
@@ -499,15 +499,15 @@ bun run build
 
 ```bash
 cd frontend
-bun run clean
-bun install
-bun run build
+pnpm run clean
+pnpm install
+pnpm run build
 ```
 
 #### 6.2 開発サーバー起動
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 ブラウザで`http://localhost:3000`にアクセスし、以下を確認：
@@ -520,7 +520,7 @@ bun run dev
 
 ```bash
 # 2回目のビルドが高速化されるか確認
-bun run build
+pnpm run build
 
 # キャッシュヒット率を確認
 ```
@@ -528,7 +528,7 @@ bun run build
 #### 6.4 shadcn/ui コンポーネント追加テスト
 
 ```bash
-bun run ui:add dialog
+pnpm run ui:add dialog
 ```
 
 正しく`packages/ui/components/ui/dialog.tsx`に追加されるか確認。
@@ -546,7 +546,7 @@ cd frontend
 
 # バックアップから復元
 cp package.json.backup package.json
-cp bun.lock.backup bun.lock
+cp pnpm-lock.yaml.backup pnpm-lock.yaml
 
 # apps/webの内容をルートに戻す
 cp -r apps/web/* .
@@ -556,7 +556,7 @@ rm -rf apps/ packages/ tooling/ scripts/
 rm turbo.json
 
 # 依存関係を再インストール
-bun install
+pnpm install
 ```
 
 ---
@@ -568,19 +568,19 @@ bun install
 1. **モバイルアプリの追加**
    ```bash
    cd frontend/apps
-   bunx create-expo-app mobile
+   pnpm dlx create-expo-app mobile
    ```
 
 2. **ドキュメントサイトの追加**
    ```bash
    cd frontend/apps
-   bunx create-next-app@latest docs
+   pnpm dlx create-next-app@latest docs
    ```
 
 3. **Storybookの追加**
    ```bash
    cd frontend/packages/ui
-   bunx storybook@latest init
+   pnpm dlx storybook@latest init
    ```
 
 ---
