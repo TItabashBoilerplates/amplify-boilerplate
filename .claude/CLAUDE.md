@@ -59,7 +59,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 | **Auth**              | Amazon Cognito（Amplify Auth, Email OTP passwordless）|
 | **Data**              | AWS AppSync + DynamoDB（Amplify Data, `a.schema`）    |
 | **Storage**           | Amazon S3（Amplify Storage）                          |
-| **Backend (compute)** | FastAPI on AWS Lambda（Amplify custom function, Python + Mangum）|
+| **Backend (compute)** | **既定: TypeScript Amplify Functions（Node `defineFunction`）**／Python が必須のときだけ FastAPI on Lambda（Python + Mangum, escalation 用に同梱）|
 | **Notifications**     | Amazon SNS（モバイルプッシュは Pinpoint を別途）       |
 | **Secrets**           | Amplify secrets（SSM Parameter Store）                |
 | **Hosting / CI-CD**   | AWS Amplify Hosting（`amplify.yml`）                  |
@@ -75,8 +75,12 @@ packages/backend/amplify/
 ├── auth/resource.ts      # Cognito（Email OTP）
 ├── data/resource.ts      # AppSync + DynamoDB（a.schema, userPool 認可）
 ├── storage/resource.ts   # S3（非公開・path 単位アクセス）
-└── functions/api/        # FastAPI を載せた Python Lambda（CDK）
+└── functions/api/        # Python escalation 用の同梱例（FastAPI Lambda, CDK）。既定の新規関数は Node defineFunction（TS）
 ```
+
+> バックエンドは**原則すべて Amplify ベストプラクティス（TS）で実装**する。`backend-py/` の Python 環境は
+> §`backend-architecture.md` のトリガー（LLM/長時間/Python固有/既存資産）に該当するときだけ使う escalation 用で、
+> **使う必要がなければ使わなくてよい**。
 
 フロントは `import type { Schema } from '@workspace/backend'` で型共有、
 `getDataClient()`（`@workspace/data-client`）でデータアクセス。

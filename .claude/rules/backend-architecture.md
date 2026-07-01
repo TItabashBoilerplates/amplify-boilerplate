@@ -3,6 +3,12 @@
 **MANDATORY / NON-NEGOTIABLE**: バックエンドの既定は **Amplify のベストプラクティス構成**
 （TypeScript の Amplify Functions）。Python バックエンドは**特殊要件があるときだけ**用意する。
 
+> **原則（最重要）**: バックエンドは**原則すべて Amplify のベストプラクティスに則って実装する**
+> （Amplify Data / Auth / Storage / AppSync + Node `defineFunction`）。
+> **`backend-py/`（Python 環境）は「どうしても Python でなければ実現できない」escalation 用に同梱しているだけで、
+> 既定の選択肢ではない。** §2 のトリガーに明確に該当しない限り Python は使わない。
+> **使う必要がなければ、まったく使わなくてよい**（空のまま放置して構わない。無理に活用しようとしない）。
+
 ## 1. 既定: TypeScript（Amplify Functions / Node）
 
 新規のバックエンド処理は、原則この順で検討する:
@@ -30,6 +36,10 @@
 
 いずれにも該当しなければ Python を使わない。**判断に迷う場合はユーザーに確認**する
 （`.claude/rules/feedback_ask_user_when_unsure.md`）。
+
+> **「使わない」が正常状態**: 上記トリガーが無いプロジェクト/機能では `backend-py/` を一切触らないのが正しい。
+> 環境が用意されていること自体は「Python を使え」という意味ではない。Python の雛形（`apps/api` 等）が
+> 存在することを理由に、TS で十分な処理をわざわざ Python へ持っていってはならない。
 
 ## 3. パッケージマネージャ（厳守）
 
