@@ -34,7 +34,7 @@ frontend/packages/backend/            # @workspace/backend — the ONLY place ba
     ├── auth/resource.ts              # defineAuth — Cognito, passwordless Email OTP
     ├── data/resource.ts              # defineData — a.schema(), userPool default authz  (export type Schema)
     ├── storage/resource.ts           # defineStorage — S3, private, path-based
-    └── functions/api/resource.ts     # Python Lambda (CDK) running FastAPI (Mangum)
+    └── functions/api/resource.ts     # Python Lambda (CDK) running FastAPI (Mangum) — escalation-only example; default new functions are Node defineFunction (TS)
 
 frontend/packages/data-client/        # @workspace/data-client — getDataClient() = generateClient<Schema>()
 frontend/packages/auth/               # @workspace/auth — AuthProvider / NativeAuthProvider / useAuthUser
@@ -96,8 +96,12 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 - **Datetime** = `a.datetime()` (`AWSDateTime`, UTC ISO 8601). See `.claude/rules/datetime.md`.
 - **Secrets** go to Amplify secrets (SSM): `ampx sandbox secret set NAME` →
   `secret('NAME')` in a resource def. Never hardcode or put secrets in `amplify_outputs.json`.
-- **Backend compute escalation**: simple CRUD → Amplify Data directly; light glue →
-  Node `defineFunction`; heavy/LLM/Python → the FastAPI Lambda (`functions/api`).
+- **Backend compute escalation (TypeScript-first)**: simple CRUD → Amplify Data directly;
+  any server code → **Node `defineFunction` (TypeScript — the default for *all* backend logic)**.
+  The Python FastAPI Lambda (`functions/api`) is **escalation-only**: use it *only* on a clear
+  trigger — LLM/agents, work exceeding Lambda's 15-min sync limit / heavy compute, Python-only
+  libraries, or existing Python assets. No trigger → **don't use Python at all** (it's bundled
+  for those cases, not a default). See `.claude/rules/backend-architecture.md`.
 
 ## Commands (devenv scripts; need AWS credentials)
 
@@ -105,9 +109,9 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 sandbox            # ampx sandbox — provision per-dev stack + watch + generate amplify_outputs.json
 sandbox-once       # ampx sandbox --once (CI/verify)
 sandbox-delete     # tear down the sandbox
-# secrets / outputs (run inside frontend/packages/backend):
-bunx ampx sandbox secret set NAME
-bunx ampx generate outputs --branch <b> --app-id <id> --out-dir ../../apps/web
+# secrets / outputs (run inside frontend/packages/backend; use pnpm — never bunx, ampx rejects bun):
+pnpm exec ampx sandbox secret set NAME
+pnpm exec ampx generate outputs --branch <b> --app-id <id> --out-dir ../../apps/web
 ```
 
 Deploy is handled by Amplify Hosting via `amplify.yml` (`ampx pipeline-deploy`), not run
