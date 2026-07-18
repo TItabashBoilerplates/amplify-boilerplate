@@ -1,111 +1,79 @@
 # Claude Code on the web 環境セットアップ手順
 
-このリポジトリを **Claude Code on the web**（クラウドセッション）で動かすための環境構築手順。
+このリポジトリを **Claude Code on the web**（クラウドセッション / 以下 CCR）で動かすための環境構築手順。
 ローカルと同じ **devenv / direnv（Nix）** 環境を、クラウドのコンテナ上に再現する。
 
 > 出典: [Claude Code on the web 公式ドキュメント](https://code.claude.com/docs/en/claude-code-on-the-web)
-> （"Setup scripts vs. SessionStart hooks"）
 
 ---
 
-## 全体像（二層構成）
+## 方針: 単一のセットアップスクリプト（CCR 専用・ローカル非干渉）
 
-Claude Code on the web のセットアップは、役割の異なる **2つの層**で構成する。
+セットアップは **`scripts/claude-code-web-setup.sh` 一枚**で完結する。この方式は
+**ローカル開発環境に一切影響しない**のが最大の特徴:
 
-| 層 | 置き場所 | 役割 | repo 依存 |
-|---|---|---|---|
-| **① 環境のセットアップスクリプト** | クラウド環境設定の **Setup script 欄**（Web UI・手動で貼る） | nix / cachix / devenv / direnv の**インストール**（重い・**初回のみ実行されキャッシュ**される） | ❌ 非依存 |
-| **② SessionStart フック** | repo の `.claude/hooks/session-start.sh`（`.claude/settings.json` で配線） | devenv 環境の**有効化**（`direnv allow` ＋ `$CLAUDE_ENV_FILE` への引き継ぎ。**毎セッション実行**） | ✅ 依存 |
+- スクリプトは **CCR 環境設定の Setup script 欄に手で貼る用**。ローカルの `claude` では実行されない。
+- `.claude/settings.json` の **SessionStart フック等の repo 配線は使わない**（フックはローカルでも
+  走ってしまうため）。よってローカルの devenv/direnv 設定には何も触れない。
+- クラウドへの環境引き継ぎは **`BASH_ENV`（CCR の環境変数欄でのみ設定）** で行う。この変数は
+  ローカルには存在しないため、ローカルの Bash からローダが読まれることは決してない。
 
 ```
-保存 → 新セッション
-  ├─ ① Setup script (Web UI に貼る)   : nix/devenv/direnv を導入（初回のみ・以後キャッシュ）
-  └─ ② SessionStart フック (repo)      : direnv allow → devenv 環境を $CLAUDE_ENV_FILE に書き出し
-        → Claude の Bash で lint / pnpm / sandbox / aws が直接通る
+CCR 環境設定
+  ├─ ① Setup script 欄   : scripts/claude-code-web-setup.sh の中身を貼る
+  │                        （nix/devenv/direnv 導入 + /usr/local/bin へ symlink + BASH_ENV ローダ生成）
+  └─ ② 環境変数 欄        : BASH_ENV=/root/.ccr-devenv-env.sh を追加
+        → clone 後の初回 Bash が devenv 環境を生成・キャッシュ
+        → 以後 lint / format / sandbox / dev-web / pnpm / uv / aws が *裸で* 通る
 ```
 
-> **なぜ devcontainer ではないのか**: Claude Code on the web の正規機構は devcontainer.json ではなく
-> 「環境の Setup script ＋ repo の SessionStart フック」。両者は実行文脈が異なる（下記の落とし穴参照）。
+> **なぜ Docker / Supabase の調整が無いのか**: 本リポジトリは AWS Amplify Gen2 ベースで、
+> バックエンドのローカル実行は**クラウドの `ampx sandbox`** で行う。ローカル Docker スタック
+> （旧 Supabase の realtime / edge-runtime）は無いので、dockerd 起動やイメージパッチは一切不要。
 
 ---
 
-## ① 環境のセットアップスクリプト（Web UI に貼る）
+## 設定手順（この2点をセットで行う）
 
-クラウド環境設定ダイアログの **Setup script** 欄に、`scripts/cloud-setup.sh` の中身を**丸ごと貼り付けて保存**する。
+### ① Setup script 欄
 
-> `scripts/cloud-setup.sh` は repo にもコミットしてあるが、それは**バージョン管理・レビュー用のリファレンス**。
-> repo から自動実行されるわけではないため、**中身を Web UI に手でコピペする**必要がある。
+CCR 環境設定ダイアログの **Setup script** 欄に、`scripts/claude-code-web-setup.sh` の中身を
+**丸ごと貼り付けて保存**する。
 
-```bash
-#!/bin/bash
-set -e
+> repo にコミットしてあるのは**バージョン管理・レビュー用**。repo から自動実行されるわけではない
+> ため、**中身を Web UI に手でコピペ**する必要がある。
 
-NIX_PROFILE_SCRIPT="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+このスクリプトがやること:
 
-# Nix（Determinate Systems installer / daemonless コンテナ向け --init none）
-if ! command -v nix >/dev/null 2>&1; then
-  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix \
-    | sh -s -- install linux --no-confirm --init none
-fi
-# shellcheck disable=SC1090
-. "$NIX_PROFILE_SCRIPT"
+1. **Determinate Nix** を `--init none`（systemd 不要 / root-only）でインストール
+2. `cachix` / `devenv` / `direnv` を nix profile に導入
+3. それらを **`/usr/local/bin` に symlink**（非対話の Bash ツールシェルでも `devenv` が解決する）
+4. **`BASH_ENV` 遅延ローダ** (`/root/.ccr-devenv-env.sh`) を書き出す
 
-# devenv のバイナリキャッシュ（初回ビルド高速化）
-command -v cachix >/dev/null 2>&1 || nix profile add nixpkgs#cachix
-cachix use devenv || true
+### ② 環境変数 欄
 
-# devenv / direnv 本体
-command -v devenv >/dev/null 2>&1 || nix profile add nixpkgs#devenv
-command -v direnv >/dev/null 2>&1 || nix profile add nixpkgs#direnv
+CCR 環境設定の **環境変数** 欄に、次の1行を追加する:
 
-# 対話/teleport シェル用に ~/.bashrc にも有効化を追記
-# __ETC_PROFILE_NIX_SOURCED が残ると nix-daemon.sh が早期 return するため unset してから source。
-BASHRC="${HOME:-/root}/.bashrc"
-touch "$BASHRC"
-if ! grep -qF '__ETC_PROFILE_NIX_SOURCED' "$BASHRC" 2>/dev/null; then
-  {
-    echo ''
-    echo '# nix + direnv (added by cloud-setup.sh)'
-    echo 'unset __ETC_PROFILE_NIX_SOURCED'
-    echo ". $NIX_PROFILE_SCRIPT"
-    echo 'eval "$(direnv hook bash)"'
-  } >> "$BASHRC"
-fi
-
-echo "✅ cloud-setup: nix / devenv / direnv ready (devenv activation は SessionStart フックで実施)"
+```
+BASH_ENV=/root/.ccr-devenv-env.sh
 ```
 
-### 手順
+> ★ **これが無いとローダが動かず、`lint` / `sandbox` 等が裸で通らない**（必須）。
+> セットアップスクリプトからはツールシェルの環境変数を直接セットできないため、
+> `BASH_ENV` の付与だけはこの「環境変数」欄で行う。
 
-1. 環境設定ダイアログを開く → **Setup script** 欄
-2. 既存内容（AWS CLI 手動インストール等）を**全部消して**、上の内容を貼る → **保存**
-3. **新しいセッションを開始**（Setup script を変更するとキャッシュが再ビルドされる）
-
-> **AWS CLI の手動インストールは不要**。`awscli2` は `devenv.nix` に宣言済みのため、devenv 環境が立てば
-> `aws` も供給される。Setup script から AWS CLI のインストール記述は削除してよい。
+設定後、**新しいセッションを開始**する（Setup script を変更するとキャッシュが再ビルドされる）。
 
 ---
 
-## ② SessionStart フック（repo 側・配線済み）
-
-`.claude/hooks/session-start.sh` が repo にコミット済みで、`.claude/settings.json` に配線済み。
-**main にマージされていれば自動で効く**（手動設定は不要）。
-
-役割:
-
-- ガードを `unset` して nix を読み込み、プロファイル bin を PATH に prepend
-- `cd "$CLAUDE_PROJECT_DIR"` → `direnv allow`
-- **devenv 環境を `$CLAUDE_ENV_FILE` に書き出す**（Claude の後続 Bash へ引き継ぐ唯一の正規手段）
-
----
-
-## 落とし穴（実セッションで判明した根本原因）
+## 落とし穴（なぜこの構成なのか）
 
 | # | 問題 | 対処 |
 |---|---|---|
-| 1 | **Setup script は「環境」に属し repo 非依存**（`$CLAUDE_PROJECT_DIR` 未設定・CWD は repo ルートでない）。repo 内パスを参照すると `exit 127` | repo 依存処理は **SessionStart フック**に置く（`$CLAUDE_PROJECT_DIR` はここでだけ使える） |
-| 2 | **Claude の Bash は非ログイン非対話 shell → `~/.bashrc` を読まない**。bashrc 追記では devenv/nix が PATH に乗らない | SessionStart フックで **`$CLAUDE_ENV_FILE`** に環境を書き出す（公式の正規手段） |
-| 3 | **`__ETC_PROFILE_NIX_SOURCED` が基底環境に残ると `nix-daemon.sh` が早期 return** し PATH を追加しない | `unset` してから source ＋ プロファイル bin を直接 PATH に prepend |
+| 1 | **Setup script は clone 前・repo 非依存**（`$CLAUDE_PROJECT_DIR` 未設定）。repo 内 `devenv.nix` を要する事前ビルドはここでは不可 | Setup script は**ローダだけ**書き、devenv 環境の生成は clone 後の初回 Bash（`BASH_ENV` 経由）に遅延させる |
+| 2 | **Claude の Bash は非ログイン非対話 shell → `~/.bashrc` を読まない**。bashrc 追記では devenv/nix が PATH に乗らない | (a) `/usr/local/bin` へ symlink（`devenv` を裸で解決）＋ (b) `BASH_ENV` ローダで devenv 環境を毎シェルに source |
+| 3 | **`__ETC_PROFILE_NIX_SOURCED` が残ると `nix-daemon.sh` が早期 return** し PATH を追加しない | `unset` してから source ＋ プロファイル bin を直接 PATH に prepend |
+| 4 | **初回のみ devenv ビルドが遅い**（`*.cachix.org` は既定 allowlist 外） | 環境の Custom allowlist に `*.cachix.org` と `install.determinate.systems` を足すと高速化。`*.nixos.org` は既定許可のため toolchain 自体はプリビルド取得できる |
 
 ---
 
@@ -113,12 +81,21 @@ echo "✅ cloud-setup: nix / devenv / direnv ready (devenv activation は Sessio
 
 ```bash
 which devenv direnv aws    # すべて解決すること
-echo "$PATH"               # nix profile bin / devenv profile bin が含まれること
-lint                       # devenv の script が直接叩けること（例）
+lint-frontend              # devenv の script が直接叩けること（例）
+bootstrap                  # 依存インストール（pnpm install + uv sync）
 ```
 
-うまく devenv が見えない場合は `echo "$PATH"` と `which devenv`、`cat "$CLAUDE_ENV_FILE"` の出力を確認し、
-`$CLAUDE_ENV_FILE` への引き継ぎ（`direnv export` の結果）が書き込まれているかを見る。
+うまく devenv が見えない場合は `echo "$BASH_ENV"`（`/root/.ccr-devenv-env.sh` を指すこと）と
+`cat /root/.ccr-devenv-env.cache.sh`（devenv 環境がキャッシュされているか）を確認する。
+
+---
+
+## ローカル開発との関係（重要）
+
+- 本手順は **CCR 専用**。ローカルでは従来どおり `.envrc`（`use devenv`）＋ direnv が自動でロードする。
+- `scripts/claude-code-web-setup.sh` はローカルで実行しない（実行しても repo は変更しない設計だが不要）。
+- ローカルの `claude` セッションは repo の SessionStart フックを使わないため、この CCR セットアップは
+  **ローカルのデバッグ環境に一切干渉しない**。
 
 ---
 
@@ -126,7 +103,6 @@ lint                       # devenv の script が直接叩けること（例）
 
 | ファイル | 役割 |
 |---|---|
-| `scripts/cloud-setup.sh` | ① Setup script のリファレンス（Web UI に貼る中身） |
-| `.claude/hooks/session-start.sh` | ② SessionStart フック本体（repo 依存の有効化） |
-| `.claude/settings.json` | SessionStart フックの配線 |
-| `devenv.nix` | devenv 環境定義（`awscli2` 等の依存を宣言） |
+| `scripts/claude-code-web-setup.sh` | CCR セットアップスクリプト（Setup script 欄に貼る中身。BASH_ENV ローダを生成） |
+| `devenv.nix` | devenv 環境定義（`lint` / `sandbox` / `bootstrap` 等の scripts、`awscli2` 等の依存を宣言） |
+| `.envrc` | `use devenv`（ローカルの direnv 自動ロード用） |
