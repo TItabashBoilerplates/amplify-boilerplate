@@ -51,6 +51,23 @@
 # ==============================================================================
 set -euo pipefail
 
+# ★ 安全ガード（ローカル非干渉の保証）:
+#   このスクリプトは Claude Code on the web (CCR) 環境**専用**。ローカルマシンで誤って
+#   実行しても、nix のインストール・/usr/local/bin への symlink・/root への書き込み等を
+#   一切行わず、何も変更せずに終了する。CCR 判定は次のいずれか:
+#     - CLAUDE_CODE_REMOTE=true（クラウドセッション）
+#     - /root/.ccr の存在（CCR のプロキシ/CA バンドルが置かれるディレクトリ）
+#   どちらも無ければローカル実行とみなして即終了する（本当にローカルで流したいときのみ
+#   CCR_SETUP_FORCE=1 を付ける）。
+if [ "${CCR_SETUP_FORCE:-}" != "1" ] \
+   && [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] \
+   && [ ! -d /root/.ccr ]; then
+  echo "[cc-web-setup] CCR 環境が検出できません（このスクリプトは Claude Code on the web 専用）。"
+  echo "[cc-web-setup] ローカルには一切影響を与えないため、何もせず終了します。"
+  echo "[cc-web-setup] （どうしてもローカルで実行する場合のみ CCR_SETUP_FORCE=1 を付けてください）"
+  exit 0
+fi
+
 # nix / cachix は $USER を要求する。CCR のセットアップシェルでは未設定のことがあるので補う。
 export USER="${USER:-root}"
 
