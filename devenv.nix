@@ -48,11 +48,31 @@
       (cd "$DEVENV_ROOT/frontend" && pnpm install)
       echo "→ backend-py: uv sync"
       (cd "$DEVENV_ROOT/backend-py" && uv sync --all-packages --all-groups)
+      echo "→ amplify outputs: link into apps"
+      link-amplify-outputs
+    '';
+
+    # ampx は生成物 `packages/backend/amplify_outputs.json` を backend パッケージ内に
+    # 書き出すが、各アプリはそれぞれ自分の配下を参照する（web: tsconfig alias
+    # `amplify-outputs` → ./amplify_outputs.json / mobile: relative import
+    # `../../../amplify_outputs.json`）。この生成物は環境固有で .gitignore 対象のため
+    # リポジトリには入らない。クローン直後の誰の環境でも `sandbox` → `dev-web` /
+    # `dev-mobile` がそのまま通るよう、backend の生成物を各アプリへ symlink する。
+    # symlink はターゲット未生成でも作成でき（初回 sandbox 前は dangling）、watch
+    # モードの再生成もそのまま反映される。
+    link-amplify-outputs.exec = ''
+      set -euo pipefail
+      cd "$DEVENV_ROOT/frontend"
+      for app in web mobile; do
+        ln -sfn ../../packages/backend/amplify_outputs.json "apps/$app/amplify_outputs.json"
+      done
+      echo "✓ linked amplify_outputs.json → apps/{web,mobile}"
     '';
 
     # ---------- Amplify backend (sandbox) ----------
-    sandbox.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox "$@"'';
-    sandbox-once.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox:once "$@"'';
+    # sandbox 実行前に必ずアプリへの outputs リンクを張っておく（冪等）。
+    sandbox.exec = ''link-amplify-outputs && cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox "$@"'';
+    sandbox-once.exec = ''link-amplify-outputs && cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox:once "$@"'';
     sandbox-delete.exec = ''cd "$DEVENV_ROOT/frontend/packages/backend" && pnpm run sandbox:delete "$@"'';
 
     # ---------- Dev servers ----------
