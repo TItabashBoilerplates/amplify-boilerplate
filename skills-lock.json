@@ -329,7 +329,7 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/deploy-to-vercel/SKILL.md",
-      "computedHash": "03e0eaaa9bf13ba1e7ffa387f5893de6f324c0868c627001f179395a8feaa7c9"
+      "computedHash": "d2b5bcc7c09fdb649129ffc7dd7b647ec1b155736974b974292675afd588cb39"
     },
     "deploying-custom-domain-rest-api": {
       "source": "aws/agent-toolkit-for-aws",
@@ -646,8 +646,8 @@
     "next-upgrade": {
       "source": "vercel/vercel-plugin",
       "sourceType": "github",
-      "skillPath": "skills/next-upgrade/SKILL.md",
-      "computedHash": "c90d3b5b6a4f60961c6d7e704d57a4072e69b94280353fdadb038590115a123f"
+      "skillPath": "skills/next-upgrade/upstream/SKILL.md",
+      "computedHash": "befa88b5a0259b68b65b06b4349908289b8eea1825dba34d3212687206e52c91"
     },
     "organization-best-practices": {
       "source": "better-auth/skills",
@@ -863,19 +863,19 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-view-transitions/SKILL.md",
-      "computedHash": "4fea9144f604256d0a21faaea904b7e205e7676e316721ba5fdd68c2600c7d42"
+      "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/web-design-guidelines/SKILL.md",
-      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
     },
     "writing-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/writing-guidelines/SKILL.md",
-      "computedHash": "25aa3a33a97bddbcb1847ce4a6169106ec25e5b19b15b99c66e75ab383866ef2"
+      "computedHash": "e90462d4f801d823603b12c345ad0ff91a7489415274432681d21c7129123c26"
     }
   }
 }
