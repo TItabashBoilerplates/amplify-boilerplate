@@ -22,6 +22,13 @@
   languages.typescript.enable = true;
   languages.python = {
     enable = true;
+    # ampx sandbox は FastAPI custom function（functions/api）を
+    # `python3 -m pip install -r requirements.txt --platform manylinux2014_x86_64
+    #  --python-version 3.13 --only-binary=:all:` でローカルバンドルする。
+    # devenv 既定の python には pip が無く "No module named pip" で synth 全体が
+    # 失敗するため、pip を含む Python を nix で明示管理する（Lambda ランタイムに
+    # 合わせて 3.13 を固定）。
+    package = pkgs.python313.withPackages (ps: [ ps.pip ]);
     uv.enable = true;
   };
 
