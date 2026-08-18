@@ -106,6 +106,22 @@
     type-check-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run mypy apps packages'';
     test-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run pytest'';
 
+    # ---------- MCP 設定の同期 ----------
+    # 正本は リポジトリ root の `.mcp.json`（Claude Code が直接読む形式）。
+    # Cursor (JSON) / Codex (TOML) は形式が違うため、ここから投影して生成する。
+    # 生成物は手動編集禁止（`.claude/rules/auto-generated.md`）。
+    mcp-sync.exec = ''cd "$DEVENV_ROOT" && ./frontend/node_modules/.bin/tsx scripts/mcp/sync-mcp.ts'';
+
+    # ---------- E2E (Maestro) ----------
+    # 認証の往復（ログイン → パスワード再設定 → メール変更）は「送信できた」で
+    # 終わらせず、コードを受け取って確定するまでを 1 本で踏む
+    # （`.claude/rules/auth.md` §6）。実行には端末 / エミュレータが必要。
+    # ドライバが Cognito のテストユーザ作成 → OTP ブリッジ起動 → maestro → 後始末を行う
+    # （Maestro の graaljs は SigV4 を扱えないため、AWS を触る処理は外側に置く）。
+    e2e-mobile.exec = ''cd "$DEVENV_ROOT" && node scripts/e2e/run-maestro.mjs .maestro/mobile "$@"'';
+    e2e-web.exec = ''cd "$DEVENV_ROOT" && node scripts/e2e/run-maestro.mjs .maestro/web --platform web "$@"'';
+    e2e.exec = ''e2e-mobile && e2e-web'';
+
     # ---------- Agent skills ----------
     # エージェントスキル（.agents/skills, .claude/skills へ symlink）を最新に更新する。
     # enterShell でも 1 日 1 回（同期・ロック付き）自動実行されるが、手動で即時更新したいとき用。
@@ -137,6 +153,8 @@
     echo "  sandbox              Amplify backend (ampx sandbox)"
     echo "  dev-web / dev-mobile dev servers"
     echo "  lint / format / type-check-* / unit-test"
+    echo "  mcp-sync             regenerate .cursor/mcp.json / .codex/config.toml"
+    echo "  e2e / e2e-mobile / e2e-web   Maestro E2E"
     echo "  skills-update        refresh agent skills to latest"
 
     # --- エージェントスキルの自動更新（同期・ロック・スロットル付き） ---

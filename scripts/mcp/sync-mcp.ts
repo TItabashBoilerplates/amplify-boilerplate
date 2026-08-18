@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write
+#!/usr/bin/env -S tsx
 /**
  * MCP 設定の一元管理ジェネレータ。
  *
@@ -16,19 +16,15 @@
  *   - Antigravity（旧 Gemini CLI の後継）… ワークスペーススキルは .agents/skills/、MCP は
  *     グローバル ~/.gemini/config/mcp_config.json でリポジトリ管理外。`.gemini/` は廃止済み。
  *
- * 直接 `deno run` せず、devenv の `mcp-sync` から実行すること（.claude/rules/commands.md）。
+ * 直接 `tsx` で叩かず、devenv の `mcp-sync` から実行すること（.claude/rules/commands.md）。
  * 生成物は手動編集禁止（.claude/rules/auto-generated.md）。MCP を追加/変更する時は
  * `.mcp.json` を編集して `mcp-sync` を再実行する。
  */
 
-// Deno ランタイムで実行する（`deno run`）。非 Deno の TS サーバ向けに最小宣言を置く。
-// 実行時は本物の Deno グローバルが使われる。
-declare const Deno: {
-	cwd(): string;
-	readTextFileSync(path: string): string;
-	writeTextFileSync(path: string, data: string): void;
-	statSync(path: string): unknown;
-};
+// Node（tsx）で実行する。このリポジトリは Edge Functions を持たず Deno を使わないため、
+// 旧 Deno 実装から Node の fs API へ移してある。
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 type Server = {
 	type?: string;
@@ -40,16 +36,9 @@ type Server = {
 };
 type McpJson = { mcpServers?: Record<string, Server> };
 
-const root = `${Deno.cwd()}/`; // devenv の mcp-sync が cd "$DEVENV_ROOT" 済み
-const read = (p: string) => Deno.readTextFileSync(root + p);
-const fileExists = (p: string): boolean => {
-	try {
-		Deno.statSync(root + p);
-		return true;
-	} catch {
-		return false;
-	}
-};
+const at = (p: string) => resolve(process.cwd(), p); // devenv の mcp-sync が cd "$DEVENV_ROOT" 済み
+const read = (p: string) => readFileSync(at(p), "utf8");
+const fileExists = (p: string): boolean => existsSync(at(p));
 
 const isStdio = (s: Server): boolean => Boolean(s.command);
 const nonEmpty = (o?: Record<string, string>) =>
@@ -83,7 +72,7 @@ function writeJsonMerge(path: string, mcpServers: Record<string, unknown>) {
 		}
 	}
 	base.mcpServers = mcpServers;
-	Deno.writeTextFileSync(root + path, `${JSON.stringify(base, null, 2)}\n`);
+	writeFileSync(at(path), `${JSON.stringify(base, null, 2)}\n`);
 }
 
 // ---- TOML 書き出し（本ジェネレータが出す限定スキーマのみ対応）----
@@ -115,7 +104,7 @@ function writeCodex(
 			out += `headers = ${tomlInline(s.headers as Record<string, string>)}\n`;
 		out += "\n";
 	}
-	Deno.writeTextFileSync(root + path, out);
+	writeFileSync(at(path), out);
 }
 
 // ---- 実行 ----

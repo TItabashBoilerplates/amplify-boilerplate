@@ -156,15 +156,16 @@
 | `apps/web/app/{icon,manifest,opengraph-image,robots,sitemap}` | 🔴 欠落 | ✅ **対応済**（`page.tsx` は `localePrefix: 'always'` のため不要） |
 | `apps/web/src/shared/lib/server-actions.policy.test.ts` | 🔴 欠落 | Server Action の静的検査 |
 | `apps/web/src/shared/config/app.ts` | 🔴 欠落 | ✅ **対応済**（`APP_URL` / `APP_NAME` + `generateMetadata` の i18n 化） |
-| `apps/mobile` の `babel.config.js` / `css.d.ts` / `eas.json` | 🔴 欠落 | |
-| `apps/mobile` の `store.config.js` / `play.config.js` / `iap.config.js` + テスト | 🔴 欠落 | `store-review.md` が要求 |
+| `apps/mobile` の `babel.config.js` / `css.d.ts` / `eas.json` | 🔴 欠落 | ✅ **対応済**（`babel.config.js` / `css.d.ts`。`eas.json` はストア配布時） |
+| `apps/mobile` の `store.config.js` / `play.config.js` / `iap.config.js` + テスト | 🔴 欠落 | 残作業（ストア配布時。§7） |
 | `apps/desktop`（Tauri） | 🟡 欠落 | 移植するか要判断 |
 | ✅ `packages/client`(Supabase) / `db-schema`(Drizzle) / `onesignal` | ✅ 意図的 | `data-client` / `backend` / SNS・Pinpoint が代替 |
 
 ### Storybook の欠落
 
-- `.storybook/mocks` / `storybook.css` / `viewports.ts` が無い
+- `.storybook/mocks` / `storybook.css` / `viewports.ts` が無い → ✅ **対応済**
 - mobile 側の `*.stories.tsx` が **10 本以上欠落**（`ui-testing.md` は UI に Storybook 必須と規定）
+  → ✅ **対応済**（framework を `@storybook/react-native-web-vite` に替え、描画検査が 45 → 140 ストーリーに）
 
 ---
 
@@ -172,12 +173,12 @@
 
 | 対象 | 状態 | 備考 |
 |---|---|---|
-| `scripts/mcp/`（`mcp-sync`。`.mcp.json` → `.codex` / `.cursor`） | 🔴 欠落 | 生成物だけあって生成元が無い |
+| `scripts/mcp/`（`mcp-sync`。`.mcp.json` → `.codex` / `.cursor`） | 🔴 欠落 | ✅ **対応済**（Deno → Node へ移植し devenv に配線） |
 | `scripts/mobile/`（`mobile-release-*` / `store-*` / `screenshots-*`） | 🔴 欠落 | `store-review.md` / `mobile-release` skill が前提にする |
-| `scripts/frontend/` | 🔴 欠落 | |
+| `scripts/frontend/` | 🔴 欠落 | ✅ **対応済**（`verify-storybook-render.mjs`） |
 | ✅ `scripts/infra`(Vercel) / `scripts/supabase` | ✅ 意図的 | |
-| `e2e/` ディレクトリ | 🔴 欠落 | |
-| `.maestro`: `password-reset-flow` / `email-change-flow` / `store/` | 🔴 欠落 | 認証導線の E2E |
+| `e2e/` ディレクトリ | 🔴 欠落 | ✅ **対応済**（`scripts/e2e/run-maestro.mjs` + `e2e-results/` 出力） |
+| `.maestro`: `password-reset-flow` / `email-change-flow` / `store/` | 🔴 欠落 | ✅ **対応済**（login / password-reset を mobile + web で。`store/` はストア配布時） |
 | CI が **vitest / ESLint / Storybook を実行していない** | 🔴 | ✅ **対応済**（3 つとも追加。`verify-storybook-render` の Chromium パスも env で解決するようにした） |
 | CI が devenv 経由でない（`pnpm run lint:ci` 直叩き） | 🟡 | 未対応（Actions ランナー都合。shadcn は devenv + nix cache 方式） |
 | `docs/store/`（submission-checklist / release-runbook / aso） | 🔴 欠落 | |
@@ -187,7 +188,7 @@
 
 ## 7. 対応状況と残り
 
-### ✅ このブランチで対応済み
+### ✅ 対応済み（第 1 弾）
 
 1. **`.claude/rules` の移植**（§1）— 思想の正本
 2. **認証の実装パリティ（Web）**（§3）— 唯一の "ポリシー違反" 状態だったもの
@@ -196,19 +197,34 @@
 5. **CI の穴埋め**（§6）— vitest / ESLint / Storybook 描画検査
 6. **web の SEO / PWA メタデータ + FSD app レイヤー**（§5）
 
-### 🔴 残っている作業（着手順の推奨）
+### ✅ 対応済み（第 2 弾）
 
-| # | 作業 | 備考 |
+| # | 作業 | 実装 |
 |---|---|---|
-| 1 | **Mobile の認証画面**（sign-in / sign-up / forgot-password / account） | Web と同じ `@workspace/auth/validation` を共有する。`required-flows.test.ts` の mobile 版も要る |
-| 2 | **`packages/storage-image` と `StorageImage`**（§5） | **ユーザー判断が要る**: Mobile 側のリサイズ手段を「アップロード時に派生生成（S3 トリガ Lambda + sharp）」にするか「Dynamic Image Transformation for CloudFront」にするか（`storage-images.md` §1.2） |
-| 3 | **`packages/tokens` の contract / oklch とテスト**（§5） | デザイントークンの契約テスト。インフラ非依存 |
-| 4 | **`packages/native-ui` のコンポーネント群**（§5） | gluestack のバージョン差があるので 5 とセットが安全 |
-| 5 | **モバイル基盤の追随**（§4） | Expo 55 canary → 57 / RN 0.82 → 0.86 / gluestack v3・v1 混在 → v5 / NativeWind の版ズレ解消。**依存の大移動なので独立した PR にし、ユーザー確認のうえ実施する** |
-| 6 | **`scripts/mobile` + `docs/store` + `store.config.js` 等**（§6） | `store-review.md` が前提にするツール一式。1 と 5 の後 |
-| 7 | **`scripts/mcp`（`mcp-sync`）**（§6） | `.codex/config.toml` / `.cursor/mcp.json` の生成元。生成物だけあって生成元が無い |
-| 8 | **`.maestro` の認証 E2E / `e2e/`**（§6） | パスワード再設定・メール変更の往復 |
-| 9 | Next.js / React / TypeScript / Storybook 等のマイナー追随（§4） | 5 と同じ PR にまとめてもよい |
+| 1 | **モバイル基盤の追随** | Expo 55-canary → **57 stable** / RN 0.82 → **0.86.2** / React 19.2.1 → **19.2.3** / NativeWind 5 preview.2 → **preview.4** / gluestack v3・v1 混在 → **v5（headless `@gluestack-ui/core`）**。`babel.config.js`（worklets plugin）・`css.d.ts` を追加し、NativeWind v5 の CSS-first 化に伴って `tailwind.config.ts`（存在しない `@workspace/tailwind-config` を参照していた）を削除 |
+| 2 | **`packages/tokens` の contract / oklch** | `contract.ts`（バリアント名・セマンティックトークン・`RAW_COLOR_PATTERN`）/ `oklch.ts`（OKLCh → hex。ナビゲーションテーマ等 hex しか受けない API 用）+ テスト 3 本。`generate-css.ts` を `@theme inline` 対応にし、**トークンを single source of truth 化**（`packages/ui/globals.css` と `apps/mobile/global.css` の重複定義を削除。mobile 側は dark 値が既に drift していた） |
+| 3 | **`packages/native-ui` のコンポーネント群** | avatar / box / button / hstack / icon / input / pressable / safe-area-view / text / vstack + variants テスト。**生パレット（`bg-zinc-900` / `text-white`）を使っていた旧 Button を撤去**し、バリアント名を Web の shadcn Button と一致させた（`@workspace/tokens/contract` が正本） |
+| 4 | **Mobile の認証画面** | sign-in / sign-up（+ 確認コード）/ forgot-password（6 桁コードの往復）/ account（メール変更・パスワード変更・アカウント削除）。`required-flows.test.ts` の mobile 版つき |
+| 4b | **認証 API の共有化** | `apps/web/src/features/auth/api/*` を **`@workspace/auth/api`** へ移し、Web / Mobile が同じ実装を使う（`auth.md` §5「Web と Mobile で同じ関数をコピペしない」）。Mobile 側に API 層を作らないことをテストで固定 |
+| 4c | **キーボード回避** | `react-native-keyboard-controller` を導入し `KeyboardProvider` をルートに 1 つ。RN 標準の `KeyboardAvoidingView`（Android 15+ の edge-to-edge で構造的に壊れている）を使っていないことを `required-flows.test.ts` が検査 |
+| 5 | **Storybook で Mobile を描画** | `@storybook/nextjs`(webpack) → **`@storybook/react-native-web-vite`**。`mocks/`（expo-router / web i18n navigation）・`storybook.css`（RNW のリセットに勝つレイヤー無しユーティリティ）・`viewports.ts` を移植。**描画検査の対象が 45 → 140 ストーリー**になり、mobile UI が初めてカタログに載った |
+| 6 | **`packages/storage-image`** | `IMAGE_WIDTH_LADDER` / `snapImageWidth` / `buildDerivativePath` / `createSignedImageUrl` + 単体テスト + **policy テスト**（S3 URL の直書き・`getUrl` の直描画・`unoptimized` を静的検査）。`next.config.ts` の `imageSizes`/`deviceSizes`/`remotePatterns` を段から導出。Web / Mobile の `StorageImage` つき |
+| 7 | **`scripts/mcp`（`mcp-sync`）** | Deno 前提だった `scripts/sync-mcp.ts` を **Node（tsx）へ移植**して `scripts/mcp/sync-mcp.ts` に配置、devenv の `mcp-sync` を追加。欠けていた `.codex/config.toml` を生成 |
+| 8 | **`.maestro` の認証 E2E** | login / password-reset の往復（mobile + web）。**Cognito のコードはメールにしか出ず Maestro の graaljs は SigV4 を扱えない**ため、`scripts/e2e/run-maestro.mjs` が「テストユーザ作成 → localhost の OTP ブリッジ（`AUTH_E2E_OTP_CAPTURE` の DynamoDB を読む）→ maestro → 後始末」を担う。devenv に `e2e` / `e2e-mobile` / `e2e-web` |
+| 9 | **マイナー追随** | Next 16.0.8 → 16.3.0 / next-intl 4.4 → 4.13 / lucide-react 0.539 → 1.28 / tailwindcss 4 → 4.3.3 / zustand 5.0.7 → 5.0.14 / TypeScript ^5 → ^5.9.2 / turbo・vitest・Storybook 10.5.7 |
+| 9b | **CI の追加穴埋め** | mobile の ESLint / **リポジトリルートの Biome**（`frontend/biome.json` とは別設定なので `scripts/` `.maestro/` が検査されていなかった）/ mobile 側の `amplify_outputs.json` スタブ |
+| 9c | **Next 16.3 の新 lint 対応** | `window.location.assign()` による認証後遷移を next-intl の `useRouter().replace()` + `refresh()` に置換（**ロケール prefix が落ちるバグも同時に解消**）。`error.tsx` も `Link` に変更 |
 
-> 5 は依存の大移動になるため、独立した PR にしてユーザー確認のうえ実施するのが安全
-> （`.claude/rules/data-modeling.md` と同じく「壊れたときの影響が大きい」変更）。
+### 🔴 残っている作業
+
+| # | 作業 | なぜ残したか |
+|---|---|---|
+| 1 | **Mobile の画像派生の生成基盤**（`storage-images.md` §1.2 の A / B） | **ユーザー判断が必要**。A（S3 作成イベント + Lambda/sharp で `@{width}w` 派生を事前生成）と B（Dynamic Image Transformation for CloudFront）でインフラ構成もコストも変わる。決まるまでは「アップロード時に `MAX_IMAGE_WIDTH` 以下へ縮小して保存（＝原本を持たない）」が最低ライン（`packages/storage-image` はどちらでも使える形にしてある） |
+| 2 | **`scripts/mobile` + `docs/store` + `store.config.js` / `play.config.js` / `iap.config.js`** | ストア配布を始める段階で移植する。App Store Connect / Play Developer API を直接叩く数千行規模のツール群で、**AWS 認証ではなくストアの資格情報が無いと 1 行も検証できない**。`store-review.md` の冒頭にも未移植であることを明記済み |
+| 3 | **`apps/desktop`（Tauri）** | 🟡 そもそも移植するかの判断から（shadcn 側も Web 技術ベースなのでインフラ非依存だが、対象プラットフォームを増やす判断はプロダクト側） |
+| 4 | `apps/web/src/features/cookie-consent` / `shared/lib/server-actions.policy.test.ts` | インフラ非依存だが Server Action を本リポジトリはまだ使っていないため、使い始める時点で入れる |
+| 5 | CI を devenv 経由にする | 🟡 Actions ランナー都合（nix cache の整備が前提）。検査内容は同一なので優先度は低い |
+
+> ストア関連（残 2）以外の「思想・設計・実装パターン」の差分は解消済み。
+> 残っているのは **(a) ユーザー判断が要るもの / (b) ストアの資格情報が無いと検証できないもの /
+> (c) そのプロダクトが使い始めた時点で入れるもの** の 3 種類。

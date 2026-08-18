@@ -1,9 +1,13 @@
 # Maestro Workspace Configuration
 # Reference: https://maestro.mobile.dev/
+#
+# 実行は devenv の `e2e-mobile` / `e2e` から行う（`.claude/rules/commands.md`）。
+# 認証フローはテストユーザの用意とコード取得が必要なため、`scripts/e2e/run-maestro.mjs`
+# が前後処理（Cognito ユーザ作成 → OTP ブリッジ起動 → maestro → 後始末）を担う。
 
 flows:
-  - "web/**/*.yaml"
   - "mobile/**/*.yaml"
+  - "web/**/*.yaml"
 
 includeTags:
   - smoke

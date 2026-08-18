@@ -1,66 +1,45 @@
-# Mobile Authentication Flow - Cognito Email OTP Login (Template)
-# Tests the passwordless Email OTP authentication flow for the Expo mobile app.
+# Mobile: メールアドレス + パスワードでログインする
 #
-# Auth stack: Amazon Cognito (Amplify Auth, passwordless Email OTP).
-# Client: aws-amplify/auth — signIn (USER_AUTH + EMAIL_OTP) → confirmSignIn.
+# **審査担当者が通る経路そのもの**。App Store Review Guideline 2.1(a) は
+# 「an active demo account ... login credentials」の提供を求めるが、渡せるのは
+# メールアドレスとパスワードの組だけ。OTP しか無いと担当者は受信箱に触れられず
+# ログインできないまま 2.1 でリジェクトされる（`.claude/rules/auth.md`）。
 #
-# NOTE: This is a template. Update when mobile auth screens are implemented.
-# Required implementations:
-#   - Login screen with email input
-#   - OTP verification screen
+# したがって「この経路だけでログインし切れる」ことは E2E で守る価値がある。
+# **この経路はコードを一切必要としない**ので、OTP ブリッジも要らない。
 #
-# OTP delivery: Cognito sends the code via Amazon SES. There is no local mail
-# sink, so the OTP step needs a test mailbox (see web/auth/login-flow.yaml and
-# scripts/get-otp-from-email.js) before it can be fully automated.
+# 前提: `e2e-mobile`（= scripts/e2e/run-maestro.mjs）が TEST_EMAIL / TEST_PASSWORD を
+#       Cognito に作成して渡す。
 
 appId: ${APP_ID}
-name: "Mobile Cognito Email OTP Login Flow"
+name: "Mobile Password Login"
 tags:
   - auth
   - mobile
   - e2e
-  - wip # Mark as work-in-progress until auth screens are ready
-
-env:
-  TEST_EMAIL: "testuser@example.com"
 
 ---
-# Step 1: Launch app and clear state
 - launchApp:
     clearState: true
     permissions:
       all: allow
 
-# Step 2: Navigate to login screen (update selector when implemented)
-# - tapOn: "Login"
+# expo-router の /sign-in へ直接入る
+- openLink: "mobile://sign-in"
 
-# Step 3: Enter email address (update selector when implemented)
-# - tapOn:
-#     id: "email-input"
-# - inputText: ${TEST_EMAIL}
+- assertVisible: "Sign in"
+- assertVisible: "Email address"
+# パスワードを忘れた人はログインできない = この画面に導線が無いと詰む
+- assertVisible: "Forgot your password?"
 
-# Step 4: Submit OTP request (Cognito signIn USER_AUTH + EMAIL_OTP)
-# - tapOn: "Send OTP"
+- tapOn: "Email address"
+- inputText: ${TEST_EMAIL}
 
-# Step 5: Fetch the Cognito OTP code from the test mailbox
-#   NOTE: Implement scripts/get-otp-from-email.js against your mailbox provider.
-# - runScript:
-#     file: ../../scripts/get-otp-from-email.js
-#     env:
-#       TEST_EMAIL: ${TEST_EMAIL}
-#       WAIT_FOR_EMAIL: "true"
-#       MAX_RETRIES: "15"
+- tapOn: "Password"
+- inputText: ${TEST_PASSWORD}
 
-# Step 6: Enter OTP code (update selector when implemented)
-# - tapOn:
-#     id: "otp-input"
-# - inputText: ${output.otpCode}
+- tapOn: "Sign in"
 
-# Step 7: Submit verification (Cognito confirmSignIn)
-# - tapOn: "Verify"
-
-# Step 8: Verify successful authentication
-# - assertVisible: "Home"
-
-# Placeholder: Take screenshot of current state
-- takeScreenshot: mobile-app-state
+# ログイン後はホームへ戻る（サインイン画面が消える）
+- assertNotVisible: "Forgot your password?"
+- takeScreenshot: mobile-password-login-success

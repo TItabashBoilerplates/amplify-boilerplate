@@ -21,10 +21,10 @@ paths: frontend/**/*.{ts,tsx,js,jsx}
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Expo 55, React Native |
-| UI Library | gluestack-ui + NativeWind 5 |
-| Styling | tva (Tailwind Variant Authority) |
-| Icons | lucide-react-native |
+| Framework | Expo 57, React Native 0.86 |
+| UI Library | gluestack-ui v5（headless）+ NativeWind 5 |
+| Styling | tva (Tailwind Variant Authority)。バリアント名は `@workspace/tokens/contract` が正本 |
+| Icons | `@workspace/native-ui` の `Icon` / `IconSymbol`（expo-symbols） |
 
 ## Monorepo Structure
 
@@ -62,8 +62,10 @@ frontend/
 | **Amplify backend 定義** | `packages/backend/` | auth/data/storage/functions, `Schema` 型 |
 | **Amplify Data クライアント** | `packages/data-client/` | `getDataClient()`, `generateClient<Schema>()` |
 | **認証ユーティリティ** | `packages/auth/` | AuthProvider, useAuthUser |
+| **認証 API（Cognito 呼び出し）** | `packages/auth/api/` | `signInWithPassword` 等（**Web / Mobile 共有**） |
+| **認証の検証規則** | `packages/auth/validation/` | パスワード要件・例外名 → i18n キー |
 | **TanStack Query 設定** | `packages/query/` | QueryClient, hooks |
-| **TailwindCSS 設定** | `packages/tailwind-config/` | theme, plugins |
+| **S3 画像の配信規約** | `packages/storage-image/` | `IMAGE_WIDTH_LADDER`, `snapImageWidth`, `buildDerivativePath` |
 | **型定義** | `packages/*/types/` | 共通インターフェース |
 | **ユーティリティ** | `packages/ui/lib/` or app の `shared/lib/` | cn, formatDate |
 

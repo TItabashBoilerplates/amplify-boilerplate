@@ -1,88 +1,38 @@
-# Web Authentication Flow - Cognito Email OTP Login (Template / WIP)
-# Tests the passwordless Email OTP authentication flow for the Next.js web app.
+# Web: メールアドレス + パスワードでログインする
 #
-# Auth stack: Amazon Cognito (Amplify Auth, passwordless Email OTP).
-# Client: aws-amplify/auth — signIn (USER_AUTH + EMAIL_OTP) → confirmSignIn.
+# Web は OTP も併用できるが、**パスワードで入れる経路が生きていること**を守るのが目的。
+# 同じ Cognito User Pool を Web / Mobile で共有するので、片方だけ壊れる状況を作らない
+# （`.claude/rules/auth.md` §1）。
 #
-# IMPORTANT — why this is a template (tagged `wip`, excluded by config.yaml):
-#   Cognito delivers the one-time code by email via Amazon SES. Unlike the old
-#   Supabase local stack, there is NO local mail sink (Mailpit/Inbucket) to read
-#   the code from, so the OTP step cannot be fully automated in CI without an
-#   external mailbox-fetch step. Options to make this runnable:
-#     1. Wire up a test mailbox (e.g. SES → S3/SNS, or an inbox API like
-#        mailosaur/mailslurp) and fetch the code in scripts/get-otp-from-email.js.
-#     2. Use a Cognito pre-defined test user + a known code in a dev User Pool.
-#   Until one of those is in place, keep this flow as a documented placeholder.
-#
-# Required implementations before enabling:
-#   - scripts/setup-test-user.js   → create a Cognito user (admin API)
-#   - scripts/get-otp-from-email.js → fetch the OTP from the chosen mailbox
-#   - scripts/cleanup-test-user.js → delete the Cognito user (admin API)
+# 前提:
+#   - `dev-web` で Next.js が :3000 で起動している
+#   - `e2e-web`（= scripts/e2e/run-maestro.mjs）が TEST_EMAIL / TEST_PASSWORD を
+#     Cognito に作成して渡す
+#   - Maestro の web ドライバを使うので `--platform web` が必要（`e2e-web` が付与する）
 
 appId: com.example.web
-name: "Web Cognito Email OTP Login Flow"
-jsEngine: graaljs
+name: "Web Password Login"
 tags:
   - auth
   - web
   - e2e
-  - wip # Mark as work-in-progress until a mailbox sink is wired up
-
-env:
-  # Environment variables are loaded from .maestro/.env
-  # COGNITO_USER_POOL_ID / AWS credentials are needed for the admin setup/cleanup
-  # scripts. The OTP mailbox source is intentionally left unconfigured (see above).
-  COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID}
-  TEST_EMAIL: ${TEST_EMAIL}
 
 ---
-# Step 1: Navigate to login page
 - launchApp:
     arguments:
       url: "http://localhost:3000/en/login"
 
-# Step 2: Verify login page loaded
-- assertVisible: "Email Address"
-- assertVisible: "Send One-Time Password"
+- assertVisible: "Sign in"
+# 忘れた人はログインできないので、この画面に導線が無いと詰む
+- assertVisible: "Forgot your password?"
 
-# Step 3: Enter email address
-- tapOn:
-    id: "email"
+- tapOn: "Email Address"
 - inputText: ${TEST_EMAIL}
 
-# Step 4: Submit OTP request (Cognito signIn USER_AUTH + EMAIL_OTP)
-- tapOn: "Send One-Time Password"
+- tapOn: "Password"
+- inputText: ${TEST_PASSWORD}
 
-# Step 5: Verify success message
-- assertVisible: "Check Your Email"
+- tapOn: "Sign in"
 
-# Step 6: Fetch the Cognito OTP code from the test mailbox.
-#   NOTE: Implement scripts/get-otp-from-email.js against your mailbox provider.
-#   Cognito sends the code via Amazon SES; there is no local mail sink.
-# - runScript:
-#     file: ../../scripts/get-otp-from-email.js
-#     env:
-#       TEST_EMAIL: ${TEST_EMAIL}
-#       WAIT_FOR_EMAIL: "true"
-#       MAX_RETRIES: "15"
-
-# Step 7: Navigate to verify page
-# - openLink: "http://localhost:3000/en/verify?email=${TEST_EMAIL}"
-
-# Step 8: Verify OTP page loaded
-# - assertVisible: "Verify Your Email"
-# - assertVisible: "Enter the 6-digit code"
-
-# Step 9: Enter OTP code (Cognito confirmSignIn)
-# - tapOn:
-#     id: "token"
-# - inputText: ${output.otpCode}
-
-# Step 10: Submit verification
-# - tapOn: "Verify Code"
-
-# Step 11: Verify successful authentication - redirected to dashboard
-# - assertVisible: "Dashboard"
-
-# Placeholder: Take screenshot of current state
-- takeScreenshot: login-otp-requested
+- assertNotVisible: "Forgot your password?"
+- takeScreenshot: web-password-login-success

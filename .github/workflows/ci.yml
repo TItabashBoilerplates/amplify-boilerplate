@@ -35,11 +35,23 @@ jobs:
       # 片方だけ回すと「biome は通るのに commit も本番ビルドも落ちる」状態になる。
       - name: ESLint (FSD boundaries + React rules)
         run: pnpm run --filter @workspace/web lint
+      - name: ESLint (mobile)
+        run: pnpm run --filter @workspace/mobile lint
+      # frontend/biome.json とリポジトリルートの biome.json は**別設定**（スタイルも違う）。
+      # `frontend` から回す biome は `scripts/` や `.maestro/` を見ないため、
+      # ルート側も明示的に検査する（見落とすと commit hook でだけ落ちる）。
+      - name: Biome (repo root scripts)
+        working-directory: .
+        run: frontend/node_modules/.bin/biome ci scripts .maestro
       # amplify_outputs.json は生成物（gitignore）。CI では AWS にデプロイせず型チェック/ビルドを
       # 通すため、公開情報のみのスタブ（apps/web/amplify_outputs.ci.json, シークレットなし）を
       # 配置する。実環境の出力は Amplify Hosting が backend デプロイ後に生成する（amplify.yml）。
+      # mobile も `amplify_outputs.json` を相対 import するので両アプリに配置する
+      # （片方だけだと mobile の type-check が CI でだけ落ちる）。
       - name: Stub amplify_outputs.json (no secrets; type-check/build only)
-        run: cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
+        run: |
+          cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
+          cp apps/web/amplify_outputs.ci.json apps/mobile/amplify_outputs.json
       - name: Type check (tsc)
         run: pnpm run type-check
       # `.claude/rules/tdd.md` の All Green を CI でも担保する
@@ -67,7 +79,9 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Stub amplify_outputs.json (no secrets)
         working-directory: frontend
-        run: cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
+        run: |
+          cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
+          cp apps/web/amplify_outputs.ci.json apps/mobile/amplify_outputs.json
       - name: Build Storybook
         working-directory: frontend
         run: pnpm run build-storybook

@@ -65,9 +65,9 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 | Layer                 | Technology                                            |
 | --------------------- | ----------------------------------------------------- |
 | **Frontend (Web)**    | Next.js 16, React 19, TypeScript, pnpm                 |
-| **Frontend (Mobile)** | Expo 55, React Native, TypeScript                     |
+| **Frontend (Mobile)** | Expo 57, React Native 0.86, TypeScript                |
 | **UI (Web)**          | shadcn/ui, Radix UI, TailwindCSS 4                    |
-| **UI (Mobile)**       | gluestack-ui, NativeWind 5                            |
+| **UI (Mobile)**       | gluestack-ui v5（headless）, NativeWind 5             |
 | **State**             | TanStack Query (server), Zustand (global)             |
 | **Architecture**      | Feature-Sliced Design (FSD) + monorepo                |
 | **i18n**              | next-intl (en, ja)                                    |
@@ -141,7 +141,8 @@ unit-test                       # 全 unit test（frontend + backend-py）
 - **一覧は最初からページング**（終端判定は `nextToken`。`length < limit` で打ち切らない）。`.claude/rules/list-pagination.md`。
 - **S3 の画像は表示サイズに合わせて配信**（原本を配らない）。`.claude/rules/storage-images.md`。
 - **フォーム要素はモバイル幅で 16px 以上**（iOS のオートズーム禁止）。`.claude/rules/form-controls.md`。
-- **モバイル UI はキーボードが画面の 4〜5 割を覆う前提で作る**。`.claude/rules/mobile-uiux.md`。
+- **モバイル UI はキーボードが画面の 4〜5 割を覆う前提で作る**（キーボード回避は
+  `react-native-keyboard-controller`。RN 標準の `KeyboardAvoidingView` は使わない）。`.claude/rules/mobile-uiux.md`。
 - **ストア審査の不変条件を壊さない**。`.claude/rules/store-review.md`。
 - **データモデルの破壊的変更は本番でデータ消失**。`.claude/rules/data-modeling.md`。
 - **生成物を手で編集しない / `amplify_outputs.json` をコミットしない**。`.claude/rules/auto-generated.md`。
