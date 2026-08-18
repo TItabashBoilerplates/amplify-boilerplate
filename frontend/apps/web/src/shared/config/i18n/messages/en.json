@@ -1,4 +1,9 @@
 {
+  "Metadata": {
+    "title": "Amplify Boilerplate",
+    "description": "A full-stack Next.js + AWS Amplify Gen2 boilerplate with Cognito auth, AppSync data, and i18n.",
+    "siteName": "Amplify Boilerplate"
+  },
   "common": {
     "welcome": "Welcome",
     "hello": "Hello",

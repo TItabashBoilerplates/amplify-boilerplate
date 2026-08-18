@@ -1,4 +1,9 @@
 {
+  "Metadata": {
+    "title": "Amplify Boilerplate",
+    "description": "Cognito 認証・AppSync データ・多言語対応を備えた Next.js + AWS Amplify Gen2 のフルスタック・ボイラープレート。",
+    "siteName": "Amplify Boilerplate"
+  },
   "common": {
     "welcome": "ようこそ",
     "hello": "こんにちは",
