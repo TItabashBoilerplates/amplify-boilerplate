@@ -20,7 +20,8 @@
 | `frontend/apps/{web,mobile}/amplify_outputs.json` | 上記へのシンボリックリンク（devenv が自動生成） | `sandbox` / `bootstrap` | ❌ 追跡しない |
 | `frontend/apps/web/amplify_outputs.ci.json` | **手書きのスタブ**（公開情報のみ・シークレット無し） | — | ✅ 追跡する（CI 専用。**生成物ではない**） |
 | `frontend/packages/api-client/src/generated/` | Hey API (`@hey-api/openapi-ts`) | `cd frontend && pnpm run --filter @workspace/api-client generate` | ✅ 追跡する |
-| `.codex/config.toml` / `.cursor/mcp.json` | `scripts/mcp/sync-mcp.ts`（正本: `.mcp.json`） | `mcp-sync` | ✅ 追跡する |
+| `.cursor/mcp.json` | `scripts/mcp/sync-mcp.ts`（正本: `.mcp.json`） | `mcp-sync` | ✅ 追跡する |
+| `.codex/config.toml` | 同上 | `mcp-sync` | ❌ 追跡しない（`.gitignore`。clone 後に `mcp-sync` で生成する） |
 
 > **`Schema` 型は生成ファイルではない**。`frontend/packages/backend/amplify/data/resource.ts` の
 > `a.schema()` から TypeScript が型推論するだけなので、編集するのは `resource.ts` 本体である
