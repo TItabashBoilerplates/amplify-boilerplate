@@ -26,7 +26,7 @@ export function SocialSignInButtons({
   providers = ['Google', 'Apple'],
   className,
 }: SocialSignInButtonsProps) {
-  const t = useTranslations('auth')
+  const t = useTranslations('Auth')
   const [pending, setPending] = useState<SocialProvider | null>(null)
   const [error, setError] = useState('')
 

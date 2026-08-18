@@ -1,5 +1,6 @@
 import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Preview } from '@storybook/react'
+import { QueryProvider } from '@workspace/query'
 import { NextIntlClientProvider } from 'next-intl'
 import enMessages from '../apps/web/src/shared/config/i18n/messages/en.json'
 import '@workspace/ui/styles/globals.css'
@@ -25,6 +26,13 @@ const preview: Preview = {
       <NextIntlClientProvider locale="en" messages={enMessages}>
         <Story />
       </NextIntlClientProvider>
+    ),
+    // TanStack Query: サーバーステートを扱うコンポーネント（PasskeyManager 等）の Story 用。
+    // 無いと "No QueryClient set" で描画できない。
+    (Story) => (
+      <QueryProvider>
+        <Story />
+      </QueryProvider>
     ),
     // Theme switching for Web components
     withThemeByClassName({

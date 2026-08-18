@@ -1,31 +1,31 @@
 import { confirmSignIn } from 'aws-amplify/auth'
+import { toAuthFailure } from '../lib/authResult'
+import type { AuthResult } from '../model/types'
 
 /**
  * OTP コードを検証してサインインを完了する（Cognito Email OTP）。
  *
  * {@link signInWithOtp} で開始したサインインのチャレンジに対し、メールで届いた
- * コードを送信する。成功時はダッシュボードへ遷移する。
+ * コードを送信する。チャレンジは進行中のサインインセッションに紐づくため、
+ * メールアドレスを再送する必要は無い。
  *
- * @param _email - メールアドレス（UI 互換のため受け取るが、チャレンジは進行中の
- *   サインインセッションに紐づくため未使用）
- * @param code - メールで届いた OTP コード
- * @returns 失敗時 `{ error }`（成功時は遷移するため戻らない）
+ * 遷移は**呼び出し側（UI）の責務**にしている。api 層が `window.location` を
+ * 触ると、テストもできず Storybook でも動かせないため。
  */
-export async function verifyOtp(_email: string, code: string) {
+export async function verifyOtp(code: string): Promise<AuthResult> {
+  if (code.trim().length === 0) {
+    return { success: false, errorKey: 'codeRequired' }
+  }
+
   try {
-    const { isSignedIn } = await confirmSignIn({ challengeResponse: code })
+    const { isSignedIn } = await confirmSignIn({ challengeResponse: code.trim() })
 
     if (!isSignedIn) {
-      return { error: 'Verification incomplete' }
+      return { success: false, errorKey: 'codeMismatch' }
     }
 
-    // 認証成功後、ダッシュボードへ遷移
-    window.location.href = '/dashboard'
-    return { success: true as const }
+    return { success: true, successKey: 'signedIn' }
   } catch (error) {
-    if (error instanceof Error) {
-      return { error: error.message }
-    }
-    return { error: 'An unexpected error occurred' }
+    return toAuthFailure('verifyOtp', error)
   }
 }

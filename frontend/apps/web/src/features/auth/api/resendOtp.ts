@@ -1,4 +1,7 @@
+import { normalizeEmail } from '@workspace/auth/validation'
 import { signIn } from 'aws-amplify/auth'
+import { toAuthFailure } from '../lib/authResult'
+import type { AuthResult } from '../model/types'
 
 /**
  * OTP コードを再送信する（Cognito Email OTP）。
@@ -6,26 +9,20 @@ import { signIn } from 'aws-amplify/auth'
  * `USER_AUTH` フローのサインインチャレンジには専用の resend API が無いため、
  * `signIn` を同条件で再実行してサインインを開始し直し、新しいコードを送る。
  *
- * @param email - ユーザーのメールアドレス
- * @returns 成功時 `{ success: true }`、失敗時 `{ error }`
+ * 連打はレート制限（`LimitExceededException` 等）に当たるので、UI 側で
+ * 再送ボタンをクールダウンさせること。
  */
-export async function resendOtp(email: string) {
+export async function resendOtp(email: string): Promise<AuthResult> {
   try {
     await signIn({
-      username: email,
+      username: normalizeEmail(email),
       options: {
         authFlowType: 'USER_AUTH',
         preferredChallenge: 'EMAIL_OTP',
       },
     })
-    return { success: true as const }
+    return { success: true }
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.toLowerCase().includes('limit')) {
-        return { error: 'Please wait before requesting a new code' }
-      }
-      return { error: error.message }
-    }
-    return { error: 'An unexpected error occurred' }
+    return toAuthFailure('resendOtp', error, { hideAccountExistence: true })
   }
 }

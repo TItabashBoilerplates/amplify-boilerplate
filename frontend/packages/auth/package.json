@@ -11,7 +11,8 @@
     "./providers": "./providers/index.ts",
     "./providers/native": "./providers/native.ts",
     "./hooks": "./hooks/index.ts",
-    "./types": "./types/index.ts"
+    "./types": "./types/index.ts",
+    "./validation": "./validation/index.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

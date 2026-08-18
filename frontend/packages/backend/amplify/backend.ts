@@ -108,7 +108,41 @@ for (const fn of [backend.api, backend.restApi, backend.mcp]) {
 
 // --- 本番デフォルト: Cognito User Pool の削除保護 --------------------------
 // 誤削除でユーザーディレクトリが消えないよう保護する（本番想定の既定）。
-backend.auth.resources.cfnResources.cfnUserPool.deletionProtection = 'ACTIVE'
+const cfnUserPool = backend.auth.resources.cfnResources.cfnUserPool
+cfnUserPool.deletionProtection = 'ACTIVE'
+
+// --- 必須: パスワードポリシー（`.claude/rules/auth.md` §4）------------------
+// `defineAuth` はパスワードポリシーを露出していないため L1 で設定する。
+//
+// ⚠️ `cfnUserPool.policies = { passwordPolicy: ... }` と**代入してはならない**。
+// `loginWith.email.otpLogin` が設定する `Policies.SignInPolicy.AllowedFirstAuthFactors`
+// （= パスワードと Email OTP の両方を first factor にする設定）ごと吹き飛び、
+// **OTP ログインが無言で壊れる**。サブキーだけを上書きする。
+//
+// この値は `@workspace/auth/validation` の PASSWORD_MIN_LENGTH / PASSWORD_SYMBOLS と
+// 一対一で対応させる（ズレると「フォームは通ったのに InvalidPasswordException」になる）。
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.MinimumLength', 12)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireLowercase', true)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireUppercase', true)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireNumbers', true)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireSymbols', true)
+
+// --- 必須: メール変更中も旧アドレスを有効に保つ（`.claude/rules/auth.md` §3.4）----
+// 既定では `updateUserAttributes({ email })` を呼んだ瞬間に email 属性が新アドレスへ
+// 置き換わり `email_verified` が false になるため、**検証を完了する前にユーザーが
+// 旧アドレスでも新アドレスでもログインできなくなる**（＝アカウント喪失）。
+// この設定を入れると、新アドレスの検証が完了するまで旧アドレスが有効なまま保たれる。
+// @see https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_UpdateUserAttributes.html
+cfnUserPool.addPropertyOverride(
+  'UserAttributeUpdateSettings.AttributesRequireVerificationBeforeUpdate',
+  ['email']
+)
+
+// --- 既定: ユーザー列挙（user existence）エラーの抑止 -----------------------
+// 有効にするとサインインで `UserNotFoundException` ではなく `NotAuthorizedException`
+// が返り、「そのアドレスが登録されているか」を攻撃者に教えなくなる。
+// @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pool-managing-errors.html
+backend.auth.resources.cfnResources.cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED'
 
 // フロントエンドが参照できるよう amplify_outputs.json の custom に出力
 const customOutputs: Record<string, string> = {
@@ -154,7 +188,6 @@ if (e2eOtpCapture) {
   })
 
   // User Pool に CustomEmailSender トリガ + KMS キーを設定（CDK エスケープハッチ）
-  const cfnUserPool = backend.auth.resources.cfnResources.cfnUserPool
   cfnUserPool.addPropertyOverride('LambdaConfig.CustomEmailSender.LambdaArn', captureFn.functionArn)
   cfnUserPool.addPropertyOverride('LambdaConfig.CustomEmailSender.LambdaVersion', 'V1_0')
   cfnUserPool.addPropertyOverride('LambdaConfig.KMSKeyID', key.keyArn)

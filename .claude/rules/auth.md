@@ -284,21 +284,24 @@ export const auth = defineAuth({
 const { cfnUserPool } = backend.auth.resources.cfnResources
 
 // パスワード強度（defineAuth に露出していないので L1 で設定する）
-cfnUserPool.policies = {
-  passwordPolicy: {
-    minimumLength: 12,
-    requireLowercase: true,
-    requireUppercase: true,
-    requireNumbers: true,
-    requireSymbols: true,
-  },
-}
+//
+// ⚠️ `cfnUserPool.policies = { passwordPolicy: ... }` と**代入してはならない**。
+// `otpLogin: true` が設定する `Policies.SignInPolicy.AllowedFirstAuthFactors` ごと
+// 吹き飛び、**OTP ログインが無言で壊れる**。サブキーだけを上書きする。
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.MinimumLength', 12)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireLowercase', true)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireUppercase', true)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireNumbers', true)
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.RequireSymbols', true)
 
 // ⚠️ 必須: メール変更中も旧アドレスを有効に保つ（無いとユーザーが締め出される。§3.4）
 cfnUserPool.addPropertyOverride(
   'UserAttributeUpdateSettings.AttributesRequireVerificationBeforeUpdate',
   ['email'],
 )
+
+// ユーザー列挙エラーの抑止（サインインで UserNotFoundException を返さない）
+backend.auth.resources.cfnResources.cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED'
 ```
 
 - **メール文面（確認コード / 招待）** は `defineAuth` の `senderEmail` / email customization、

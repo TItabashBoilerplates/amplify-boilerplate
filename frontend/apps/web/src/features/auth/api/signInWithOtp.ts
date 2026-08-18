@@ -1,4 +1,7 @@
+import { isValidEmail, normalizeEmail } from '@workspace/auth/validation'
 import { signIn } from 'aws-amplify/auth'
+import { toAuthFailure } from '../lib/authResult'
+import type { AuthResult } from '../model/types'
 
 /**
  * パスワードレス認証：メールアドレスに OTP を送信（Cognito Email OTP）。
@@ -6,24 +9,26 @@ import { signIn } from 'aws-amplify/auth'
  * Cognito の `USER_AUTH` フロー + `EMAIL_OTP` チャレンジで、ユーザーのメールに
  * ワンタイムコードを送る。続く検証は {@link verifyOtp} で行う。
  *
- * @param email - ユーザーのメールアドレス
- * @returns 成功時 `{ success: true }`、失敗時 `{ error }`
+ * これは**補助的なログイン手段**。モバイルアプリを出すプロダクトでは
+ * メール + パスワード（{@link signInWithPassword}）を主手段として必ず残すこと
+ * （`.claude/rules/auth.md`）。
  */
-export async function signInWithOtp(email: string) {
+export async function signInWithOtp(email: string): Promise<AuthResult> {
+  if (!isValidEmail(email)) {
+    return { success: false, errorKey: 'emailInvalidFormat' }
+  }
+
   try {
     await signIn({
-      username: email,
+      username: normalizeEmail(email),
       options: {
         authFlowType: 'USER_AUTH',
         preferredChallenge: 'EMAIL_OTP',
       },
     })
 
-    return { success: true as const }
+    return { success: true }
   } catch (error) {
-    if (error instanceof Error) {
-      return { error: error.message }
-    }
-    return { error: 'An unexpected error occurred' }
+    return toAuthFailure('signInWithOtp', error, { hideAccountExistence: true })
   }
 }
