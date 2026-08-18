@@ -92,9 +92,41 @@ const ids = Object.keys(index.entries).filter(
 	(id) => !id.endsWith("--docs") && (!filter || filter.test(id)),
 );
 
-const browser = await chromium.launch({
-	executablePath: "/opt/pw-browsers/chromium",
-});
+/**
+ * Chromium の実体を解決する。
+ *
+ * `playwright-core` はブラウザを同梱しないので、実行環境が用意したものを指す必要がある。
+ * 環境ごとにパスが違う（devenv の nix store / CI のランナー / コンテナ）ため、
+ * **ハードコードせず env → 既知のパス → PATH の順で探す**。
+ * 見つからないときは黙って失敗させず、何を設定すればよいかを出す。
+ */
+function resolveChromium() {
+	const candidates = [
+		process.env.CHROMIUM_PATH,
+		process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+		process.env.PLAYWRIGHT_BROWSERS_PATH
+			? join(process.env.PLAYWRIGHT_BROWSERS_PATH, "chromium")
+			: undefined,
+		"/opt/pw-browsers/chromium",
+		"/usr/bin/chromium",
+		"/usr/bin/chromium-browser",
+		"/usr/bin/google-chrome",
+		"/usr/bin/google-chrome-stable",
+	].filter(Boolean);
+
+	const found = candidates.find((candidate) => existsSync(candidate));
+	if (!found) {
+		console.error(
+			"Chromium が見つからない。CHROMIUM_PATH に実行ファイルのパスを設定するか、\n" +
+				"chromium / google-chrome をインストールしてください。\n" +
+				`探した場所: ${candidates.join(", ")}`,
+		);
+		process.exit(1);
+	}
+	return found;
+}
+
+const browser = await chromium.launch({ executablePath: resolveChromium() });
 // iOS Safari のオートズームはモバイル幅の話なので、その幅で測る
 const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
 

@@ -31,6 +31,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Biome (lint + format check)
         run: pnpm run lint:ci
+      # ESLint は Biome と別の検査（FSD の boundaries、React Hooks の規則）を担当する。
+      # 片方だけ回すと「biome は通るのに commit も本番ビルドも落ちる」状態になる。
+      - name: ESLint (FSD boundaries + React rules)
+        run: pnpm run --filter @workspace/web lint
       # amplify_outputs.json は生成物（gitignore）。CI では AWS にデプロイせず型チェック/ビルドを
       # 通すため、公開情報のみのスタブ（apps/web/amplify_outputs.ci.json, シークレットなし）を
       # 配置する。実環境の出力は Amplify Hosting が backend デプロイ後に生成する（amplify.yml）。
@@ -38,8 +42,42 @@ jobs:
         run: cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
       - name: Type check (tsc)
         run: pnpm run type-check
+      # `.claude/rules/tdd.md` の All Green を CI でも担保する
+      # （これが無いと「テストはローカルで通っていたはず」で壊れたまま main に入る）。
+      - name: Unit tests (vitest)
+        run: pnpm run test
       - name: Build (next build)
         run: pnpm run --filter @workspace/web build
+
+  storybook:
+    name: Storybook (build + render check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Stub amplify_outputs.json (no secrets)
+        working-directory: frontend
+        run: cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
+      - name: Build Storybook
+        working-directory: frontend
+        run: pnpm run build-storybook
+      # ビルド成功は描画を保証しない（`.claude/rules/ui-testing.md`）。
+      # 実行時エラー・未翻訳キーの露出・画像・入力欄の font-size を computed style で実測する。
+      # ランナーに同梱の Chrome を使う（playwright-core はブラウザを同梱しない）。
+      - name: Verify stories actually render
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
+        run: node scripts/frontend/verify-storybook-render.mjs
 
   backend-py:
     name: Backend (ruff + mypy + pytest)
