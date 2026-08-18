@@ -47,11 +47,11 @@
 
 | 対象 | 状態 | 対応 |
 |---|---|---|
-| `.claude/CLAUDE.md` | 🔴 遅れ | ✅ 新ルールを反映済 |
-| `.agent/rules/`（auth / auto-generated / list-pagination / minimal-implementation） | 🔴 欠落 | 🔴 未対応 |
-| `.cursor/rules/`（auth / list-pagination / minimal-implementation） | 🔴 欠落 | 🔴 未対応 |
-| `AGENTS.md` / `.codex/AGENTS.md` / `.cursorrules` | 🔴 遅れ | 🔴 未対応 |
-| `skills-lock.json` | 🔴 遅れ | 🔴 未対応（§2.1） |
+| `.claude/CLAUDE.md` | 🔴 遅れ | ✅ **対応済** |
+| `.agent/rules/` | 🔴 欠落 + Supabase/Deno の記述が残存 | ✅ **対応済**（auth / auto-generated / list-pagination / minimal-implementation を追加、code-style / research-first を AWS 化） |
+| `.cursor/rules/` | 🔴 **Supabase-First / database(Drizzle) / edge-functions(Deno) が `alwaysApply` で残存** | ✅ **対応済**（削除 3・追加 12・書き換え 6） |
+| `AGENTS.md` / `.codex/AGENTS.md` / `.cursorrules` / `.agent/AGENT.md` | 🔴 遅れ | ✅ **対応済**。あわせて **「パッケージマネージャは Bun」という正本と矛盾する記述**を pnpm に統一 |
+| `skills-lock.json` | 🔴 遅れ | ✅ **対応済**（§2.1） |
 
 ### 2.1 Skill の差分
 
@@ -76,10 +76,21 @@
 `doppler`, `vercel-deploy`, `tauri`（desktop app 自体が無い）。
 `fal` / `livekit` / `onesignal` は AWS 既定（Bedrock / IVS・Chime / Pinpoint）に置換されるため不要。
 
-**🔴 逆に、消し忘れて残っているもの**（CLAUDE.md は「削除済み」と書いているが実際は存在する）:
+**🔴 逆に、消し忘れて残っていたもの**（CLAUDE.md は「削除済み」と書いていたが実際は存在した）:
 `supabase`, `supabase-postgres-best-practices`, `deploy-to-vercel`, `vercel-cli-with-tokens`,
-`vercel-optimize`, および大量の AWS データレイク / MSK / RDS 系 skill（このボイラープレートで
-使わないものはノイズになる）。
+`vercel-optimize` → ✅ **削除済**。
+
+### 2.1 の対応結果
+
+- ✅ 追加: `accessibility` / `core-web-vitals` / `performance` / `baseline-ui` / `improve-ui` /
+  `fixing-motion-performance` / `ui-ux-pro-max`（lock 管理へ）/ `mobile-uiux`（自作を移植）
+- ⏸️ 見送り（理由付き）:
+  - `sentry-*` / `instrument-*`(PostHog) … `aws-first.md` の既定は CloudWatch / X-Ray
+  - `revenuecat-*` / `adapty-cli` … IAP のコードもストア設定も未移植（§6 の後で入れる）
+  - `next-best-practices` / `framework-selection` … 上流から取得できなくなっている
+  - `gluestack-ui-v5` … 本体が v3/v4 系なので、§4 のアップグレードとセットで入れる
+- 🔴 残: `hey-api`（amplify も Hey API を使っているのに skill が無い）、
+  `ai-usage-metering` / `mobile-release` / `store-screenshots`（自作。§6 とセット）
 
 ---
 
@@ -101,6 +112,16 @@
 | `app/[locale]/signup` / `forgot-password` | ✅ | ❌ | 🔴 |
 | mobile `sign-in` / `sign-up` / `forgot-password` / `account` 画面 | ✅ | ❌ | 🔴 |
 | backend の `passwordPolicy` / `AttributesRequireVerificationBeforeUpdate` | n/a | ❌ | 🔴 |
+
+### 対応結果: ✅ **すべて実装済**（`feat(auth)` コミット）
+
+- backend に `Policies.PasswordPolicy.*`（L1 オーバーライド）/
+  `AttributesRequireVerificationBeforeUpdate: ['email']` / `preventUserExistenceErrors` を追加
+- `@workspace/auth/validation`（Web/Mobile 共有。63 tests）
+- `features/auth` の api を 4 → 15 関数、UI フォーム 9 種 + Storybook 16 本（33 tests）
+- `/signup` `/forgot-password` `/account` を追加し、ユーザーメニューから到達可能に
+- `required-flows.test.ts` が必須導線・backend 設定・i18n キー集合を静的検査
+- **Web のみ。Mobile 側の認証画面は未実装**（§5 に残る）
 
 ---
 
@@ -129,12 +150,12 @@
 | `packages/app/hooks` / `entities/user/model/hooks.ts` + テスト | 🔴 欠落 | |
 | `packages/auth/validation` | 🔴 欠落 | 認証バリデーションの共通化 |
 | `packages/storage-image` | 🔴 欠落 | `storage-images.md` が要求（新規実装） |
-| `apps/web/src/app`（FSD の app レイヤー） | 🔴 欠落 | shadcn は `src/app/styles/globals.css` |
+| `apps/web/src/app`（FSD の app レイヤー） | 🔴 欠落 | ✅ **対応済**（`src/app/styles/globals.css`） |
 | `apps/web/src/shared/ui` | 🔴 欠落 | |
 | `apps/web/src/features/cookie-consent` | 🔴 欠落 | |
-| `apps/web/app/{page,icon,manifest,opengraph-image,robots,sitemap}.tsx/ts` | 🔴 欠落 | SEO / PWA メタデータ一式 |
+| `apps/web/app/{icon,manifest,opengraph-image,robots,sitemap}` | 🔴 欠落 | ✅ **対応済**（`page.tsx` は `localePrefix: 'always'` のため不要） |
 | `apps/web/src/shared/lib/server-actions.policy.test.ts` | 🔴 欠落 | Server Action の静的検査 |
-| `apps/web/src/shared/config/app.ts` | 🔴 欠落 | |
+| `apps/web/src/shared/config/app.ts` | 🔴 欠落 | ✅ **対応済**（`APP_URL` / `APP_NAME` + `generateMetadata` の i18n 化） |
 | `apps/mobile` の `babel.config.js` / `css.d.ts` / `eas.json` | 🔴 欠落 | |
 | `apps/mobile` の `store.config.js` / `play.config.js` / `iap.config.js` + テスト | 🔴 欠落 | `store-review.md` が要求 |
 | `apps/desktop`（Tauri） | 🟡 欠落 | 移植するか要判断 |
@@ -157,22 +178,37 @@
 | ✅ `scripts/infra`(Vercel) / `scripts/supabase` | ✅ 意図的 | |
 | `e2e/` ディレクトリ | 🔴 欠落 | |
 | `.maestro`: `password-reset-flow` / `email-change-flow` / `store/` | 🔴 欠落 | 認証導線の E2E |
-| CI が **vitest を実行していない** | 🔴 | `tdd.md` の All Green が CI で担保されていない |
-| CI が devenv 経由でない（`pnpm run lint:ci` 直叩き） | 🟡 | `commands.md` と不整合（Actions ランナー都合なら注記が要る） |
+| CI が **vitest / ESLint / Storybook を実行していない** | 🔴 | ✅ **対応済**（3 つとも追加。`verify-storybook-render` の Chromium パスも env で解決するようにした） |
+| CI が devenv 経由でない（`pnpm run lint:ci` 直叩き） | 🟡 | 未対応（Actions ランナー都合。shadcn は devenv + nix cache 方式） |
 | `docs/store/`（submission-checklist / release-runbook / aso） | 🔴 欠落 | |
 | `docs/deployment/README.md` | 🔴 欠落 | |
 
 ---
 
-## 7. 対応順序（推奨）
+## 7. 対応状況と残り
 
-1. **`.claude/rules` の移植**（✅ 完了）— 思想の正本を先に揃える
-2. **認証の実装パリティ**（§3）— 唯一の "ポリシー違反" 状態。backend の必須設定を含む
-3. **エージェント設定の同期**（§2）— `.agent` / `.cursor` / `AGENTS.md` / `skills-lock.json`
-4. **web / mobile のアプリ構成**（§5）— account / metadata routes / cookie-consent / shared-ui
-5. **`packages/storage-image` と `StorageImage`**（§5）— `storage-images.md` の実装
-6. **モバイル基盤の追随**（§4）— Expo 57 / RN 0.86 / gluestack v5 / NativeWind 統一
-7. **scripts / E2E / docs / CI**（§6）
+### ✅ このブランチで対応済み
 
-> 6 は依存の大移動になるため、独立した PR にしてユーザー確認のうえ実施するのが安全
+1. **`.claude/rules` の移植**（§1）— 思想の正本
+2. **認証の実装パリティ（Web）**（§3）— 唯一の "ポリシー違反" 状態だったもの
+3. **エージェント設定の同期**（§2）— `.agent` / `.cursor` / `AGENTS.md` / `.cursorrules` / `skills-lock.json`
+4. **Storybook の描画検査**（§6）— `verify-storybook-render` + `ui-testing.md` の完了条件
+5. **CI の穴埋め**（§6）— vitest / ESLint / Storybook 描画検査
+6. **web の SEO / PWA メタデータ + FSD app レイヤー**（§5）
+
+### 🔴 残っている作業（着手順の推奨）
+
+| # | 作業 | 備考 |
+|---|---|---|
+| 1 | **Mobile の認証画面**（sign-in / sign-up / forgot-password / account） | Web と同じ `@workspace/auth/validation` を共有する。`required-flows.test.ts` の mobile 版も要る |
+| 2 | **`packages/storage-image` と `StorageImage`**（§5） | **ユーザー判断が要る**: Mobile 側のリサイズ手段を「アップロード時に派生生成（S3 トリガ Lambda + sharp）」にするか「Dynamic Image Transformation for CloudFront」にするか（`storage-images.md` §1.2） |
+| 3 | **`packages/tokens` の contract / oklch とテスト**（§5） | デザイントークンの契約テスト。インフラ非依存 |
+| 4 | **`packages/native-ui` のコンポーネント群**（§5） | gluestack のバージョン差があるので 5 とセットが安全 |
+| 5 | **モバイル基盤の追随**（§4） | Expo 55 canary → 57 / RN 0.82 → 0.86 / gluestack v3・v1 混在 → v5 / NativeWind の版ズレ解消。**依存の大移動なので独立した PR にし、ユーザー確認のうえ実施する** |
+| 6 | **`scripts/mobile` + `docs/store` + `store.config.js` 等**（§6） | `store-review.md` が前提にするツール一式。1 と 5 の後 |
+| 7 | **`scripts/mcp`（`mcp-sync`）**（§6） | `.codex/config.toml` / `.cursor/mcp.json` の生成元。生成物だけあって生成元が無い |
+| 8 | **`.maestro` の認証 E2E / `e2e/`**（§6） | パスワード再設定・メール変更の往復 |
+| 9 | Next.js / React / TypeScript / Storybook 等のマイナー追随（§4） | 5 と同じ PR にまとめてもよい |
+
+> 5 は依存の大移動になるため、独立した PR にしてユーザー確認のうえ実施するのが安全
 > （`.claude/rules/data-modeling.md` と同じく「壊れたときの影響が大きい」変更）。
