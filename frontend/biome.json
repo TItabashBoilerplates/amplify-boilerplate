@@ -15,10 +15,12 @@
       "!!**/.turbo",
       "!!**/dist",
       "!!**/build",
+      "!!**/storybook-static",
       "!!**/.cache",
       "!!**/packages/types/schema.ts",
       "!!**/packages/api-client/src/generated",
-      "!!**/styles/globals.css"
+      "!!**/styles/globals.css",
+      "!!**/next-env.d.ts"
     ]
   },
   "formatter": {

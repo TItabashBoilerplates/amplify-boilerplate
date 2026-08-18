@@ -49,6 +49,7 @@
     "@workspace/query": "workspace:*",
     "babel-plugin-react-native-web": "^0.19.13",
     "jsdom": "^27.4.0",
+    "playwright-core": "1.56.0",
     "react-native-css-interop": "^0.1.22",
     "react-native-web": "^0.21.2",
     "storybook": "^10.1.10",

@@ -87,6 +87,9 @@ importers:
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0
+      playwright-core:
+        specifier: 1.56.0
+        version: 1.56.0
       react-native-css-interop:
         specifier: ^0.1.22
         version: 0.1.22(react-native-reanimated@4.1.7(react-native-worklets@0.6.1(@babel/core@7.29.7)(react-native@0.82.1(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.1))(react@19.2.1))(react-native@0.82.1(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.1))(react@19.2.1))(react-native@0.82.1(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.1))(react@19.2.1)(tailwindcss@4.3.2)
@@ -11139,6 +11142,11 @@ packages:
   pkg-up@3.1.0:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
+
+  playwright-core@1.56.0:
+    resolution: {integrity: sha512-1SXl7pMfemAMSDn5rkPeZljxOCYAmQnYLBTExuh6E8USHXGSX3dx6lYZN/xPpTz1vimXmPA9CDnILvmJaB8aSQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   plist@3.1.1:
     resolution: {integrity: sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==}
@@ -26471,6 +26479,8 @@ snapshots:
   pkg-up@3.1.0:
     dependencies:
       find-up: 3.0.0
+
+  playwright-core@1.56.0: {}
 
   plist@3.1.1:
     dependencies:

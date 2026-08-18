@@ -104,6 +104,40 @@ export const Default: Story = {
    - リファクタリング時に壊れやすい
    - 視覚的な問題を検出できない
 
+## 完了条件: 「ビルドが通った」で終わらせない（MANDATORY）
+
+**Storybook のストーリー・`.storybook/` の設定を追加/変更したら、`build-storybook` の成功を
+もって完了としてはならない。必ず実際に描画して確認する。**
+
+これは実際に起きた事故への対策である:
+
+| 事故 | ビルド結果 | 実際 |
+|---|---|---|
+| Mobile コンポーネントが全部無スタイル | ✅ 成功 | className が DOM に出ず、CSS も当たっていない |
+| 本番ビルドだけ全ストーリーが落ちる | ✅ 成功 | ブラウザで `Cannot access 'X' before initialization` |
+| `bg-primary` だけ効かない | ✅ 成功 | クラスは付いているがカスケードで負けている |
+| dark を指定したのに light のまま | ✅ 成功 | テーマ decorator の effect が実行されていない |
+
+**いずれも「ビルド成功」「型チェック通過」「lint 通過」をすべて満たしたうえで壊れていた。**
+`ci-check` と `unit-test` は UI の描画を一切検証しないので、これらは原理的に検出できない。
+
+### 確認方法
+
+1. **人が見る**: `storybook` → `http://localhost:6006` で該当ストーリーを開く
+2. **機械的に確かめる**（設定変更時・回帰確認時は必須）:
+
+   ```bash
+   build-storybook            # frontend/storybook-static/ を作る
+   verify-storybook-render    # 実行時エラー / 未翻訳キー / 画像 / font-size を実測
+   verify-storybook-render --filter auth   # ID で絞る
+   ```
+
+   **クラス文字列の有無ではなく `getComputedStyle` の実値を見る**
+   （「クラスは付いているのに効いていない」が実際に起きるため）
+
+→ 具体的な症状別の原因と対処は `.claude/skills/storybook/` の
+  「ハマりどころ早見表」を参照
+
 ## 詳細
 
 → Storybook の実装方法は `.claude/skills/storybook/` を参照

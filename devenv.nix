@@ -79,6 +79,14 @@
     dev-web.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run --filter @workspace/web dev "$@"'';
     dev-mobile.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run start "$@"'';
     storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run storybook'';
+    build-storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run build-storybook'';
+
+    # Storybook は「ビルド成功・型 OK・lint OK」を全部満たしたまま描画だけ壊れることがある
+    # （プロバイダー不足の実行時エラー、未翻訳キーの露出、CSS が当たっていない等）。
+    # クラス文字列ではなく computed style と実行時エラーを実測する
+    # （`.claude/rules/ui-testing.md`「完了条件: ビルドが通ったで終わらせない」）。
+    # 前提: build-storybook 済み（frontend/storybook-static/）。
+    verify-storybook-render.exec = ''exec node "$DEVENV_ROOT/scripts/frontend/verify-storybook-render.mjs" "$@"'';
 
     # ---------- Backend services (opt-in, on demand) ----------
     # REST API (FastAPI) — also runnable as the `backend` process via `devenv up`.
