@@ -1,11 +1,11 @@
 'use client'
 
+import type { AuthResult } from '@workspace/auth/api'
+import { changePassword } from '@workspace/auth/api'
 import { passwordsMatch } from '@workspace/auth/validation'
 import { Button } from '@workspace/ui/components/button'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
-import { changePassword } from '../api'
-import type { AuthResult } from '../model/types'
 import { AuthMessage } from './AuthMessage'
 import { PasswordField } from './PasswordField'
 

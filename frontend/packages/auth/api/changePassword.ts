@@ -1,7 +1,7 @@
-import { isPasswordValid } from '@workspace/auth/validation'
 import { updatePassword } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { isPasswordValid } from '../validation'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * サインイン中のユーザーのパスワードを変更する（Cognito）。

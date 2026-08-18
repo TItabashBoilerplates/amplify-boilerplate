@@ -1,10 +1,12 @@
 'use client'
 
+import type { AuthResult } from '@workspace/auth/api'
+import { resendOtp, verifyOtp } from '@workspace/auth/api'
 import { Button } from '@workspace/ui/components/button'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
-import { resendOtp, verifyOtp } from '../api'
-import type { AuthResult, VerifyOTPFormProps } from '../model/types'
+import { useRouter } from '@/shared/lib/i18n/navigation'
+import type { VerifyOTPFormProps } from '../model/types'
 import { AuthMessage } from './AuthMessage'
 import { CodeField } from './CodeField'
 
@@ -16,6 +18,21 @@ import { CodeField } from './CodeField'
  */
 export function VerifyOTPForm({ email, redirectTo = '/dashboard', className }: VerifyOTPFormProps) {
   const t = useTranslations('Auth')
+  const router = useRouter()
+
+  /**
+   * 認証状態は Cookie に入るため、遷移後にサーバー側の判定をやり直させる。
+   *
+   * `window.location.assign()` を使うとロケール prefix が落ちるうえ、
+   * Next.js のクライアントナビゲーションを捨てることになる
+   * （`@next/next/no-location-assign-relative-destination`）。
+   * next-intl の router はロケールを保ったまま遷移し、`refresh()` が
+   * Server Component を新しい Cookie で再評価する。
+   */
+  const redirectAfterAuth = (path: string) => {
+    router.replace(path)
+    router.refresh()
+  }
   const [resending, setResending] = useState(false)
   const [resendState, setResendState] = useState<AuthResult | null>(null)
 
@@ -24,7 +41,7 @@ export function VerifyOTPForm({ email, redirectTo = '/dashboard', className }: V
       const result = await verifyOtp(String(formData.get('code') ?? ''))
       if (result.success) {
         // 認証状態は Cookie に入るため、フルリロードでサーバー側の判定をやり直す
-        window.location.assign(redirectTo)
+        redirectAfterAuth(redirectTo)
       }
       return result
     },

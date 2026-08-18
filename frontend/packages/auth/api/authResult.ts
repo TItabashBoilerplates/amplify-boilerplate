@@ -1,5 +1,5 @@
-import { resolveAuthError } from '@workspace/auth/validation'
-import type { AuthFailure } from '../model/types'
+import { resolveAuthError } from '../validation'
+import type { AuthFailure } from './types'
 
 /**
  * throw された Cognito の例外を `AuthFailure` に落とす（api/ 共通の Boundary）。

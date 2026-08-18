@@ -1,7 +1,7 @@
-import { normalizeEmail } from '@workspace/auth/validation'
 import { autoSignIn, confirmSignUp } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { normalizeEmail } from '../validation'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * サインアップの確認コードを検証する（Cognito）。

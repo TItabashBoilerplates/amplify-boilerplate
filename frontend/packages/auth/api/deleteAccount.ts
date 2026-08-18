@@ -1,6 +1,6 @@
 import { deleteUser } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * アカウントを削除する（Cognito）。

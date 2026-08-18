@@ -1,10 +1,11 @@
 'use client'
 
+import type { AuthResult } from '@workspace/auth/api'
+import { signInWithOtp } from '@workspace/auth/api'
 import { Button } from '@workspace/ui/components/button'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
-import { signInWithOtp } from '../api'
-import type { AuthResult, LoginFormProps } from '../model/types'
+import type { LoginFormProps } from '../model/types'
 import { AuthMessage } from './AuthMessage'
 import { EmailField } from './EmailField'
 import { VerifyOTPForm } from './VerifyOTPForm'

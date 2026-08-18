@@ -1,12 +1,13 @@
 'use client'
 
+import type { AuthResult } from '@workspace/auth/api'
+import { deleteAccount, signOut } from '@workspace/auth/api'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
-import { deleteAccount, signOut } from '../api'
-import type { AuthResult } from '../model/types'
+import { useRouter } from '@/shared/lib/i18n/navigation'
 import { AuthMessage } from './AuthMessage'
 
 /**
@@ -23,6 +24,21 @@ import { AuthMessage } from './AuthMessage'
  */
 export function DeleteAccountForm({ email, className }: { email: string; className?: string }) {
   const t = useTranslations('Auth')
+  const router = useRouter()
+
+  /**
+   * 認証状態は Cookie に入るため、遷移後にサーバー側の判定をやり直させる。
+   *
+   * `window.location.assign()` を使うとロケール prefix が落ちるうえ、
+   * Next.js のクライアントナビゲーションを捨てることになる
+   * （`@next/next/no-location-assign-relative-destination`）。
+   * next-intl の router はロケールを保ったまま遷移し、`refresh()` が
+   * Server Component を新しい Cookie で再評価する。
+   */
+  const redirectAfterAuth = (path: string) => {
+    router.replace(path)
+    router.refresh()
+  }
   const tAccount = useTranslations('Account')
   const [confirming, setConfirming] = useState(false)
 
@@ -35,7 +51,7 @@ export function DeleteAccountForm({ email, className }: { email: string; classNa
       const result = await deleteAccount()
       if (result.success) {
         await signOut()
-        window.location.assign('/login')
+        redirectAfterAuth('/login')
       }
       return result
     },

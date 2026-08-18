@@ -4,39 +4,15 @@
  * 認証機能のパブリック API。Feature Sliced Design の原則に従い、実装詳細を隠蔽し、
  * 明示的にエクスポートされたインターフェースのみを公開する。
  *
+ * **Cognito を呼ぶ API 層は `@workspace/auth/api`（Web / Mobile 共有）にある。**
+ * ここから再エクスポートしない（`.claude/rules/clean-code.md`: 互換レイヤー禁止）。
+ *
  * **必須導線**（`.claude/rules/auth.md` §2）は
  * `model/required-flows.test.ts` が静的に検査している。エクスポートを消すと落ちる。
  */
 
-// API
-export {
-  changeEmail,
-  changePassword,
-  confirmEmailChange,
-  confirmPasswordReset,
-  confirmSignUpCode,
-  deleteAccount,
-  requestPasswordReset,
-  resendOtp,
-  resendSignUpConfirmation,
-  type SignInNextStep,
-  type SignUpNextStep,
-  signInWithOtp,
-  signInWithPassword,
-  signOut,
-  signUpWithPassword,
-  verifyOtp,
-} from './api'
-// Types
-export type {
-  AuthErrorKey,
-  AuthFailure,
-  AuthFormState,
-  AuthResult,
-  AuthSuccess,
-  LoginFormProps,
-  VerifyOTPFormProps,
-} from './model/types'
+// Types（Web の UI 固有）
+export type { AuthFormState, AuthResult, LoginFormProps, VerifyOTPFormProps } from './model/types'
 // UI Components
 export { AuthMessage } from './ui/AuthMessage'
 export { ChangeEmailForm } from './ui/ChangeEmailForm'

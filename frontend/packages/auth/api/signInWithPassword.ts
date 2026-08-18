@@ -1,7 +1,7 @@
-import { isValidEmail, normalizeEmail } from '@workspace/auth/validation'
 import { signIn } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { isValidEmail, normalizeEmail } from '../validation'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /** サインイン後にユーザーへ求める操作 */
 export type SignInNextStep = 'signedIn' | 'confirmSignUp' | 'resetPassword' | 'confirmSignIn'

@@ -80,7 +80,7 @@ describe('ログイン画面', () => {
   })
 
   it('signIn の nextStep を分岐している', () => {
-    const api = readCode('src/features/auth/api/signInWithPassword.ts')
+    const api = readCode('frontend/packages/auth/api/signInWithPassword.ts', REPO_ROOT)
     expect(api).toContain('CONFIRM_SIGN_UP')
     expect(api).toContain('RESET_PASSWORD')
   })
@@ -108,7 +108,7 @@ describe('パスワード変更の実装', () => {
    * 新しいセッションが発行される副作用があり誤り（`.claude/rules/auth.md` §3.3）。
    */
   it('updatePassword に oldPassword を渡して Cognito に検証させている', () => {
-    const source = readCode('src/features/auth/api/changePassword.ts')
+    const source = readCode('frontend/packages/auth/api/changePassword.ts', REPO_ROOT)
     expect(source).toContain('updatePassword')
     expect(source).toContain('oldPassword')
     expect(source, 'signIn での代用は新セッションが発行される副作用があり誤り').not.toContain(

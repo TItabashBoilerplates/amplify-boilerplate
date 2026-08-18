@@ -6,6 +6,7 @@
  * @module widgets/user-menu/ui/UserMenu
  */
 
+import { signOut } from '@workspace/auth/api'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 import {
   DropdownMenu,
@@ -17,7 +18,6 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import { LogOut, Settings } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { signOut } from '@/features/auth'
 import { Link } from '@/shared/lib/i18n/navigation'
 
 interface UserMenuProps {

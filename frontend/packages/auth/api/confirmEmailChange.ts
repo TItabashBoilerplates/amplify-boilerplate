@@ -1,6 +1,6 @@
 import { confirmUserAttribute } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * 新しいメールアドレスに届いたコードで変更を確定する（Cognito）。

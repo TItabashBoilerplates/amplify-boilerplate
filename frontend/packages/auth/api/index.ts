@@ -6,6 +6,7 @@
  * Boundary として catch + ログ出力を担う（`.claude/rules/error-handling.md`）。
  */
 
+export { toAuthFailure } from './authResult'
 export { changeEmail } from './changeEmail'
 export { changePassword } from './changePassword'
 export { confirmEmailChange } from './confirmEmailChange'
@@ -19,4 +20,10 @@ export { signInWithOtp } from './signInWithOtp'
 export { type SignInNextStep, signInWithPassword } from './signInWithPassword'
 export { signOut } from './signOut'
 export { type SignUpNextStep, signUpWithPassword } from './signUpWithPassword'
+export type {
+  AuthErrorKey,
+  AuthFailure,
+  AuthResult,
+  AuthSuccess,
+} from './types'
 export { verifyOtp } from './verifyOtp'

@@ -1,11 +1,11 @@
 'use client'
 
+import type { AuthResult } from '@workspace/auth/api'
+import { requestPasswordReset } from '@workspace/auth/api'
 import { Button } from '@workspace/ui/components/button'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
 import { Link } from '@/shared/lib/i18n/navigation'
-import { requestPasswordReset } from '../api'
-import type { AuthResult } from '../model/types'
 import { AuthMessage } from './AuthMessage'
 import { EmailField } from './EmailField'
 import { UpdatePasswordForm } from './UpdatePasswordForm'

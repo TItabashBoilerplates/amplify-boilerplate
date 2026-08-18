@@ -1,7 +1,7 @@
-import { normalizeEmail } from '@workspace/auth/validation'
 import { resendSignUpCode } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { normalizeEmail } from '../validation'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * サインアップ確認コードを再送する（Cognito）。

@@ -1,7 +1,7 @@
-import { isPasswordValid, normalizeEmail } from '@workspace/auth/validation'
 import { confirmResetPassword } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { isPasswordValid, normalizeEmail } from '../validation'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * 届いたコードで新しいパスワードを確定する（Cognito）。

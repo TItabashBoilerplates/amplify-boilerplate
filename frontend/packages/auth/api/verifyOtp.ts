@@ -1,6 +1,6 @@
 import { confirmSignIn } from 'aws-amplify/auth'
-import { toAuthFailure } from '../lib/authResult'
-import type { AuthResult } from '../model/types'
+import { toAuthFailure } from './authResult'
+import type { AuthResult } from './types'
 
 /**
  * OTP コードを検証してサインインを完了する（Cognito Email OTP）。

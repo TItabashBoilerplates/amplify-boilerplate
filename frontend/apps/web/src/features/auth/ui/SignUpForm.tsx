@@ -1,12 +1,12 @@
 'use client'
 
+import type { AuthResult } from '@workspace/auth/api'
+import { type SignUpNextStep, signUpWithPassword } from '@workspace/auth/api'
 import { passwordsMatch } from '@workspace/auth/validation'
 import { Button } from '@workspace/ui/components/button'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
-import { Link } from '@/shared/lib/i18n/navigation'
-import { type SignUpNextStep, signUpWithPassword } from '../api'
-import type { AuthResult } from '../model/types'
+import { Link, useRouter } from '@/shared/lib/i18n/navigation'
 import { AuthMessage } from './AuthMessage'
 import { ConfirmSignUpForm } from './ConfirmSignUpForm'
 import { EmailField } from './EmailField'
@@ -20,6 +20,21 @@ import { PasswordField } from './PasswordField'
  */
 export function SignUpForm({ className }: { className?: string }) {
   const t = useTranslations('Auth')
+  const router = useRouter()
+
+  /**
+   * 認証状態は Cookie に入るため、遷移後にサーバー側の判定をやり直させる。
+   *
+   * `window.location.assign()` を使うとロケール prefix が落ちるうえ、
+   * Next.js のクライアントナビゲーションを捨てることになる
+   * （`@next/next/no-location-assign-relative-destination`）。
+   * next-intl の router はロケールを保ったまま遷移し、`refresh()` が
+   * Server Component を新しい Cookie で再評価する。
+   */
+  const redirectAfterAuth = (path: string) => {
+    router.replace(path)
+    router.refresh()
+  }
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
@@ -41,7 +56,7 @@ export function SignUpForm({ className }: { className?: string }) {
         setPendingEmail(email)
       }
       if (result.success && result.nextStep === 'signedIn') {
-        window.location.assign('/dashboard')
+        redirectAfterAuth('/dashboard')
       }
       return result
     },
