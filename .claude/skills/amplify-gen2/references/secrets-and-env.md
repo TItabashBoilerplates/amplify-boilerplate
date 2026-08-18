@@ -65,10 +65,10 @@ console:
 
 ```bash
 cd frontend/packages/backend
-bunx ampx sandbox secret set GOOGLE_CLIENT_ID     # prompts for the value
-bunx ampx sandbox secret list
-bunx ampx sandbox secret get GOOGLE_CLIENT_ID
-bunx ampx sandbox secret remove GOOGLE_CLIENT_ID
+pnpm exec ampx sandbox secret set GOOGLE_CLIENT_ID     # prompts for the value
+pnpm exec ampx sandbox secret list
+pnpm exec ampx sandbox secret get GOOGLE_CLIENT_ID
+pnpm exec ampx sandbox secret remove GOOGLE_CLIENT_ID
 ```
 
 **Branch / deployed environments** — set in the Amplify console:
@@ -182,7 +182,7 @@ There are two sources of frontend config — use the right one:
   build:
     commands:
       - env | grep -e NEXT_PUBLIC_ >> apps/web/.env.production || true
-      - bun run --filter @workspace/web build
+      - pnpm run --filter @workspace/web build
   ```
 
 > Do **not** put secrets in `NEXT_PUBLIC_*` — they are inlined into the client bundle.
@@ -195,7 +195,7 @@ For non-secret values your backend code reads at **build/synth time** (e.g.
 sandbox:
 
 ```bash
-bunx dotenvx run --env-file=.env.local -- ampx sandbox
+pnpm dlx dotenvx run --env-file=.env.local -- ampx sandbox
 ```
 
 Real secrets still go through `ampx sandbox secret set` (SSM), never `.env.local`.

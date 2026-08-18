@@ -56,11 +56,11 @@ AppSync サブスク）を共有し、違いは**処理本体をどこで走ら�
 **response streaming** が要るので Function URL を `InvokeMode.RESPONSE_STREAM` にし、Hono の
 `streamHandle`（`hono/aws-lambda`）で export する。SSE フレームは `streamSSE`（`hono/streaming`）。
 
-依存追加（bun・`packages/backend`）:
+依存追加（pnpm・`packages/backend`）:
 
 ```bash
-bun add hono @langchain/aws @langchain/core
-# 低レベル代替を使う場合: bun add @aws-sdk/client-bedrock-runtime
+pnpm add hono @langchain/aws @langchain/core
+# 低レベル代替を使う場合: pnpm add @aws-sdk/client-bedrock-runtime
 ```
 
 ### TS 関数（Hono streamSSE + streamHandle）

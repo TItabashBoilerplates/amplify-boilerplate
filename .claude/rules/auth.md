@@ -236,18 +236,32 @@ await deleteUser() // サインイン中の Cognito ユーザーを完全削除�
 
 ### 3.7 クライアント設定（ここを外すと毎回ログインになる / 認可が壊れる）
 
-**Mobile（Expo / RN）** — セッション永続化はストレージを指定しないと機能しない:
+**Mobile（Expo / RN）** — 必要なのは**ネイティブ依存と polyfill を揃えること**:
 
 ```ts
 // apps/mobile/src/shared/lib/amplify.ts
+// crypto.getRandomValues の polyfill。**Amplify より前に import する**
+import 'react-native-get-random-values'
 import { Amplify } from 'aws-amplify'
-import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
-import { defaultStorage } from 'aws-amplify/utils'   // ネイティブでは AsyncStorage に解決される
-import outputs from 'amplify-outputs'
+import outputs from '../../../amplify_outputs.json'
 
 Amplify.configure(outputs)
-cognitoUserPoolsTokenProvider.setKeyValueStorage(defaultStorage)
 ```
+
+Cognito のトークンは **`@react-native-async-storage/async-storage` へ自動的に永続化される**
+（ブラウザの `localStorage` に相当）。**依存が入っていないとアプリ再起動でセッションが失われる**
+ので、次の 4 つを必ず入れておく（`.claude/skills/amplify-gen2/references/react-native.md`）:
+
+| 依存 | 役割 |
+|---|---|
+| `@aws-amplify/react-native` | RN アダプタ（crypto / app state 等のネイティブ要件の配線） |
+| `@react-native-async-storage/async-storage` | **トークンの永続化先** |
+| `@react-native-community/netinfo` | Data のリアルタイム（サブスクリプションの接続状態） |
+| `react-native-get-random-values` | `crypto.getRandomValues` の polyfill。**`aws-amplify` より前に import** |
+
+> トークンを**暗号化ストレージ（`expo-secure-store` 等）に置き換えたい**ときだけ
+> `cognitoUserPoolsTokenProvider.setKeyValueStorage(...)` を使う。
+> 既定の永続化のために呼ぶ必要は無い。
 
 **Server（Next.js / `@aws-amplify/adapter-nextjs`）** — **クライアント由来の値でページを保護しない**:
 
@@ -385,7 +399,8 @@ if (!isSignedIn) return { error: 'ログインに失敗しました' }   // ← 
 // ❌ サーバー側でクライアントの認証状態を信じてページ・データを保護する
 //    （runWithAmplifyServerContext + aws-amplify/auth/server を使う）
 
-// ❌ Mobile で cognitoUserPoolsTokenProvider のストレージを設定せず、起動のたびにログインさせる
+// ❌ Mobile で AsyncStorage / @aws-amplify/react-native を入れず、起動のたびにログインさせる
+// ❌ react-native-get-random-values を aws-amplify より後に import する（認証が落ちる）
 
 // ❌ パスワード再設定で「そのメールアドレスは登録されていません」と返す（ユーザー列挙）
 //    UserNotFoundException をそのまま画面に出さない
@@ -410,7 +425,7 @@ if (!isSignedIn) return { error: 'ログインに失敗しました' }   // ← 
 | 7 | `signIn` / `signUp` / `updateUserAttributes` の `nextStep` をすべて分岐しているか |
 | 8 | `passwordPolicy`（最低 12 文字 + 4 種）を設定したか |
 | 9 | 5 状態（初期 / 送信中 / 成功 / 失敗 / レート制限）の UI があるか |
-| 10 | Mobile のトークンストレージ / Server の `runWithAmplifyServerContext` を設定したか |
+| 10 | Mobile の必須ネイティブ依存 4 つが揃っているか / Server が `runWithAmplifyServerContext` を通しているか |
 | 11 | 文言が en / ja 両方あるか |
 | 12 | api / model に単体テスト、ui に Storybook、`required-flows.test.ts` があるか |
 | 13 | モバイルならアカウント削除導線（+ 関連データ削除）があり、審査メモの資格情報が有効か |

@@ -201,7 +201,7 @@ grep -E 'AD_ID|POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
 | `updatePassword({ oldPassword, newPassword })` で検証している（`signIn` で代用していない） | 新セッション発行の副作用 |
 | backend が `AttributesRequireVerificationBeforeUpdate: ['email']` を設定している | メール変更でユーザーが締め出される |
 | サーバー側が `runWithAmplifyServerContext` + `aws-amplify/auth/server` を使っている | クライアント由来の値でページを保護してしまう |
-| Mobile クライアントがトークンストレージを設定している | 起動のたびにログインになる |
+| Mobile に AsyncStorage / `@aws-amplify/react-native` が入っている | 起動のたびにログインになる |
 | en / ja のキー集合が一致している | 片方だけ翻訳を足す事故 |
 
 **派生プロジェクトでは、§1〜§4 のうち自分が実装したものに対する検査を追加すること**

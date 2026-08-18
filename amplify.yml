@@ -1,6 +1,6 @@
 # AWS Amplify Hosting build spec (Gen2 monorepo)
 #
-# appRoot=frontend（Bun ワークスペース）。backend フェーズで Amplify バックエンド
+# appRoot=frontend（pnpm ワークスペース）。backend フェーズで Amplify バックエンド
 # （Cognito/AppSync/DynamoDB/S3/Lambda）を pipeline-deploy し、frontend フェーズで
 # Next.js(web) をビルドする。バックエンド定義は packages/backend/amplify。
 #

@@ -83,7 +83,7 @@ export function maybeUseLater() { ... }
 - 上位レイヤーから下位レイヤーへの依存のみ許可
 - 同一レイヤー内の重複を防ぐ
 
-### モノレポ (Bun workspace)
+### モノレポ (pnpm workspace)
 
 - 複数アプリで共通利用するコードは `packages/` に集約
 - アプリ固有のコードのみ `apps/` に配置

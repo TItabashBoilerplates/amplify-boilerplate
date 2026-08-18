@@ -109,7 +109,7 @@ amplify.yml                           # Amplify Hosting monorepo build spec (app
 sandbox            # ampx sandbox — provision per-dev stack + watch + generate amplify_outputs.json
 sandbox-once       # ampx sandbox --once (CI/verify)
 sandbox-delete     # tear down the sandbox
-# secrets / outputs (run inside frontend/packages/backend; use pnpm — never bunx, ampx rejects bun):
+# secrets / outputs (run inside frontend/packages/backend; use pnpm — never pnpm dlx, ampx rejects bun):
 pnpm exec ampx sandbox secret set NAME
 pnpm exec ampx generate outputs --branch <b> --app-id <id> --out-dir ../../apps/web
 ```

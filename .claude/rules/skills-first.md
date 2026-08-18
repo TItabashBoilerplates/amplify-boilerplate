@@ -46,7 +46,7 @@
 | Next.js / App Router / Server Components / Cache | `nextjs`, `next-best-practices`, `next-cache-components`, `next-upgrade` |
 | データモデル / スキーマ / 認可（a.schema, allow.*） | `data-fetching`, `monorepo` |
 | FSD / レイヤー / スライス | `fsd`, `feature-sliced-design` |
-| モノレポ / Bun workspace / Turborepo | `monorepo`, `turborepo` |
+| モノレポ / pnpm workspace / Turborepo | `monorepo`, `turborepo` |
 | Python モノレポ / uv workspace / backend-py の apps・packages / src-layout / MCP サーバ追加 | `python-monorepo` |
 | shadcn/ui / TailwindCSS | `shadcn`, `shadcn-ui`, `web-design-guidelines`, `frontend-design` |
 | gluestack / NativeWind / Expo / RN | `gluestack-ui-v4`, `tailwind-setup`, `building-ui`, `building-native-ui`, `vercel-react-native-skills`, `use-dom`, `expo-deployment`, `dev-client`, `expo-dev-client`, `upgrading-expo`, `expo-cicd-workflows`, `cicd-workflows`, `expo-tailwind-setup`, `expo-api-routes`, `api-routes` |

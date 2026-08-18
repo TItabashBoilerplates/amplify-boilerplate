@@ -45,7 +45,9 @@ OAuth / passkey / OTP の**併用は可**。禁止しているのは「パスワ
 - SDK は **throw する**（Amplify Data と違い `{ data, errors }` を返さない）。
   api 層で catch + ログし、**英語の原文ではなく i18n キー**を返す
 - サーバー側の認可判断は `runWithAmplifyServerContext` + `aws-amplify/auth/server`
-- Mobile は `cognitoUserPoolsTokenProvider.setKeyValueStorage()` を設定（無いと毎回ログイン）
+- Mobile はトークンが AsyncStorage へ**自動で**永続化される。`@aws-amplify/react-native` /
+  `@react-native-async-storage/async-storage` / `@react-native-community/netinfo` /
+  `react-native-get-random-values`（**`aws-amplify` より前に import**）を揃える
 - `UserNotFoundException` / `UsernameExistsException` を画面に出さない（ユーザー列挙）
 - `deleteUser()` は Cognito のユーザーだけを消す。**Amplify Data の関連データは別途削除**する
 

@@ -9,7 +9,7 @@ secrets / env を流し込み、`ampx sandbox`（ローカル）/ `ampx pipeline
 `aws-amplify` ^6.18 / `aws-cdk-lib` ^2.234。
 
 > コマンドは必ず devenv scripts（`sandbox` / `sandbox-once` / `sandbox-delete` = `ampx`）で
-> 実行する。`bunx ampx ...` の直叩きは `.claude/rules/commands.md` で禁止。
+> 実行する。`pnpm exec ampx ...` の直叩きは `.claude/rules/commands.md` で禁止。
 
 ## 目次
 
@@ -130,7 +130,7 @@ fastapi.addEnvironment('SNS_TOPIC_ARN', notificationsTopic.topicArn)
 ```
 
 ```bash
-bunx ampx sandbox secret set GOOGLE_CLIENT_ID   # sandbox（SSM・コンソール非表示）
+pnpm exec ampx sandbox secret set GOOGLE_CLIENT_ID   # sandbox（SSM・コンソール非表示）
 # ブランチは Amplify コンソール Hosting → Secrets で設定
 ```
 
@@ -159,9 +159,9 @@ sandbox-once                             # CI 等で 1 回だけ反映
 sandbox-delete                           # 破棄（-y で確認スキップ）
 
 # 直接形式（参考）。複数 sandbox の区別や関数ログのストリーム
-bunx ampx sandbox --identifier feature-x
-bunx ampx sandbox --stream-function-logs
-bunx ampx sandbox secret set FOO          # secret 管理（§3）
+pnpm exec ampx sandbox --identifier feature-x
+pnpm exec ampx sandbox --stream-function-logs
+pnpm exec ampx sandbox secret set FOO          # secret 管理（§3）
 ```
 
 `--identifier` は同一アカウント内で複数 sandbox を使い分けるための名前。
@@ -174,14 +174,14 @@ CI やローカルで、デプロイ済みのブランチ環境から `amplify_o
 
 ```bash
 # 指定ブランチ/アプリの outputs を web アプリへ生成（amplify-outputs エイリアスが解決される）
-bunx ampx generate outputs --branch main --app-id <APP_ID> --out-dir ./apps/web
+pnpm exec ampx generate outputs --branch main --app-id <APP_ID> --out-dir ./apps/web
 # --format / --outputs-version も指定可能
 ```
 
 GraphQL の型・statement を生成する（必要な場合のみ。本リポジトリは `Schema` 型共有が基本）：
 
 ```bash
-bunx ampx generate graphql-client-code --format typescript --out ./generated
+pnpm exec ampx generate graphql-client-code --format typescript --out ./generated
 ```
 
 > 通常、`amplify_outputs.json` は `ampx sandbox`（ローカル）と Amplify Hosting（CI、app-id+branch
@@ -199,26 +199,26 @@ Amplify Hosting はリポジトリ root の `amplify.yml` に従う。モノレ�
 # amplify.yml（Gen2 monorepo）
 version: 1
 applications:
-  - appRoot: frontend                       # Bun ワークスペースのルート
+  - appRoot: frontend                       # pnpm ワークスペースのルート
     backend:
       phases:
         build:
           commands:
-            - npm install -g bun
-            - bun install --frozen-lockfile
+            - npm install -g pnpm@10.33.0
+            - pnpm install --frozen-lockfile
             # バックエンドをこのブランチにデプロイ（amplify_outputs.json 生成）
-            - cd packages/backend && bunx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+            - cd packages/backend && pnpm exec ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
     frontend:
       phases:
         preBuild:
           commands:
-            - npm install -g bun
-            - bun install --frozen-lockfile
+            - npm install -g pnpm@10.33.0
+            - pnpm install --frozen-lockfile
             # backend 出力を web アプリへ生成（amplify-outputs エイリアスが解決）
-            - cd packages/backend && bunx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID --out-dir ../../apps/web && cd ../..
+            - cd packages/backend && pnpm exec ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID --out-dir ../../apps/web && cd ../..
         build:
           commands:
-            - bun run --filter @workspace/web build
+            - pnpm run --filter @workspace/web build
       artifacts:
         baseDirectory: apps/web/.next
         files:

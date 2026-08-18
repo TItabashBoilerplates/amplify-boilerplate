@@ -43,5 +43,7 @@ App Store Review Guideline **2.1(a)** は審査担当者への「**an active dem
 - パスワード再設定は **Web / Mobile とも 6 桁コード方式**（`resetPassword` → `confirmResetPassword`）
 - SDK は **throw する**ので api 層で catch し、**英語文言ではなく i18n キー**を返す
 - 認可判断はサーバー側で `runWithAmplifyServerContext` + `aws-amplify/auth/server`
-- Mobile は `cognitoUserPoolsTokenProvider.setKeyValueStorage()` を設定（無いと毎回ログイン）
+- Mobile はトークンが AsyncStorage へ**自動で**永続化される。`@aws-amplify/react-native` /
+  `@react-native-async-storage/async-storage` / `@react-native-community/netinfo` /
+  `react-native-get-random-values`（**`aws-amplify` より前に import**）を揃える
 - `UserNotFoundException` / `UsernameExistsException` を画面に出さない（ユーザー列挙）
