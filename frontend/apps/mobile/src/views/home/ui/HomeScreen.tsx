@@ -1,7 +1,8 @@
-import { ParallaxScrollView, ThemedText, ThemedView } from '@workspace/native-ui/layout'
+import { Box, HStack, Text, VStack } from '@workspace/native-ui/components'
+import { ParallaxScrollView } from '@workspace/native-ui/layout'
 import { Image } from 'expo-image'
 import { Link } from 'expo-router'
-import { Platform, StyleSheet } from 'react-native'
+import { Platform } from 'react-native'
 
 import { HelloWave } from '@/features/hello-wave'
 import { LocaleSwitcher } from '@/features/locale-switcher'
@@ -16,79 +17,64 @@ export function HomeScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
         <Image
           source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          style={{ height: 178, width: 290, bottom: 0, left: 0, position: 'absolute' }}
         />
       }
     >
       {/* 言語切り替え */}
-      <ThemedView style={styles.languageSwitcher}>
+      <Box className="mb-4">
         <LocaleSwitcher />
-      </ThemedView>
+      </Box>
 
       {/* デモセクション */}
       <DemoSection />
 
       {/* ウェルカムセクション */}
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">{t('HomeScreen.title')}</ThemedText>
+      <HStack space="sm" className="items-center">
+        <Text size="4xl" bold>
+          {t('HomeScreen.title')}
+        </Text>
         <HelloWave />
-      </ThemedView>
+      </HStack>
 
       {/* ステップ 1 */}
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">{t('HomeScreen.step1Title')}</ThemedText>
-        <ThemedText>
+      <VStack space="sm" className="mb-2">
+        <Text size="xl" bold>
+          {t('HomeScreen.step1Title')}
+        </Text>
+        <Text>
           {t('HomeScreen.step1Description')}{' '}
-          <ThemedText type="defaultSemiBold">
+          <Text bold>
             {Platform.select({
               ios: 'cmd + d',
               android: 'cmd + m',
               web: 'F12',
             })}
-          </ThemedText>{' '}
+          </Text>{' '}
           {t('HomeScreen.step1DevTools')}
-        </ThemedText>
-      </ThemedView>
+        </Text>
+      </VStack>
 
       {/* ステップ 2 */}
-      <ThemedView style={styles.stepContainer}>
+      <VStack space="sm" className="mb-2">
         <Link href="/modal">
-          <ThemedText type="subtitle">{t('HomeScreen.step2Title')}</ThemedText>
+          <Text size="xl" bold>
+            {t('HomeScreen.step2Title')}
+          </Text>
         </Link>
-        <ThemedText>{t('HomeScreen.step2Description')}</ThemedText>
-      </ThemedView>
+        <Text>{t('HomeScreen.step2Description')}</Text>
+      </VStack>
 
       {/* ステップ 3 */}
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">{t('HomeScreen.step3Title')}</ThemedText>
-        <ThemedText>{t('HomeScreen.step3Description')}</ThemedText>
-      </ThemedView>
+      <VStack space="sm" className="mb-2">
+        <Text size="xl" bold>
+          {t('HomeScreen.step3Title')}
+        </Text>
+        <Text>{t('HomeScreen.step3Description')}</Text>
+      </VStack>
     </ParallaxScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  languageSwitcher: {
-    marginBottom: 16,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-})

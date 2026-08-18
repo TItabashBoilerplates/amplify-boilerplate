@@ -1,0 +1,64 @@
+/*
+ * Storybook（単一カタログ）の CSS エントリ。
+ *
+ * Storybook は Web / Native 両方のコンポーネントを 1 つのカタログに載せる「消費側アプリ」なので、
+ * `.claude/rules/frontend.md` の規約どおり `@workspace/ui` の CSS を import した上で、
+ * 自分が走査したいソースだけを `@source` で足す。ここに色やトークンを直書きしないこと
+ * （`@workspace/tokens` が single source of truth）。
+ *
+ * ■ なぜ native-ui のクラスもここで生成するのか
+ *   NativeWind v5（react-native-css）は Web では react-native-web の `$$css` エスケープハッチに
+ *   className を載せるだけで、**CSS 本体は普通の Tailwind が生成したものをそのまま使う**。
+ *   つまり Web 側と同じ Tailwind ビルドに native-ui を `@source` として食わせれば、
+ *   `bg-primary` / `flex-row` などがそのまま効く。Metro は不要。
+ *
+ * ■ ダークモードの扱い（mobile 実機との差分・意図的）
+ *   `apps/mobile/global.css` は `@workspace/tokens/native.css` を使うので
+ *   `@media (prefers-color-scheme: dark)` でテーマが切り替わる。
+ *   一方このカタログは `@workspace/tokens/web.css` 由来の `.dark` クラス方式を使う。
+ *   Storybook のテーマスイッチャー（addon-themes / withThemeByClassName）で
+ *   Web・Native のストーリーを同時に切り替えられるようにするため、意図的にクラス方式へ寄せている。
+ *   トークンの値自体は両者とも `@workspace/tokens` が正本なので色は一致する。
+ */
+/*
+ * ■ react-native-web のリセットに勝つための **レイヤー無し** ユーティリティ（必須）
+ *
+ * react-native-web は実行時に `<style id="react-native-stylesheet">` を **`<head>` の先頭**へ
+ * 挿入する（`createCSSStyleSheet.js`: `head.insertBefore(element, head.firstChild)`。
+ * アプリ側の CSS で上書きできるようにするための意図的な設計）。
+ * この中の `.css-view-*` が RN のデフォルト値
+ * （`background-color: transparent` / `flex-direction: column` など）を宣言している。
+ *
+ * 問題は **この RNW のスタイルがカスケードレイヤーに属していない**こと。
+ * CSS のカスケードでは **レイヤー無しの宣言がすべてのレイヤーより強い**ため、
+ * `@import "tailwindcss"`（= `@layer utilities`）のままでは詳細度も記述順も関係なく
+ * RNW のリセットが勝ってしまう。
+ *
+ * 実際の症状: `rounded-md` / `h-9` は効くのに `bg-primary` / `flex-row` だけ効かない。
+ * （RNW が宣言していないプロパティは競合しないので通るが、宣言しているものは全部負ける）
+ *
+ * そこでユーティリティをレイヤー無しでもう一度読み込み、RNW と同じ土俵に上げる。
+ * 同一詳細度（どちらもクラス 1 つ）なら記述順で後勝ちになり、RNW は常に head 先頭なので
+ * こちらが確実に勝つ。NativeWind が生成する `@workspace/tokens/native.css` も
+ * まったく同じ理由で `@import "tailwindcss/utilities.css";` をレイヤー無しで読み込んでいる。
+ *
+ * ■ なぜ globals.css より **前** に書くのか（順序が重要）
+ *   Tailwind は同一 CSS の import を **最初の 1 回だけ**採用して以降を dedupe する。
+ *   globals.css は内部で `@import "tailwindcss"`（= `utilities.css` を `layer(utilities)` 付きで
+ *   読む）を行うため、後ろに置くとこちらが dedupe されて**レイヤー無し版が消える**。
+ *   先に置くことで「レイヤー無し」の解釈が採用され、globals.css 側は dedupe される。
+ *
+ * ⚠️ この import を消す / globals.css より後ろに動かすと、
+ *    Mobile ストーリーが「色と flex 方向だけ当たらない」状態に戻る。
+ */
+@import "tailwindcss/utilities.css";
+
+@import "@workspace/ui/styles/globals.css";
+
+/*
+ * クラス走査対象。`@source` は「その指定が書かれた CSS ファイル」からの相対パスで解決される。
+ * `@workspace/ui` 自身のソースは globals.css 側が `@source "../../"` で宣言済みなので、
+ * ここでは追加分（Native UI と Web アプリの FSD レイヤー）だけを足す。
+ */
+@source "../packages/native-ui";
+@source "../apps/web/src";

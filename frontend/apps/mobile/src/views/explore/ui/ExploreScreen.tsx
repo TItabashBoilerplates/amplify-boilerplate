@@ -1,7 +1,8 @@
-import { IconSymbol } from '@workspace/native-ui/components'
-import { ParallaxScrollView, ThemedText, ThemedView } from '@workspace/native-ui/layout'
+import { HStack, IconSymbol, Text } from '@workspace/native-ui/components'
+import { Colors } from '@workspace/native-ui/constants'
+import { ParallaxScrollView } from '@workspace/native-ui/layout'
 import { Image } from 'expo-image'
-import { Platform, StyleSheet } from 'react-native'
+import { Platform } from 'react-native'
 
 import { useI18n } from '@/shared/hooks'
 import { ExternalLink } from '@/shared/ui'
@@ -15,69 +16,57 @@ export function ExploreScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
         <IconSymbol
           size={310}
-          color="#808080"
+          color={Colors.light.icon}
           name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+          style={{ position: 'absolute', bottom: -90, left: -35 }}
         />
       }
     >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">{t('ExploreScreen.title')}</ThemedText>
-      </ThemedView>
-      <ThemedText>{t('ExploreScreen.intro')}</ThemedText>
+      <HStack space="sm">
+        <Text size="4xl" bold>
+          {t('ExploreScreen.title')}
+        </Text>
+      </HStack>
+      <Text>{t('ExploreScreen.intro')}</Text>
 
       <CollapsibleSection title={t('ExploreScreen.fileBasedRouting')}>
-        <ThemedText>{t('ExploreScreen.fileBasedRoutingDesc')}</ThemedText>
+        <Text>{t('ExploreScreen.fileBasedRoutingDesc')}</Text>
         <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">{t('ExploreScreen.learnMore')}</ThemedText>
+          <Text className="text-primary underline">{t('ExploreScreen.learnMore')}</Text>
         </ExternalLink>
       </CollapsibleSection>
 
       <CollapsibleSection title={t('ExploreScreen.platformSupport')}>
-        <ThemedText>{t('ExploreScreen.platformSupportDesc')}</ThemedText>
+        <Text>{t('ExploreScreen.platformSupportDesc')}</Text>
       </CollapsibleSection>
 
       <CollapsibleSection title={t('ExploreScreen.images')}>
-        <ThemedText>{t('ExploreScreen.imagesDesc')}</ThemedText>
+        <Text>{t('ExploreScreen.imagesDesc')}</Text>
         <Image
           source={require('@/assets/images/react-logo.png')}
           style={{ width: 100, height: 100, alignSelf: 'center' }}
         />
         <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">{t('ExploreScreen.learnMore')}</ThemedText>
+          <Text className="text-primary underline">{t('ExploreScreen.learnMore')}</Text>
         </ExternalLink>
       </CollapsibleSection>
 
       <CollapsibleSection title={t('ExploreScreen.lightDarkMode')}>
-        <ThemedText>{t('ExploreScreen.lightDarkModeDesc')}</ThemedText>
+        <Text>{t('ExploreScreen.lightDarkModeDesc')}</Text>
         <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">{t('ExploreScreen.learnMore')}</ThemedText>
+          <Text className="text-primary underline">{t('ExploreScreen.learnMore')}</Text>
         </ExternalLink>
       </CollapsibleSection>
 
       <CollapsibleSection title={t('ExploreScreen.animations')}>
-        <ThemedText>{t('ExploreScreen.animationsDesc')}</ThemedText>
+        <Text>{t('ExploreScreen.animationsDesc')}</Text>
         {Platform.select({
-          ios: <ThemedText>{t('ExploreScreen.parallaxInfo')}</ThemedText>,
+          ios: <Text>{t('ExploreScreen.parallaxInfo')}</Text>,
         })}
       </CollapsibleSection>
     </ParallaxScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-})

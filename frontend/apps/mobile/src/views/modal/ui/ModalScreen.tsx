@@ -1,6 +1,5 @@
-import { ThemedText, ThemedView } from '@workspace/native-ui/layout'
+import { Box, Text } from '@workspace/native-ui/components'
 import { Link } from 'expo-router'
-import { StyleSheet } from 'react-native'
 
 import { useI18n } from '@/shared/hooks'
 
@@ -11,25 +10,14 @@ export function ModalScreen() {
   const { t } = useI18n()
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">{t('ModalScreen.title')}</ThemedText>
-      <ThemedText>{t('ModalScreen.description')}</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">{t('ModalScreen.goToHome')}</ThemedText>
+    <Box className="flex-1 items-center justify-center p-5">
+      <Text size="4xl" bold>
+        {t('ModalScreen.title')}
+      </Text>
+      <Text>{t('ModalScreen.description')}</Text>
+      <Link href="/" dismissTo className="mt-4 py-4">
+        <Text className="text-primary underline">{t('ModalScreen.goToHome')}</Text>
       </Link>
-    </ThemedView>
+    </Box>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-})

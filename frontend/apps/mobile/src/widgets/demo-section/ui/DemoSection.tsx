@@ -1,10 +1,12 @@
-import { Button, ButtonText } from '@workspace/native-ui/components'
-import { Text, View } from 'react-native'
+import { Box, Button, ButtonText, Text, VStack } from '@workspace/native-ui/components'
 
 import { useI18n } from '@/shared/hooks'
 
 /**
  * NativeWind & gluestack-ui デモセクション
+ *
+ * クラス名は Web (shadcn/ui) とまったく同じセマンティックトークンを使う。
+ * 生のパレット色（`bg-blue-500` など）は使わないこと（`.claude/rules/frontend.md`）。
  */
 export function DemoSection() {
   const { t } = useI18n()
@@ -12,18 +14,22 @@ export function DemoSection() {
   return (
     <>
       {/* NativeWind v5 Demo */}
-      <View className="bg-blue-500 p-4 rounded-lg mb-4">
-        <Text className="text-white font-bold text-lg">{t('HomeScreen.nativewindDemo')}</Text>
-        <Text className="text-white/80">{t('HomeScreen.nativewindSubtitle')}</Text>
-      </View>
+      <Box className="mb-4 rounded-lg bg-primary p-4">
+        <Text bold size="lg" className="text-primary-foreground">
+          {t('HomeScreen.nativewindDemo')}
+        </Text>
+        <Text className="text-primary-foreground/80">{t('HomeScreen.nativewindSubtitle')}</Text>
+      </Box>
 
       {/* gluestack-ui Button Demo */}
-      <View className="gap-3 mb-4">
-        <Text className="text-lg font-bold">{t('HomeScreen.gluestackButtons')}</Text>
-        <Button action="primary" onPress={() => console.log('Primary pressed')}>
+      <VStack space="md" className="mb-4">
+        <Text bold size="lg">
+          {t('HomeScreen.gluestackButtons')}
+        </Text>
+        <Button onPress={() => console.log('Primary pressed')}>
           <ButtonText>{t('HomeScreen.primaryButton')}</ButtonText>
         </Button>
-        <Button action="secondary" onPress={() => console.log('Secondary pressed')}>
+        <Button variant="secondary" onPress={() => console.log('Secondary pressed')}>
           <ButtonText>{t('HomeScreen.secondaryButton')}</ButtonText>
         </Button>
         <Button variant="outline" onPress={() => console.log('Outline pressed')}>
@@ -32,7 +38,7 @@ export function DemoSection() {
         <Button size="lg" onPress={() => console.log('Large pressed')}>
           <ButtonText>{t('HomeScreen.largeButton')}</ButtonText>
         </Button>
-      </View>
+      </VStack>
     </>
   )
 }

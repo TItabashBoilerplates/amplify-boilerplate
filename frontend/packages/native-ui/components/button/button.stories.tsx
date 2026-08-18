@@ -1,22 +1,29 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { BUTTON_SIZES, BUTTON_VARIANTS } from '@workspace/tokens/contract'
+import { View } from 'react-native'
 import { Button, ButtonText } from './index'
 
+const VARIANTS = BUTTON_VARIANTS
+const SIZES = BUTTON_SIZES
+
+/**
+ * Mobile Button。
+ *
+ * `variant` / `size` の値は `@workspace/tokens/contract` 由来で、
+ * Web の `@workspace/ui` の Button とまったく同じ API になっている。
+ */
 const meta = {
   component: Button,
   parameters: { layout: 'centered' },
   tags: ['autodocs'],
   argTypes: {
-    action: {
-      control: 'select',
-      options: ['primary', 'secondary', 'positive', 'negative'],
-    },
     variant: {
       control: 'select',
-      options: ['solid', 'outline', 'link'],
+      options: [...VARIANTS],
     },
     size: {
       control: 'select',
-      options: ['xs', 'sm', 'md', 'lg', 'xl'],
+      options: [...SIZES],
     },
     isDisabled: {
       control: 'boolean',
@@ -34,144 +41,61 @@ export const Default: Story = {
     </Button>
   ),
   args: {
-    action: 'primary',
-    variant: 'solid',
-    size: 'md',
+    variant: 'default',
+    size: 'default',
   },
 }
 
 export const Secondary: Story = {
-  render: (args) => (
-    <Button {...args}>
-      <ButtonText>Secondary</ButtonText>
-    </Button>
-  ),
-  args: {
-    action: 'secondary',
-    variant: 'solid',
-    size: 'md',
-  },
+  ...Default,
+  args: { variant: 'secondary', size: 'default' },
 }
 
-export const Positive: Story = {
-  render: (args) => (
-    <Button {...args}>
-      <ButtonText>Success</ButtonText>
-    </Button>
-  ),
-  args: {
-    action: 'positive',
-    variant: 'solid',
-    size: 'md',
-  },
-}
-
-export const Negative: Story = {
-  render: (args) => (
-    <Button {...args}>
-      <ButtonText>Delete</ButtonText>
-    </Button>
-  ),
-  args: {
-    action: 'negative',
-    variant: 'solid',
-    size: 'md',
-  },
+export const Destructive: Story = {
+  ...Default,
+  args: { variant: 'destructive', size: 'default' },
 }
 
 export const Outline: Story = {
-  render: (args) => (
-    <Button {...args}>
-      <ButtonText>Outline</ButtonText>
-    </Button>
-  ),
-  args: {
-    action: 'primary',
-    variant: 'outline',
-    size: 'md',
-  },
+  ...Default,
+  args: { variant: 'outline', size: 'default' },
+}
+
+export const Ghost: Story = {
+  ...Default,
+  args: { variant: 'ghost', size: 'default' },
 }
 
 export const Link: Story = {
-  render: (args) => (
-    <Button {...args}>
-      <ButtonText>Link</ButtonText>
-    </Button>
-  ),
-  args: {
-    action: 'primary',
-    variant: 'link',
-    size: 'md',
-  },
+  ...Default,
+  args: { variant: 'link', size: 'default' },
 }
 
 export const Disabled: Story = {
-  render: (args) => (
-    <Button {...args}>
-      <ButtonText>Disabled</ButtonText>
-    </Button>
-  ),
-  args: {
-    action: 'primary',
-    variant: 'solid',
-    size: 'md',
-    isDisabled: true,
-  },
+  ...Default,
+  args: { variant: 'default', size: 'default', isDisabled: true },
 }
 
-export const AllActions: Story = {
+export const AllVariants: Story = {
   render: () => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-      <Button action="primary">
-        <ButtonText>Primary</ButtonText>
-      </Button>
-      <Button action="secondary">
-        <ButtonText>Secondary</ButtonText>
-      </Button>
-      <Button action="positive">
-        <ButtonText>Positive</ButtonText>
-      </Button>
-      <Button action="negative">
-        <ButtonText>Negative</ButtonText>
-      </Button>
-    </div>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+      {VARIANTS.map((variant) => (
+        <Button key={variant} variant={variant}>
+          <ButtonText>{variant}</ButtonText>
+        </Button>
+      ))}
+    </View>
   ),
 }
 
 export const AllSizes: Story = {
   render: () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-      <Button size="xs">
-        <ButtonText>XS</ButtonText>
-      </Button>
-      <Button size="sm">
-        <ButtonText>SM</ButtonText>
-      </Button>
-      <Button size="md">
-        <ButtonText>MD</ButtonText>
-      </Button>
-      <Button size="lg">
-        <ButtonText>LG</ButtonText>
-      </Button>
-      <Button size="xl">
-        <ButtonText>XL</ButtonText>
-      </Button>
-    </div>
-  ),
-}
-
-export const AllVariants: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: '16px' }}>
-      <Button variant="solid">
-        <ButtonText>Solid</ButtonText>
-      </Button>
-      <Button variant="outline">
-        <ButtonText>Outline</ButtonText>
-      </Button>
-      <Button variant="link">
-        <ButtonText>Link</ButtonText>
-      </Button>
-    </div>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      {SIZES.map((size) => (
+        <Button key={size} size={size}>
+          <ButtonText>{size}</ButtonText>
+        </Button>
+      ))}
+    </View>
   ),
 }

@@ -1,31 +1,39 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Native の JS 側から使うテーマ値。
+ *
+ * 色の正本は `@workspace/tokens`（OKLCh）。ここではそれを hex に解決して
+ * **hex しか受け取れない API**（react-navigation の theme、`tabBarActiveTintColor` など）
+ * に渡せる形にしているだけ。ここで独自のパレットを定義してはいけない。
+ *
+ * className が使える場所では `bg-background` / `text-foreground` のような
+ * セマンティックユーティリティを使うこと（Web / Desktop と完全に共通）。
  */
 
+import { resolvedColors } from '@workspace/tokens/oklch'
 import { Platform } from 'react-native'
-
-const tintColorLight = '#0a7ea4'
-const tintColorDark = '#fff'
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: resolvedColors.light.foreground,
+    background: resolvedColors.light.background,
+    tint: resolvedColors.light.primary,
+    icon: resolvedColors.light.mutedForeground,
+    tabIconDefault: resolvedColors.light.mutedForeground,
+    tabIconSelected: resolvedColors.light.primary,
+    border: resolvedColors.light.border,
+    card: resolvedColors.light.card,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: resolvedColors.dark.foreground,
+    background: resolvedColors.dark.background,
+    tint: resolvedColors.dark.primary,
+    icon: resolvedColors.dark.mutedForeground,
+    tabIconDefault: resolvedColors.dark.mutedForeground,
+    tabIconSelected: resolvedColors.dark.primary,
+    border: resolvedColors.dark.border,
+    card: resolvedColors.dark.card,
   },
-}
+} as const
 
 export const Fonts = Platform.select({
   ios: {
