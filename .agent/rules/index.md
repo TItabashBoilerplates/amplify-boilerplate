@@ -16,6 +16,10 @@ This is an **AWS Amplify Gen2** boilerplate (Cognito / AppSync + DynamoDB / S3 /
    - devenv scripts usage policy (Makefile は削除済み)
    - Amplify backend (sandbox) change policy
 
+2b. **[Minimal Implementation](./minimal-implementation.md)** ⚠️ **MUST READ**
+   - 既存資産 → 標準機能 → AWS マネージド → 実績ある OSS → スクラッチ
+   - 絶対に自作しないもの / ライブラリ選定基準（star 数は根拠にならない）
+
 ### Architecture and Project Structure
 
 3. **[Architecture Overview](./architecture.md)**
@@ -25,7 +29,7 @@ This is an **AWS Amplify Gen2** boilerplate (Cognito / AppSync + DynamoDB / S3 /
 
 4. **[Package Management](./package-management.md)**
    - Independent monorepo structure
-   - Bun, uv, ampx usage patterns
+   - pnpm, uv, ampx usage patterns
 
 ### Development Workflow
 
@@ -68,6 +72,21 @@ This is an **AWS Amplify Gen2** boilerplate (Cognito / AppSync + DynamoDB / S3 /
     - 重複コードの禁止
     - 未使用コードの削除
 
+### Authentication and Data
+
+12a. **[Authentication Method Policy](./auth.md)** ⚠️ **MUST READ**
+    - モバイル配布時はメール + パスワード必須（OTP のみは App Store 2.1(a) でリジェクト）
+    - メール再設定 / パスワード忘れ / パスワード変更 / アカウント削除の 4 導線は必須
+    - Cognito の immutable 事項と `AttributesRequireVerificationBeforeUpdate`
+
+12b. **[List Pagination](./list-pagination.md)** ⚠️ **MUST READ**
+    - 件数が増えうる一覧は最初からページング
+    - **終端判定は `nextToken` のみ**（`length < limit` は壊れる）
+
+12c. **[Auto-Generated Files](./auto-generated.md)** ⚠️ **MUST READ**
+    - `amplify_outputs.json` は環境固有なので **コミットしない**
+    - `Schema` 型は生成ファイルではない（`resource.ts` を編集する）
+
 ### Debugging
 
 12. **[Debugging Policy](./debugging.md)** ⚠️ **MUST READ**
@@ -108,3 +127,7 @@ For detailed information, refer to the following documentation:
 7. **Clean Code Policy** - No backward compatibility, no duplication, no unused code
 8. **Use TailwindCSS CSS variables** - No hardcoded colors
 9. **Debugging via devenv 2.0 native TUI** - `devenv up` で TUI 起動、非対話環境は logs tail
+10. **Minimal implementation** - 既存資産 → 標準機能 → AWS マネージド → OSS → スクラッチ の順で検討
+11. **Mobile auth must support email + password** - OTP のみは審査でリジェクトされる。再設定導線 4 種も必須
+12. **Lists are paginated from the start** - 終端判定は `nextToken`。全件ループは禁止
+13. **Never commit `amplify_outputs.json`** - 環境固有の生成物

@@ -6,7 +6,7 @@ This is a full-stack application boilerplate with a multi-platform frontend and 
 
 - **Framework**: Next.js 16 with App Router
 - **UI Library**: shadcn/ui (Radix UI + TailwindCSS 4)
-- **Tech Stack**: React 19, TypeScript, Bun package manager
+- **Tech Stack**: React 19, TypeScript, pnpm package manager
 - **Build System**: Turborepo for monorepo management
 - **Architecture Pattern**: Feature-Sliced Design (FSD)
 

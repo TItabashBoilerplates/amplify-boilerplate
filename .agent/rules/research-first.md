@@ -11,7 +11,7 @@ Before writing any code or creating a plan, you MUST:
 1. **Use Context7 MCP** to fetch the latest documentation for all relevant libraries and frameworks
    - Example: If implementing a Next.js feature, fetch Next.js documentation first
    - Example: If using a new npm package, research its latest API and best practices
-   - Example: If implementing Supabase features, verify current API specifications
+   - Example: If implementing Amplify features, verify current API specifications
 
 2. **Use WebSearch** to verify current best practices and common pitfalls
    - Search for: "[Technology] [Feature] best practices 2025"
@@ -62,14 +62,15 @@ Before implementation, confirm you have:
 - Implementing real-time features
 - Working with type definitions
 
-**Example: Before implementing Supabase Realtime**
+**Example: Before implementing Amplify Data realtime (AppSync subscriptions)**
 ```bash
 # MUST DO:
-1. Use Context7: Get latest @supabase/supabase-js documentation
-2. Use WebFetch: Read https://supabase.com/docs/guides/realtime/postgres-changes
-3. Use WebSearch: Search "Supabase realtime ALTER PUBLICATION 2025"
-4. Verify: ALTER PUBLICATION syntax from PostgreSQL docs
-5. Confirm: RLS integration and client API
+0. Launch the `amplify-gen2` skill first (`references/realtime.md`)
+1. Use Context7: Get latest aws-amplify / @aws-amplify/backend documentation
+2. Use WebFetch: Read https://docs.amplify.aws/nextjs/build-a-backend/data/subscribe-data/
+3. Use WebSearch: Verify current behaviour of observeQuery / onCreate filters
+4. Verify: authorization rules in `amplify/data/resource.ts` apply to subscriptions
+5. Confirm: client vs server API split (subscriptions are client-only)
 # ONLY THEN: Write implementation code
 ```
 

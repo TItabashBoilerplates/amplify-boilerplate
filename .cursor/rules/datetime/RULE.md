@@ -16,15 +16,17 @@ globs: ["**/*.ts", "**/*.tsx", "**/*.py"]
 | API | UTC | ISO 8601 |
 | Frontend | 表示時にローカル変換 | `Intl.DateTimeFormat` |
 
-## Database (Drizzle)
+## Database (Amplify Data / DynamoDB)
 
 ```typescript
-// CORRECT: withTimezone: true
-timestamp('created_at', { withTimezone: true })
+// CORRECT: a.datetime() = AWSDateTime（ISO 8601 / TZ オフセット必須）
+scheduledAt: a.datetime()
 
-// WRONG: タイムゾーン情報が失われる
-timestamp('created_at')
+// WRONG: 形式も TZ も検証されずデータ不整合の温床になる
+scheduledAt: a.string()
 ```
+
+`createdAt` / `updatedAt` は Amplify Data が UTC ISO 8601 で自動付与するので定義しない。
 
 ## Backend (Python)
 

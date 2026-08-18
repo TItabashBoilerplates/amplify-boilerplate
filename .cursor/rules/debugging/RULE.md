@@ -46,19 +46,31 @@ devenv processes down
 ## 全停止
 
 ```bash
-stop          # devenv プロセス + Supabase Docker を両方停止
-supabase-stop # Supabase Docker のみ停止
+devenv processes down   # detached で動いているプロセスを停止
 ```
 
-## Supabase ログ確認（Docker）
+## Amplify backend（ampx sandbox）の確認
 
-Supabase は Supabase CLI が Docker で管理（devenv の native process supervisor は backend / storybook のみ監視）。
+ローカル Docker は無い。バックエンドは **per-dev のクラウド sandbox** なので、
+確認先は sandbox のデプロイログと生成物・AWS 側のログになる。
 
 ```bash
-docker ps
-docker logs -f supabase_db_<project_name>
-docker logs -f supabase_auth_<project_name>
-docker logs -f supabase_edge_runtime_<project_name>
+sandbox                 # ampx sandbox（watch）。デプロイの失敗はここに出る
+sandbox-once            # 1 回だけデプロイして終了（CI / 切り分け用）
+sandbox-delete          # 壊れた sandbox を作り直すときはこれ → sandbox
+
+cat frontend/packages/backend/amplify_outputs.json   # 生成されているか / どの環境を向いているか
+aws sts get-caller-identity                          # AWS 認証情報が有効か
 ```
 
-正典: `/.claude/CLAUDE.md`, `/.claude/skills/debugging/`
+- **フレッシュな clone は `amplify_outputs.json` が無いので型チェック・ビルドが通らない**。
+  まず `sandbox` か `ampx generate outputs` を実行する（意図的に gitignore してある）
+- Lambda / AppSync の実行時ログは **CloudWatch Logs**（`/aws/lambda/<function>`）
+- Amplify Data のエラーは throw されない。呼び出し側の `errors` を必ず見る
+
+## UI の描画が壊れているとき
+
+`build-storybook` の成功は描画を保証しない。`verify-storybook-render` で
+実行時エラー・未翻訳キー・font-size を実測する（`/.claude/rules/ui-testing.md`）。
+
+正本: `/.claude/CLAUDE.md`, `/.claude/skills/debugging/`

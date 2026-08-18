@@ -1,6 +1,6 @@
 # CRITICAL: Development Command Guidelines
 
-**CRITICAL / NON-NEGOTIABLE**: Always use **devenv** commands (scripts on PATH or `devenv up <name>`) for development. Direct execution of underlying tools (bun/uv/biome/ruff/tsc/ampx) is **strictly prohibited**.
+**CRITICAL / NON-NEGOTIABLE**: Always use **devenv** commands (scripts on PATH or `devenv up <name>`) for development. Direct execution of underlying tools (pnpm/uv/biome/ruff/tsc/ampx) is **strictly prohibited**.
 
 **Makefile は deprecated**。`make X` は使わない。誤って叩いた場合は案内メッセージのみが出る。
 
@@ -49,7 +49,7 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Sandbox 1 回デプロイ** | `sandbox-once` |
 | **Sandbox 破棄** | `sandbox-delete` |
 | **本番/ブランチデプロイ** | Amplify Hosting が `amplify.yml` に従い `ampx pipeline-deploy` を実行（CI） |
-| **依存ブートストラップ** | `bootstrap`（frontend: bun / backend-py: uv） |
+| **依存ブートストラップ** | `bootstrap`（frontend: pnpm / backend-py: uv） |
 
 > ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
 
@@ -118,7 +118,7 @@ Direct command execution is allowed ONLY for:
 - **Reading files**: `cat`, `less`, `head`, `tail` (prefer Read tool)
 - **Listing files**: `ls`, `find`, `tree` (prefer Glob tool)
 - **Git operations**: `git status`, `git diff`, `git log` (read-only)
-- **Package info**: `bun list`, `npm list`, `uv pip list` (read-only)
+- **Package info**: `pnpm list`, `npm list`, `uv pip list` (read-only)
 
 ## 品質チェック設計（2 段階構成）
 
@@ -155,7 +155,7 @@ devenv test
 - **ローカル**: `devenv test` (= ci:check aggregator) を主に使う
 - **CI** (`.github/workflows/ci.yml`): 常駐 process（Storybook 等）の起動を避けるため、`devenv test`
   ではなく verify task (`lint-ci:* / format-check:* / type-check:*`) を直接列挙して呼ぶ。CI は
-  bun biome + uv ruff/mypy/pytest を実行する。
+  pnpm biome + uv ruff/mypy/pytest を実行する。
 
 > **使い分け**: 日常の auto-fix は `lint` / `format` script (シンプル sequential、execIfModified なし → 副作用ループ回避)。CI 相当の verify はローカルでは `ci-check` または `devenv test`、CI では verify task の直接列挙。
 

@@ -1,32 +1,50 @@
-# shadcn-boilerplate Cursor Rules
+# amplify-boilerplate Cursor Rules
 
-このプロジェクトは、Next.js 16 + shadcn/ui + Drizzle ORM + Supabaseを使用したフルスタックボイラープレートです。
+このプロジェクトは、**AWS Amplify Gen2** をインフラ基盤とする Next.js 16 + shadcn/ui の
+フルスタック・ボイラープレートです。インフラはすべて AWS
+（Cognito / AppSync+DynamoDB / S3 / Lambda / SNS / Amplify Hosting）。
+**Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSignal は使いません。**
 
-> **Note**: 詳細なルールは `.cursor/rules/` ディレクトリを参照してください。
-> このファイルは概要のみを提供し、個別のルールは Project Rules として管理されています。
+> **Note**: 詳細なルールは `.cursor/rules/` を参照してください。
+> このファイルは概要のみで、正本は `.claude/rules/` です。
 
 ## プロジェクト構成
 
-- **Frontend Web**: Next.js 16, React 19, shadcn/ui, TailwindCSS 4, Bun
-- **Frontend Mobile**: Expo 55, React Native, gluestack-ui, NativeWind 5
-- **Backend Python**: FastAPI, Clean Architecture, Ruff + MyPy
-- **Database**: Drizzle ORM (TypeScript), PostgreSQL, Supabase
-- **Edge Functions**: Deno, Supabase Edge Functions
-- **モノレポ**: Bun workspace
+- **Frontend Web**: Next.js 16, React 19, shadcn/ui, TailwindCSS 4
+- **Frontend Mobile**: Expo, React Native, gluestack-ui, NativeWind
+- **Auth**: Amazon Cognito（Amplify Auth。メール+パスワード と Email OTP の併用）
+- **Data**: AWS AppSync + DynamoDB（Amplify Data、`a.schema`）
+- **Storage**: Amazon S3（Amplify Storage）
+- **Backend (compute)**: Amplify Functions（**TypeScript が既定**）／FastAPI on Lambda（escalation のみ）
+- **Secrets**: Amplify secrets（SSM Parameter Store）
+- **Hosting / CI-CD**: AWS Amplify Hosting（`amplify.yml`）
+- **モノレポ**: pnpm workspace + Turborepo（TS）/ uv workspace（Python）
 
 ## 必須ポリシー
 
-以下のポリシーは**必須**です。詳細は `.cursor/rules/` を参照:
-
 | ポリシー | ルール | 概要 |
 |---------|--------|------|
+| Skills-First | — | タスク開始前に該当 Skill を起動（`.claude/rules/skills-first.md`） |
 | Research-First | `@research` | 実装前に公式ドキュメント確認必須 |
-| TDD | `@tdd` | テスト駆動開発、All Green必須 |
-| Commands | `@commands` | Makefileコマンド使用必須 |
-| Auto-Generated | `@auto-generated` | 自動生成ファイル編集禁止 |
-| Supabase-First | `@supabase-first` | supabase-js優先 |
-| i18n | `@i18n` | 多言語対応必須 |
-| DateTime | `@datetime` | UTC保存、Frontend変換 |
+| Minimal Implementation | `@minimal-implementation` | 既存資産 → 標準機能 → AWS マネージド → OSS → スクラッチ |
+| TDD | `@tdd` | テスト駆動開発、All Green 必須 |
+| Commands | `@commands` | devenv scripts / tasks 使用必須（Makefile は削除済み） |
+| AWS-First | `@aws-first` | 機能は AWS エコシステム内で賄う |
+| Backend Architecture | `@backend-architecture` | TS の Amplify Functions が既定。Python は escalation |
+| Data Modeling | `@data-modeling` | 認可ルール必須。破壊的スキーマ変更はデータ消失 |
+| Auth | `@auth` | モバイルはメール+パスワード必須。再設定導線 4 種 |
+| Auto-Generated | `@auto-generated` | 生成ファイル編集禁止。`amplify_outputs.json` は非追跡 |
+| Env Naming | `@env-naming` | `AWS`/`AMPLIFY_`/`_`/`GITHUB_` prefix 禁止。秘匿値は SSM |
+| List Pagination | `@list-pagination` | 一覧は最初からページング。終端は `nextToken` |
+| Storage Images | `@storage-images` | S3 の画像は表示サイズで配信 |
+| Form Controls | `@form-controls` | モバイル幅の入力欄は 16px 以上 |
+| Mobile UI/UX | `@mobile-uiux` | キーボードが画面の半分を覆う前提 |
+| Store Review | `@store-review` | ストア審査の不変条件 |
+| Generative AI | `@generative-ai` | SSE / worker Lambda / Bedrock AgentCore |
+| i18n | `@i18n` | 多言語対応必須（en + ja） |
+| DateTime | `@datetime` | UTC 保存、Frontend 変換 |
+| Clean Code | `@clean-code` | 後方互換・重複・未使用を残さない |
+| UI Testing | `@ui-testing` | UI は Storybook。描画は `verify-storybook-render` で実測 |
 
 ## ドメイン別ルール
 
@@ -34,34 +52,35 @@
 |---------|--------|-------|
 | Frontend | `@frontend` | `frontend/**/*.{ts,tsx}` |
 | Backend Python | `@backend-py` | `backend-py/**/*.py` |
-| Edge Functions | `@edge-functions` | `supabase/functions/**/*.ts` |
-| Database | `@database` | `drizzle/**/*.ts` |
+| Amplify backend | `@data-modeling` / `@backend-architecture` | `frontend/packages/backend/amplify/**/*.ts` |
 
 ## 開発コマンド
 
+すべて **devenv の scripts**（PATH 直結）を使う。`make` は使わない（削除済み）。
+
 ```bash
-# 統合コマンド（推奨）
-make lint           # 全プロジェクトのlint
-make format         # 全プロジェクトのformat
-make type-check     # 型チェック
-make test           # 全テスト
-make ci-check       # CI用の全チェック
+lint / format                 # 全プロジェクトの lint / format
+type-check                    # 型チェック
+unit-test                     # 全テスト（`test` は bash 組み込みと衝突するため）
+ci-check                      # CI 相当の全チェック
 
-# 初期化・実行
-make init           # プロジェクト初期化
-make run            # バックエンド起動
-make frontend       # フロントエンド起動
+sandbox                       # Amplify backend を per-dev のクラウド sandbox へ反映
+sandbox-once / sandbox-delete
 
-# データベース（ユーザー承認必須）
-make migrate-dev    # マイグレーション生成 + 適用 + 型生成
+dev-web / dev-mobile / storybook
+build-storybook && verify-storybook-render   # UI の描画を実測
 ```
+
+> ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
+> ⚠️ TS の依存追加は **pnpm**（npm / yarn / **bun は禁止**。ampx が bun 非対応）。Python は **uv**。
 
 ## ドキュメント参照
 
 実装前に以下を必ず確認:
 
+- `.claude/CLAUDE.md` - 正本のプロジェクトガイド
 - `README.md` - プロジェクト概要
-- 各ドメインの `README.md` - ドメイン固有のガイドライン
+- 各ドメインの `README.md`
 
 ## ライセンス
 

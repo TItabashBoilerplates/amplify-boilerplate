@@ -41,6 +41,6 @@ type-check-frontend
 
 - ファイル読み取り: `cat`, `ls`, `tree`
 - Git操作: `git status`, `git diff` (読み取りのみ)
-- パッケージ情報: `bun list`, `uv pip list`
+- パッケージ情報: `pnpm list`, `uv pip list`
 
 正典: `/.claude/rules/commands.md`

@@ -1,12 +1,12 @@
 # Development Commands
 
-すべて devenv の **scripts** (PATH 直結) または `devenv up [PROCESSES...]` を使用する。Makefile は **deprecated**（削除済み）。直接 `bun run` / `uv run` / `pnpm dlx ampx` / `cd frontend && ...` 等での実行は禁止。
+すべて devenv の **scripts** (PATH 直結) または `devenv up [PROCESSES...]` を使用する。Makefile は **deprecated**（削除済み）。直接 `pnpm run` / `uv run` / `pnpm dlx ampx` / `cd frontend && ...` 等での実行は禁止。
 
 正典: `/.claude/rules/commands.md`
 
 ## Initial Setup
 
-`bootstrap` で依存をインストールする（frontend: bun / backend-py: uv）。`devenv shell` 進入 (direnv 経由含む) で `setup:*` task が自動実行され、依存が同期される場合もある。
+`bootstrap` で依存をインストールする（frontend: pnpm / backend-py: uv）。`devenv shell` 進入 (direnv 経由含む) で `setup:*` task が自動実行され、依存が同期される場合もある。
 
 ```bash
 bootstrap                       # 依存インストール（frontend + backend-py）

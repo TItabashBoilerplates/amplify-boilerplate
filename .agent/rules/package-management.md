@@ -6,11 +6,12 @@
 
 Each component uses the optimal package manager for its purpose:
 
-### Frontend (`frontend/`): Bun
+### Frontend (`frontend/`): pnpm
 
-- Fast JavaScript runtime & package manager
-- Fully compatible with Node.js, npm alternative
-- Monorepo management with Bun workspace + Turborepo
+- **npm / yarn / bun are prohibited.** `ampx` (the Amplify Gen2 CLI) rejects bun with
+  `UnsupportedPackageManagerError`, so the whole TypeScript side is standardised on pnpm
+- Strict, content-addressed node_modules — catches undeclared dependencies
+- Monorepo management with pnpm workspace + Turborepo
 - Dependencies managed in `frontend/package.json`
 - Includes the Amplify backend package `@workspace/backend`
   (`frontend/packages/backend/`), driven by the **`ampx`** Amplify CLI
@@ -34,7 +35,7 @@ Each component uses the optimal package manager for its purpose:
 ```
 /
 ├── frontend/
-│   ├── package.json          # Frontend workspace definition (Bun)
+│   ├── package.json          # Frontend workspace definition (pnpm)
 │   ├── node_modules/         # Frontend modules
 │   ├── apps/
 │   │   ├── web/              # Next.js

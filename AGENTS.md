@@ -6,17 +6,17 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend (Web)** | Next.js 16, React 19, TypeScript, Bun |
+| **Frontend (Web)** | Next.js 16, React 19, TypeScript, pnpm |
 | **Frontend (Mobile)** | Expo 55, React Native, TypeScript |
 | **UI (Web)** | shadcn/ui, Radix UI, TailwindCSS 4 |
 | **UI (Mobile)** | gluestack-ui, NativeWind 5, TailwindCSS 4 |
 | **State** | TanStack Query (server), Zustand (global) |
 | **Architecture** | Feature Sliced Design (FSD) |
 | **i18n** | next-intl (en, ja) |
-| **Auth** | Amazon Cognito (Amplify Auth, passwordless Email OTP) |
+| **Auth** | Amazon Cognito (Amplify Auth — email + password **and** Email OTP) |
 | **Data** | AWS AppSync + DynamoDB (Amplify Data, `a.schema`) |
 | **Storage** | Amazon S3 (Amplify Storage) |
-| **Backend (compute)** | FastAPI on AWS Lambda (Amplify Python custom function, Mangum) |
+| **Backend (compute)** | Amplify Functions (**TypeScript by default**) / FastAPI on Lambda (escalation only) |
 | **Notifications** | Amazon SNS (Pinpoint for mobile push: follow-up) |
 | **Secrets** | Amplify secrets (SSM Parameter Store) |
 | **Hosting / CI-CD** | AWS Amplify Hosting (`amplify.yml`) |
@@ -27,7 +27,7 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 
 ```bash
 # Setup
-bootstrap              # 依存インストール (frontend: bun / backend-py: uv)
+bootstrap              # 依存インストール (frontend: pnpm / backend-py: uv)
 #   ※ `devenv shell` 進入 (direnv 経由含む) で setup:* タスクが自動実行される
 
 # Amplify backend（Supabase ローカル Docker の代替）
@@ -108,6 +108,25 @@ sandbox
 - Write implementation code before tests
 - Modify tests to make them pass
 - Leave failing tests at end of work
+
+
+### 必ず守るポリシー（追加）
+
+正本は `.claude/rules/`。以下は指示を待たずに最初から適用する。
+
+| ポリシー | 要点 |
+|---|---|
+| **Minimal Implementation** (`minimal-implementation.md`) | 既存資産 → 標準機能 → AWS マネージド → 実績ある OSS → スクラッチ。star 数は採用根拠にならない |
+| **Auth** (`auth.md`) | モバイル配布時はメール + パスワード必須（OTP のみは App Store 2.1(a) でリジェクト）。メール再設定 / パスワード忘れ / パスワード変更 / アカウント削除の 4 導線は必須。`AttributesRequireVerificationBeforeUpdate: ['email']` が無いとメール変更でユーザーが締め出される |
+| **Data Modeling** (`data-modeling.md`) | `.authorization()` の無いモデルは却下。モデル名リネーム等の破壊的変更はテーブル置き換え = 全データ消失。本番反映はユーザー承認必須 |
+| **List Pagination** (`list-pagination.md`) | 一覧は最初からページング。**終端判定は `nextToken` のみ**（`length < limit` はフィルタ付きクエリで壊れる）。全件ループ禁止 |
+| **Storage Images** (`storage-images.md`) | S3 の画像を元サイズで配らない。Web は `next/image`、DB には `path` を保存 |
+| **Env Naming** (`env-naming.md`) | `AWS` / `AMPLIFY_` / `_` / `GITHUB_` prefix 禁止。秘匿値は Amplify secrets（SSM）。`amplify_outputs.json` の値を env に複製しない |
+| **Auto-Generated** (`auto-generated.md`) | `amplify_outputs.json` はコミットしない（環境固有）。`Schema` 型は生成物ではない |
+| **Form Controls** (`form-controls.md`) | モバイル幅の入力欄は 16px 以上（iOS のオートズーム）。スタイルは共有コンポーネント 1 か所 |
+| **Mobile UI/UX** (`mobile-uiux.md`) | キーボードが画面の 4〜5 割を覆う前提。`react-native-keyboard-controller` を使う |
+| **Store Review** (`store-review.md`) | 第三者 AI への事前同意 / privacy manifest / target API 36 / 掲載情報と実装の一致 |
+| **UI Testing** (`ui-testing.md`) | `build-storybook` の成功は描画を保証しない。`verify-storybook-render` で実測する |
 
 ### 3. Amplify-First Architecture
 
@@ -193,9 +212,9 @@ const { url } = await getUrl({
 
 | Component | Package Manager |
 |-----------|-----------------|
-| Frontend Web | **Bun** |
-| Frontend Mobile | **Bun** |
-| Amplify backend (`packages/backend`) | **Bun** (`ampx`) |
+| Frontend Web | **pnpm** |
+| Frontend Mobile | **pnpm** |
+| Amplify backend (`packages/backend`) | **pnpm** (`ampx`) |
 | Backend Python | **uv** |
 
 ---
@@ -222,7 +241,7 @@ Amplify バックエンドのデバッグは `sandbox` (= `ampx sandbox`) のコ
 Detailed guidance available in `.codex/skills/`:
 
 - `fsd/` - Feature Sliced Design
-- `monorepo/` - Bun workspace + FSD monorepo structure
+- `monorepo/` - pnpm workspace + FSD monorepo structure
 - `tanstack-query/` - TanStack Query v5
 - `datetime/` - DateTime handling patterns
 - `i18n/` - next-intl internationalization

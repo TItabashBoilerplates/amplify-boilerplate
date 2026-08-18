@@ -29,7 +29,7 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 
 | Layer                 | Technology                                            |
 | --------------------- | ----------------------------------------------------- |
-| **Frontend (Web)**    | Next.js 16, React 19, TypeScript, Bun                 |
+| **Frontend (Web)**    | Next.js 16, React 19, TypeScript, pnpm                 |
 | **Frontend (Mobile)** | Expo 55, React Native, TypeScript                     |
 | **UI (Web)**          | shadcn/ui, Radix UI, TailwindCSS 4                    |
 | **UI (Mobile)**       | gluestack-ui, NativeWind 5, TailwindCSS 4             |
@@ -48,9 +48,9 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 
 | Component                                  | Package Manager   |
 | ------------------------------------------ | ----------------- |
-| Frontend Web (`frontend/apps/web/`)        | **Bun**           |
-| Frontend Mobile (`frontend/apps/mobile/`)  | **Bun**           |
-| Amplify backend (`frontend/packages/backend`) | **Bun**（`ampx`） |
+| Frontend Web (`frontend/apps/web/`)        | **pnpm**           |
+| Frontend Mobile (`frontend/apps/mobile/`)  | **pnpm**           |
+| Amplify backend (`frontend/packages/backend`) | **pnpm**（`ampx`） |
 | Backend Python (`backend-py/`)             | **uv**            |
 
 ---
@@ -79,7 +79,7 @@ Full-stack application boilerplate with multi-platform frontend and backend serv
 
 ```bash
 # Setup
-bootstrap                     # 依存インストール（frontend: bun / backend-py: uv）
+bootstrap                     # 依存インストール（frontend: pnpm / backend-py: uv）
 # `devenv shell` 進入（direnv 経由含む）で setup:* タスクが自動実行される場合あり。
 
 # Amplify backend（Supabase ローカル Docker の代替）

@@ -23,7 +23,7 @@
 
 このボイラープレートの核は **Feature-Sliced Design (FSD)** と **モノレポ**。この2つは何があっても維持する。
 
-- **モノレポ**: `frontend/`（Bun workspace + Turborepo）に web/mobile アプリと共有 `packages/*`。`backend-py/`（uv workspace）に Python。Amplify backend は `frontend/packages/backend/`（`@workspace/backend`）に集約。
+- **モノレポ**: `frontend/`（pnpm workspace + Turborepo）に web/mobile アプリと共有 `packages/*`。`backend-py/`（uv workspace）に Python。Amplify backend は `frontend/packages/backend/`（`@workspace/backend`）に集約。
 - **FSD**: 各アプリ `src/` は `app → views → widgets → features → entities → shared` のレイヤー階層。上位→下位の依存のみ。各スライスは `index.ts` で Public API を公開。
 - **配置判断**: Web/Mobile 共通ロジックは `packages/*`、アプリ固有は各 `apps/*/src` の FSD レイヤー。
 
@@ -35,14 +35,14 @@ Full-stack application boilerplate with multi-platform frontend and AWS Amplify 
 
 | Layer                 | Technology                                                       |
 | --------------------- | --------------------------------------------------------------- |
-| **Frontend (Web)**    | Next.js 16, React 19, TypeScript, Bun                           |
+| **Frontend (Web)**    | Next.js 16, React 19, TypeScript, pnpm                           |
 | **Frontend (Mobile)** | Expo 55, React Native, TypeScript                               |
 | **UI (Web)**          | shadcn/ui, Radix UI, TailwindCSS 4                             |
 | **UI (Mobile)**       | gluestack-ui, NativeWind 5, TailwindCSS 4                      |
 | **State**             | TanStack Query (server), Zustand (global)                      |
 | **Architecture**      | Feature Sliced Design (FSD) + monorepo                         |
 | **i18n**              | next-intl (en, ja)                                            |
-| **Auth**              | Amazon Cognito（Amplify Auth, passwordless Email OTP）         |
+| **Auth**              | Amazon Cognito（Amplify Auth。メール+パスワード と Email OTP）         |
 | **Data**              | AWS AppSync + DynamoDB（Amplify Data, `a.schema`）             |
 | **Storage**           | Amazon S3（Amplify Storage）                                   |
 | **Backend (compute)** | FastAPI on AWS Lambda（Amplify Python custom function + Mangum）|
@@ -55,9 +55,9 @@ Full-stack application boilerplate with multi-platform frontend and AWS Amplify 
 
 | Component                                       | Package Manager |
 | ----------------------------------------------- | --------------- |
-| Frontend Web (`frontend/apps/web/`)             | **Bun**         |
-| Frontend Mobile (`frontend/apps/mobile/`)       | **Bun**         |
-| Amplify backend (`frontend/packages/backend/`)  | **Bun**（`ampx`）|
+| Frontend Web (`frontend/apps/web/`)             | **pnpm**         |
+| Frontend Mobile (`frontend/apps/mobile/`)       | **pnpm**         |
+| Amplify backend (`frontend/packages/backend/`)  | **pnpm**（`ampx`）|
 | Backend Python (`backend-py/`)                  | **uv**          |
 
 ---
@@ -86,7 +86,7 @@ Full-stack application boilerplate with multi-platform frontend and AWS Amplify 
 
 ```bash
 # Setup
-bootstrap                     # 依存インストール（frontend: bun / backend-py: uv）
+bootstrap                     # 依存インストール（frontend: pnpm / backend-py: uv）
                               #   通常は `devenv shell` 進入時に自動実行
 
 # Amplify backend（Supabase ローカル Docker の代替）
@@ -163,7 +163,7 @@ ampx sandbox secret set MY_SECRET
 
 - **Hosting**: AWS Amplify Hosting（monorepo, `appRoot=frontend`）。ビルド設定は `amplify.yml`。
 - **Branch / prod deploy**: Amplify Hosting が `ampx pipeline-deploy` を実行。
-- **CI**: `.github/workflows/ci.yml`（bun biome + uv ruff/mypy/pytest）。
+- **CI**: `.github/workflows/ci.yml`（pnpm biome + uv ruff/mypy/pytest）。
 
 ---
 
@@ -194,7 +194,7 @@ ampx sandbox secret set MY_SECRET
 | スキル | 説明 |
 |-------|------|
 | `fsd/` | Feature Sliced Design |
-| `monorepo/` | Bun workspace 構成 |
+| `monorepo/` | pnpm workspace 構成 |
 | `tanstack-query/` | TanStack Query v5 |
 | `datetime/` | 日時処理 |
 | `shadcn-ui/` | shadcn/ui + TailwindCSS (Web) |

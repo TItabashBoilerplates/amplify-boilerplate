@@ -29,14 +29,14 @@
   - `format-backend-py` - Ruff format (auto-fix)
   - `type-check-backend-py` - MyPy type checking
 
-## Edge Functions
+## Amplify Functions (TypeScript — the default for backend logic)
 
-- Native `Deno.serve` API for lightweight serverless functions
+- Node `defineFunction` under `frontend/packages/backend/amplify/functions/<name>/`
+- REST with **Hono** (`hono/aws-lambda`); MCP with `@hono/mcp` + `@modelcontextprotocol/sdk`
+- Cross-function logic lives in `@workspace/backend-core` (`frontend/packages/backend-core`)
 - TypeScript strict mode with proper type annotations
 - Proper error handling with type guards (`error instanceof Error`)
-- Deno formatting and linting standards
-- **Import Management**:
-  - Use `npm:` prefix by default (e.g., `npm:@supabase/supabase-js@^2`)
-  - Do not use JSR (`jsr:`) unless there's a specific reason
-  - Manage dependencies in `deno.json` `imports` field
-  - Do not use HTTP imports (`https://deno.land/x/...`)
+- **Dependencies**: `pnpm add` only. npm / yarn / **bun are prohibited**
+  (`ampx` rejects bun with `UnsupportedPackageManagerError`)
+- Secrets via Amplify secrets (`secret('NAME')` / `ampx sandbox secret set`), never hardcoded
+- Python (`backend-py`) is escalation-only — see `/.claude/rules/backend-architecture.md`
