@@ -17,6 +17,10 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 - **バックエンドの既定は TypeScript（Amplify Functions / Node `defineFunction`）。Python（backend-py）は特殊要件（LLM/長時間/Python固有）のときだけ**（`.claude/rules/backend-architecture.md`）
 - **TS のパッケージマネージャは pnpm（`pnpm add`/`pnpm install`）。npm/yarn/bun 禁止（ampx が bun 非対応）。Python は uv**（`.claude/rules/backend-architecture.md`）
 - **生成AI: 対話的=SSE / 背景処理(≤15分)=worker Lambda+DBステータス / 超長時間(>15分)・サンドボックス=Amazon Bedrock AgentCore。監視は Amplify リアルタイム(AppSync サブスク)。LLM は LangChain**（`.claude/rules/generative-ai.md`）
+- **実装量は常に最小化。既存資産 → 標準機能 → AWS マネージド → 実績ある OSS → スクラッチ の順で必ず検討**（`.claude/rules/minimal-implementation.md`）
+- **モバイルを出すなら認証は「メール + パスワード」必須（OTP のみ禁止）。メール再設定・パスワード忘れ・パスワード変更・アカウント削除の導線も指示を待たず実装**（`.claude/rules/auth.md`）
+- **データモデル（`a.schema`）の破壊的変更はデータ消失。本番反映は必ずユーザー承認**（`.claude/rules/data-modeling.md`）
+- **秘匿値は Amplify secrets（SSM）。`AWS` / `AMPLIFY_` / `_` prefix の環境変数は作らない**（`.claude/rules/env-naming.md`）
 
 ## 最優先の設計思想: FSD × モノレポ
 
@@ -32,9 +36,13 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 .claude/
 ├── rules/          # 常に適用されるポリシー
 │   ├── skills-first.md   research.md   commands.md
-│   ├── tdd.md   clean-code.md   error-handling.md
+│   ├── minimal-implementation.md   clean-code.md   tdd.md   error-handling.md
+│   ├── aws-first.md   backend-architecture.md   generative-ai.md
+│   ├── data-modeling.md   auto-generated.md   env-naming.md
+│   ├── auth.md   storage-images.md   list-pagination.md
 │   ├── frontend.md   backend-py.md   python-monorepo.md
 │   ├── render-optimization.md   page-navigation.md
+│   ├── form-controls.md   mobile-uiux.md   store-review.md
 │   ├── i18n.md   ui-testing.md   datetime.md
 └── skills/         # 技術別ガイダンス（**amplify-gen2** / FSD / monorepo / nextjs / fastapi / tanstack-query 等）
 ```
@@ -56,7 +64,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 | **State**             | TanStack Query (server), Zustand (global)             |
 | **Architecture**      | Feature-Sliced Design (FSD) + monorepo                |
 | **i18n**              | next-intl (en, ja)                                    |
-| **Auth**              | Amazon Cognito（Amplify Auth, Email OTP passwordless）|
+| **Auth**              | Amazon Cognito（Amplify Auth。`otpLogin: true` で **メール+パスワード と Email OTP の両方**）|
 | **Data**              | AWS AppSync + DynamoDB（Amplify Data, `a.schema`）    |
 | **Storage**           | Amazon S3（Amplify Storage）                          |
 | **Backend (compute)** | **既定: TypeScript Amplify Functions（Node `defineFunction`）**／Python が必須のときだけ FastAPI on Lambda（Python + Mangum, escalation 用に同梱）|
@@ -72,7 +80,7 @@ Amplify Gen2 のモノレポ・ベストプラクティスに従い、バック�
 ```
 packages/backend/amplify/
 ├── backend.ts            # defineBackend({ auth, data, storage, api }) + SNS 配線
-├── auth/resource.ts      # Cognito（Email OTP）
+├── auth/resource.ts      # Cognito（メール+パスワード / Email OTP）
 ├── data/resource.ts      # AppSync + DynamoDB（a.schema, userPool 認可）
 ├── storage/resource.ts   # S3（非公開・path 単位アクセス）
 └── functions/api/        # Python escalation 用の同梱例（FastAPI Lambda, CDK）。既定の新規関数は Node defineFunction（TS）
@@ -121,6 +129,16 @@ unit-test                       # 全 unit test（frontend + backend-py）
 - **エラーを握りつぶさない**。`.claude/rules/error-handling.md`。
 - **再描画最小化**（FSD スライス単位の state 局所化）。`.claude/rules/render-optimization.md`。
 - **ページ遷移は loading.tsx + Suspense でストリーミング**。`.claude/rules/page-navigation.md`。
+- **実装は最小量に**（既存資産 → 標準機能 → AWS マネージド → 実績ある OSS → スクラッチ）。`.claude/rules/minimal-implementation.md`。
+- **認証はモバイルならメール+パスワード必須**、再設定導線 4 種は必ず実装。`.claude/rules/auth.md`。
+- **一覧は最初からページング**（終端判定は `nextToken`。`length < limit` で打ち切らない）。`.claude/rules/list-pagination.md`。
+- **S3 の画像は表示サイズに合わせて配信**（原本を配らない）。`.claude/rules/storage-images.md`。
+- **フォーム要素はモバイル幅で 16px 以上**（iOS のオートズーム禁止）。`.claude/rules/form-controls.md`。
+- **モバイル UI はキーボードが画面の 4〜5 割を覆う前提で作る**。`.claude/rules/mobile-uiux.md`。
+- **ストア審査の不変条件を壊さない**。`.claude/rules/store-review.md`。
+- **データモデルの破壊的変更は本番でデータ消失**。`.claude/rules/data-modeling.md`。
+- **生成物を手で編集しない / `amplify_outputs.json` をコミットしない**。`.claude/rules/auto-generated.md`。
+- **秘匿値は Amplify secrets。予約 prefix の env を作らない**。`.claude/rules/env-naming.md`。
 
 ## Package Management
 
