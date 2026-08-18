@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "accessibility": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/accessibility/SKILL.md",
+      "computedHash": "10e83284d3395ab5ec2f2db602b663480a37a4ff404d16510eefe86b034fcc1a"
+    },
     "add-app-clip": {
       "source": "expo/skills",
       "sourceType": "github",
@@ -205,6 +211,12 @@
       "skillPath": "skills/specialized-skills/migration-and-modernization-skills/aws-transform/SKILL.md",
       "computedHash": "caaf3d22bf9f2f4b6b0deb5e66aa421e32f192bfd90ba0771cdb0b0a7b1b06a0"
     },
+    "baseline-ui": {
+      "source": "ibelick/ui-skills",
+      "sourceType": "github",
+      "skillPath": "skills/baseline-ui/SKILL.md",
+      "computedHash": "dfcb3e778b57ad1cba92375689bb8265fa5aef78fba523a744f5220b3c619901"
+    },
     "better-auth-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",
@@ -258,6 +270,12 @@
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/networking-and-content-delivery-skills/connecting-vpcs-with-peering/SKILL.md",
       "computedHash": "b4c4c163a0ea4d6f81eebbf7ddf2ce5faf049527d29452d1a3797a9508ef7cae"
+    },
+    "core-web-vitals": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/core-web-vitals/SKILL.md",
+      "computedHash": "8e55888cc177e994e2cbfa0ee0a277e1273c6d43c8cf7649165f9e2f39489a48"
     },
     "create-auth-skill": {
       "source": "better-auth/skills",
@@ -324,12 +342,6 @@
       "sourceType": "github",
       "skillPath": "config/skills/deep-agents-orchestration/SKILL.md",
       "computedHash": "5b039d2c10ef3bd6f6044c70c123060860dc1e1a49c0dc5cc12dde7cd67a3b75"
-    },
-    "deploy-to-vercel": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/deploy-to-vercel/SKILL.md",
-      "computedHash": "03e0eaaa9bf13ba1e7ffa387f5893de6f324c0868c627001f179395a8feaa7c9"
     },
     "deploying-custom-domain-rest-api": {
       "source": "aws/agent-toolkit-for-aws",
@@ -469,6 +481,12 @@
       "skillPath": "plugins/aws-data-analytics/skills/finding-data-lake-assets/SKILL.md",
       "computedHash": "c32b417857d842e078996b749fa4cb597f23410990821c8fcc49c4676fcf88b1"
     },
+    "fixing-motion-performance": {
+      "source": "ibelick/ui-skills",
+      "sourceType": "github",
+      "skillPath": "skills/fixing-motion-performance/SKILL.md",
+      "computedHash": "426dcf33f23419643f2aab71e2253e1a5b5684a808fabb8a4ad135e489ed7a0f"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -540,6 +558,12 @@
       "sourceType": "github",
       "skillPath": ".agents/skills/gluestack-ui-v4/variants/SKILL.md",
       "computedHash": "d3c98823f59140109fe5548152b28605c3e8d31e832650f14468b169a2119e67"
+    },
+    "improve-ui": {
+      "source": "ibelick/ui-skills",
+      "sourceType": "github",
+      "skillPath": "skills/improve-ui/SKILL.md",
+      "computedHash": "5bd7689c5508c6bd8166f796b3d1bd32255077447595b14b60fac9847dce63f1"
     },
     "ingesting-into-data-lake": {
       "source": "aws/agent-toolkit-for-aws",
@@ -655,6 +679,12 @@
       "skillPath": "better-auth/organization/SKILL.md",
       "computedHash": "27627eb3a13bd44eff3a5d890f96e7db052b623db90e01684f759abe3e7fe56b"
     },
+    "performance": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance/SKILL.md",
+      "computedHash": "38e9a28b0a5ce04a9e3bd6e9cfb2e52e4012f0e93d763eb863b15218a7abccd6"
+    },
     "processing-s3-uploads-with-step-functions": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
@@ -769,18 +799,6 @@
       "skillPath": "skills/stripe-best-practices/SKILL.md",
       "computedHash": "47b21ed8662be5dbad43239ca99f77326a73c2d0c691fb15dc028871fe4c3569"
     },
-    "supabase": {
-      "source": "supabase/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/supabase/SKILL.md",
-      "computedHash": "17a437f3de2371ec43ad8a17d3e858337695efb46ed4af5dd6426f330bb6d032"
-    },
-    "supabase-postgres-best-practices": {
-      "source": "supabase/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
-      "computedHash": "ec56a54fba0e97bee52c7f244ba603bb284bf8d1b739c66a5cc84ec3df709d9d"
-    },
     "swarm": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
@@ -817,6 +835,12 @@
       "skillPath": "better-auth/twoFactor/SKILL.md",
       "computedHash": "a6f720042e5a090909e0d519a6a50a7eb8179553cd5315f0bbad852a6d20dac8"
     },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "523b8063c07eedd2b8a1ca94d7a0be9ad340026bd9f21a1eda0b6be2a855298f"
+    },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",
@@ -829,23 +853,11 @@
       "skillPath": "plugins/expo/skills/use-dom/SKILL.md",
       "computedHash": "69f08a23f483ce868208b213f96f2a5f2a56847f91a133d58ba6f65dc15b715a"
     },
-    "vercel-cli-with-tokens": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/vercel-cli-with-tokens/SKILL.md",
-      "computedHash": "a2f596ac516fe8986386f9562f4c94604af9fb6a0fc417d263cbe6dc05117b72"
-    },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/composition-patterns/SKILL.md",
       "computedHash": "f98931159fa9c7fed043bcd18a891a46dcf89ababa38df13a4c5b7b30dc0ce07"
-    },
-    "vercel-optimize": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/vercel-optimize/SKILL.md",
-      "computedHash": "9d4ace02972b9b1c462f097c7322eb32c9f04bba6f2fb5cf482086d402eeec33"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",

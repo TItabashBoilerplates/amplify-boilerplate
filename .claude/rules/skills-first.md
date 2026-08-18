@@ -68,7 +68,13 @@
 | デバッグ手順 (devenv / ampx sandbox) | `debugging` |
 | 多言語対応 / next-intl | `i18n` |
 | Figma 連携 | `figma:figma-*` |
-| UI 一般 / レビュー / アクセシビリティ | `ui-ux-pro-max`, `web-design-guidelines`, `vercel-react-best-practices`, `vercel-composition-patterns` |
+| **UI を新しく作る**（画面設計・配色・タイポ） | **`ui-ux-pro-max`**（起点）→ `frontend-design`。Web は `shadcn`、Mobile は `gluestack` も併せて |
+| **既存 UI を直す / レビューする**（「余白がバラバラ」「UI レビューして」） | **`baseline-ui`**（間隔・階層・タイポの整地）/ **`improve-ui`**（監査 → 改善計画）/ **`web-design-guidelines`** |
+| **アクセシビリティ / a11y / WCAG / キーボード操作 / コントラスト** | **`accessibility`** + `web-design-guidelines` |
+| **表示が遅い / Core Web Vitals / LCP / INP / CLS / バンドルサイズ** | **`core-web-vitals`** / **`performance`** + `vercel-react-best-practices` |
+| **アニメーションがカクつく / スクロール連動** | **`fixing-motion-performance`** |
+| モバイル UI/UX（キーボード回避・セーフエリア・入力属性・タップ標的） | **`mobile-uiux`**（自作。正本）+ `.claude/rules/mobile-uiux.md` |
+| UI 一般 / 合成パターン | `vercel-composition-patterns`, `vercel-react-best-practices` |
 | PR レビュー / セキュリティレビュー | `review`, `security-review` |
 | シンプル化 | `simplify` |
 | Skill / 設定の作成・拡張 | `skill-creator`, `find-skills`, `update-config`, `keybindings-help`, `fewer-permission-prompts` |

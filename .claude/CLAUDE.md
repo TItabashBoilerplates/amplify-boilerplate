@@ -47,9 +47,16 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 └── skills/         # 技術別ガイダンス（**amplify-gen2** / FSD / monorepo / nextjs / fastapi / tanstack-query 等）
 ```
 
-> 注: 旧スタック専用の skill（supabase-config / drizzle / rls / pgtap / edge-functions-mcp /
-> hey-api / seed 等）は削除済み。汎用 skill（datetime / data-fetching / fastapi / tanstack-query /
-> monorepo / maestro 等）は Amplify スタックの例に更新済み。
+> 注: 旧スタック専用の skill（supabase / supabase-postgres-best-practices / deploy-to-vercel /
+> vercel-cli-with-tokens / vercel-optimize 等）は削除済み。汎用 skill（datetime / data-fetching /
+> fastapi / tanstack-query / monorepo / maestro 等）は Amplify スタックの例に更新済み。
+>
+> UI/UX・品質系（`ui-ux-pro-max` / `baseline-ui` / `improve-ui` / `accessibility` /
+> `core-web-vitals` / `performance` / `fixing-motion-performance`）と自作の `mobile-uiux` は
+> インフラ非依存なので shadcn-boilerplate と同じものを入れている。
+> **skill の追加・更新は `pnpm dlx skills add <owner>/<repo> --skill <name>` で行う**
+> （`skills-lock.json` に source と hash が記録され、`.agents/skills/` の実体へ
+> `.claude/skills/` からシンボリックリンクが張られる）。手でディレクトリをコピーしない。
 
 ## Architecture Overview
 

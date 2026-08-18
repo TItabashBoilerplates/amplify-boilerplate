@@ -10,6 +10,12 @@
 対象は `frontend/apps/mobile/`。コンソール側の申告手続き（Data safety・年齢レーティング・
 輸出コンプライアンス等）は本ルールの対象外で、`docs/store/submission-checklist.md` が正本。
 
+> **⚠️ 未移植のツール**: 本ルールが参照する `store-preflight` / `store-status` /
+> `store-push-*` / `mobile-release-*`（`scripts/mobile/`）、`store.config.js` /
+> `play.config.js` / `iap.config.js`、`docs/store/` はこのリポジトリにまだ無い。
+> モバイルをストア配布する段階で移植する（`docs/_research/2026-08-18-shadcn-boilerplate-parity-gap.md` §6）。
+> **ポリシー自体（何を守るか）は今から有効**で、コード側の不変条件は下記のとおり守ること。
+
 > **boilerplate での適用範囲**: このリポジトリには bundle id も package name も、
 > 収集するデータの定義も**まだ無い**。したがって §1〜§4 のうち「そのアプリが何を
 > 収集し、何を第三者へ送るか」に依存する項目は、**派生プロジェクトで実装する時点から**
@@ -216,4 +222,4 @@ grep -E 'AD_ID|POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
 - [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 - [Apple: Privacy manifest files](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files)
 - [Google Play: Target API level requirements](https://support.google.com/googleplay/android-developer/answer/11926878)
-- `docs/store/submission-checklist.md` / `.claude/skills/store-screenshots/` / `.claude/skills/mobile-release/`
+- `docs/store/submission-checklist.md` / `store-screenshots` / `mobile-release` skill（いずれも未移植。上記の注記を参照）
