@@ -1,3 +1,4 @@
+import { IMAGE_WIDTH_LADDER } from '@workspace/storage-image'
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
@@ -27,9 +28,36 @@ const securityHeaders = [
   },
 ]
 
+/**
+ * `next/image` が生成しうる幅を `@workspace/storage-image` の段と**完全に一致**させる。
+ *
+ * ここがズレると、`StorageImage` が要求する派生（`...@128w.jpg`）と Next が
+ * 生成する srcset の幅が食い違い、**Mobile 側だけ 404**になる
+ * （`.claude/rules/storage-images.md` §2。`storage-image.policy.test.ts` が検査する）。
+ *
+ * Next.js は `deviceSizes`（viewport 基準、`sizes` 指定時に使う）と
+ * `imageSizes`（`sizes` 未指定時の固定幅）を分けて持つので、段を 2 つに割って渡す。
+ */
+const SIZE_SPLIT = 640
+const imageSizes = IMAGE_WIDTH_LADDER.filter((width) => width < SIZE_SPLIT)
+const deviceSizes = IMAGE_WIDTH_LADDER.filter((width) => width >= SIZE_SPLIT)
+
 const nextConfig: NextConfig = {
   // X-Powered-By を出さない（実装の露出を避ける）
   poweredByHeader: false,
+  images: {
+    imageSizes: [...imageSizes],
+    deviceSizes: [...deviceSizes],
+    /**
+     * S3 / CloudFront のホストを登録しないと `next/image` が 400 で落ちる。
+     * バケット名・ディストリビューションは環境ごとに変わるので、
+     * `amplify_outputs.json` から来る値ではなく**ホスト名のパターン**で許可する。
+     */
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.s3.*.amazonaws.com' },
+      { protocol: 'https', hostname: '*.cloudfront.net' },
+    ],
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },

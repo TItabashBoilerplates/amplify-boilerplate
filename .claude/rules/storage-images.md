@@ -11,7 +11,7 @@ Amplify Storage（S3）に置いてあるものを、元サイズのまま配信
 |---|---|
 | Web（Next.js） | `@/shared/ui` の **`StorageImage`** |
 | Mobile（Expo） | `@/shared/ui` の **`StorageImage`** |
-| URL だけ欲しい（OGP・メール・API レスポンス等） | `@workspace/storage-image` の `snapImageWidth` / `buildImageUrl` / `createSignedImageUrl` |
+| URL だけ欲しい（OGP・メール・API レスポンス等） | `@workspace/storage-image` の `snapImageWidth` / `buildDerivativePath` / `createSignedImageUrl` |
 
 ---
 
@@ -40,8 +40,12 @@ lint も通る。気づけるのは請求が上がったとき、あるいは「
 import { StorageImage } from '@/shared/ui'
 
 // 公開アセット（安定 URL）: srcset がフルに効く
-<StorageImage path="public/hero/cover.jpg" width={1200} height={630}
+<StorageImage src={publicCoverUrl} width={1200} height={630}
   sizes="(max-width: 768px) 100vw, 1200px" alt="" />
+
+// 非公開: サーバー側で署名して URL だけ渡す（幅は署名時に確定する）
+const signedUrl = await createSignedImageUrl({ path: 'media/u1/avatar.jpg', width: 96 })
+<StorageImage signedUrl={signedUrl} width={96} height={96} alt="" />
 ```
 
 **制約（実測値を超えると最適化が失敗する）**:
@@ -65,8 +69,19 @@ import { StorageImage } from '@/shared/ui'
 
 ```tsx
 import { StorageImage } from '@/shared/ui'
-<StorageImage path="public/hero/cover.jpg" width={320} height={180} />
+import { buildDerivativePath } from '@workspace/storage-image'
+
+// resolveUrl には **丸めた実ピクセル幅**が渡ってくる（PixelRatio は掛け済み）
+<StorageImage
+  width={320}
+  height={180}
+  resolveUrl={(pixelWidth) => cdnUrlFor(buildDerivativePath('public/hero/cover.jpg', pixelWidth))}
+/>
 ```
+
+Mobile 側の `StorageImage` は **`resolveUrl(pixelWidth)`** を受け取る（丸めた実ピクセル幅が渡る）。
+派生の path 規約は `buildDerivativePath(path, width)`（`media/u1/avatar.jpg` → `media/u1/avatar@128w.jpg`）が
+単一の正本で、**生成する側（Lambda）と読む側で同じ規則を 2 か所に書かない**。
 
 **サーバー側でリサイズする仕組みが必要**なので、次のどちらかを採る。
 **どちらも AWS 内で完結する**（`.claude/rules/aws-first.md`）が、**インフラが増えるので実装前に
@@ -113,8 +128,8 @@ import { StorageImage } from '@/shared/ui'
 
 | 公開性 | Web | Mobile |
 |---|---|---|
-| **非公開（既定）** | サーバー側で `createSignedImageUrl()`（= `getUrl()`）→ `<StorageImage signedUrl={...} />` | 同左 |
-| **公開**（`allow.guest().to(['read'])` を明示したパスのみ） | `<StorageImage path="public/..." />` | 同左 |
+| **非公開（既定）** | サーバー側で `createSignedImageUrl({ path, width })` → `<StorageImage signedUrl={...} />` | サーバーで発行した URL を `resolveUrl` から返す |
+| **公開**（`allow.guest().to(['read'])` を明示したパスのみ） | `<StorageImage src={...} />` | `resolveUrl` で `buildDerivativePath` の URL を返す |
 
 **署名 URL の注意**:
 
@@ -188,13 +203,22 @@ width={containerWidth * devicePixelRatio}
 
 ```
 frontend/packages/storage-image/
-├── src/index.ts                  # 幅の段・URL 組み立て・署名（共通・単体テスト必須）
+├── src/index.ts                      # 幅の段・派生 path 規約・署名（共通・単体テスト必須）
+│                                     #   IMAGE_WIDTH_LADDER / MAX_IMAGE_WIDTH / snapImageWidth
+│                                     #   buildDerivativePath / createSignedImageUrl
+│                                     #   IMAGE_OPTIMIZER_LIMITS（Amplify Hosting の 4.3MB / 1MB）
 ├── src/storage-image.test.ts
 └── src/storage-image.policy.test.ts  # 本ポリシーの静的検査（消さない）
 
-frontend/apps/web/src/shared/ui/storage-image/StorageImage.tsx
-frontend/apps/mobile/src/shared/ui/storage-image/StorageImage.tsx
+frontend/apps/web/src/shared/ui/storage-image/StorageImage.tsx     # next/image 経路
+frontend/apps/mobile/src/shared/ui/storage-image/StorageImage.tsx  # resolveUrl(pixelWidth) 経路
+frontend/apps/web/next.config.ts                                   # imageSizes/deviceSizes を段から導出
 ```
+
+> **現状（boilerplate）**: Mobile の派生生成（§1.2 の A / B）は**まだ導入していない**。
+> したがって Mobile で画像を出す機能を実装するときは、A / B のどちらを採るかを
+> **ユーザーに確認**し、決まるまでは「アップロード時に `MAX_IMAGE_WIDTH` 以下へ縮小して
+> 保存する（＝原本を持たない）」最低ラインで運用する。
 
 ---
 
