@@ -122,6 +122,102 @@
     e2e-web.exec = ''cd "$DEVENV_ROOT" && node scripts/e2e/run-maestro.mjs .maestro/web --platform web "$@"'';
     e2e.exec = ''e2e-mobile && e2e-web'';
 
+    # ---------- モバイルリリース（EAS: クラウド / ローカルの両対応）----------
+    # 各 script が起動時に `mobile_load_secrets`（env → AWS SSM Parameter Store）で
+    # 資格情報を注入するので、呼ぶ側の準備は不要（`.claude/rules/aws-first.md`）。
+    # 前提と必要なキー名は scripts/mobile/release-*.sh の冒頭 / docs/store/release-runbook.md。
+    mobile-release-ios = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/release-ios.sh" "$@"'';
+      description = "iOS を build → TestFlight（既定 expo.dev / --local でローカルビルド）";
+    };
+    mobile-release-android = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/release-android.sh" "$@"'';
+      description = "Android を build → Play 内部テスト（既定 expo.dev / --local でローカルビルド）";
+    };
+    mobile-metadata = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/release-ios.sh" --metadata-only "$@"'';
+      description = "store.config.js を App Store Connect へ同期（ビルドしない）";
+    };
+    sync-eas-env = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/sync-eas-env.sh" "$@"'';
+      description = "env の EXPO_PUBLIC_* を EAS の Environment Variables へ同期";
+    };
+
+    # ---------- ストア掲載画像 ----------
+    screenshots-mobile = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/screenshots.sh" "$@"'';
+      description = "ストア掲載用スクショを simulator/emulator で撮影→検証（--upload で送信）";
+    };
+    screenshots-storybook = {
+      exec = ''exec node "$DEVENV_ROOT/scripts/mobile/screenshots-storybook.mjs" "$@"'';
+      description = "Storybook からストア用スクショを撮影（要 -P store-listing）";
+    };
+    screenshots-validate = {
+      exec = ''exec node "$DEVENV_ROOT/scripts/mobile/validate-screenshots.mjs" "$@"'';
+      description = "既存スクショがストア要求（サイズ/縦横比/枚数）を満たすか検証";
+    };
+    build-play-feature-graphic = {
+      exec = ''exec node "$DEVENV_ROOT/scripts/mobile/build-play-feature-graphic.mjs" "$@"'';
+      description = "Play のフィーチャーグラフィック(1024x500)を生成（要 -P store-listing）";
+    };
+
+    # ---------- ストアへの反映（ASC / Play の API を直接叩く）----------
+    # すべて `--dry-run` を受け付ける。**本番の掲載情報・課金商品を書き換えるので、
+    # 必ず先に --dry-run で差分を確認すること**（`.claude/rules/store-review.md`）。
+    store-push-ios-screenshots = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" push-ios-screenshots "$@"'';
+      description = "store-listing/ios のスクショを App Store Connect へ反映";
+    };
+    store-push-play-listing = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" push-play-listing "$@"'';
+      description = "play.config.js の文言 + アイコン + スクショを Google Play へ反映";
+    };
+    store-create-ios-subscriptions = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" create-ios-subscriptions "$@"'';
+      description = "iap.config.js のサブスク商品を App Store Connect に作成";
+    };
+    store-equalize-ios-prices = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" equalize-ios-prices "$@"'';
+      description = "App Store の販売地域すべてへ等価価格を展開（商品作成後に必須）";
+    };
+    store-create-play-subscriptions = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" create-play-subscriptions "$@"'';
+      description = "iap.config.js のサブスク商品を Google Play に作成";
+    };
+    store-create-play-offers = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" create-play-offers "$@"'';
+      description = "Play の無料トライアル（offer）を作成して有効化";
+    };
+
+    # ---------- アップロード後のリリース進行 ----------
+    # `mobile-release-*` は**アップロードまで**しかやらない。TestFlight への配布・
+    # 審査提出・Play のロールアウトはここから先。迷ったら書き込まない
+    # `store-status` / `store-preflight` を先に実行する。
+    store-preflight = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" preflight "$@"'';
+      description = "人が入力するしかない申告を値つきで一覧（資格情報も通信も不要。--json 可）";
+    };
+    store-status = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" status "$@"'';
+      description = "両ストアの状態と次にすべきことを表示（書き込まない。--json 可）";
+    };
+    store-push-data-safety = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" push-data-safety "$@"'';
+      description = "Play の Data safety を CSV から反映（公式 API。edits に乗らず即時反映）";
+    };
+    store-testflight = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" testflight "$@"'';
+      description = "TestFlight へ配布（--wait で処理完了待ち / --groups で配布先指定）";
+    };
+    store-submit-ios = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" submit-ios "$@"'';
+      description = "App Store の審査へ提出（--status / --cancel / --phased）";
+    };
+    store-release-play = {
+      exec = ''exec bash "$DEVENV_ROOT/scripts/mobile/store.sh" release-play "$@"'';
+      description = "Play のトラック公開・段階的公開（--track / --rollout / --halt）";
+    };
+
     # ---------- Agent skills ----------
     # エージェントスキル（.agents/skills, .claude/skills へ symlink）を最新に更新する。
     # enterShell でも 1 日 1 回（同期・ロック付き）自動実行されるが、手動で即時更新したいとき用。
@@ -143,6 +239,19 @@
     unit-test.exec = ''test-frontend && test-backend-py'';
   };
 
+  # ===== Profiles（opt-in の重い toolchain）=====
+  # ストアへの**反映**には何も要らない（`store.sh` の各コマンドは Node と fetch だけで動く）。
+  # この profile が要るのは**画像を作る側**の 2 つだけ:
+  #   - chromium    : Storybook から撮る経路（screenshots-storybook）が使うブラウザ。
+  #                   playwright-core はブラウザを自動 DL しないので実行体をここで供給する。
+  #   - imagemagick : Play のアイコン縮小（512x512）とフィーチャーグラフィックの生成。
+  #
+  #   devenv shell -P store-listing -- screenshots-storybook
+  #   devenv shell -P store-listing -- build-play-feature-graphic
+  profiles.store-listing.module = {
+    packages = [ pkgs.chromium pkgs.imagemagick ];
+  };
+
   # ===== Processes（`devenv up` で起動）=====
   # FastAPI をローカルで uvicorn 起動（Lambda 本番は Amplify custom function）。
   processes.backend.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run --package api api'';
@@ -155,6 +264,8 @@
     echo "  lint / format / type-check-* / unit-test"
     echo "  mcp-sync             regenerate .cursor/mcp.json / .codex/config.toml"
     echo "  e2e / e2e-mobile / e2e-web   Maestro E2E"
+    echo "  store-preflight / store-status   ストア提出前の確認（書き込まない）"
+    echo "  mobile-release-ios / -android    EAS ビルド → ストアへアップロード"
     echo "  skills-update        refresh agent skills to latest"
 
     # --- エージェントスキルの自動更新（同期・ロック・スロットル付き） ---

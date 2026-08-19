@@ -74,6 +74,8 @@
 | **表示が遅い / Core Web Vitals / LCP / INP / CLS / バンドルサイズ** | **`core-web-vitals`** / **`performance`** + `vercel-react-best-practices` |
 | **アニメーションがカクつく / スクロール連動** | **`fixing-motion-performance`** |
 | モバイル UI/UX（キーボード回避・セーフエリア・入力属性・タップ標的） | **`mobile-uiux`**（自作。正本）+ `.claude/rules/mobile-uiux.md` |
+| リリース / TestFlight / Play ストア / EAS ビルド / アプリを提出 / **審査に出す / 公開する / 段階的に配る / ロールアウトを止める / アップロードしたのに配布されない** | **`mobile-release`**（自作。**アップロード後の配布・審査提出・ロールアウトまで**）。手順の正本は `docs/store/release-runbook.md` |
+| ストアのスクショ / 掲載画像 / フィーチャーグラフィック / 掲載文 / キーワード / 課金商品を作る | **`store-screenshots`**（自作）+ `.claude/rules/store-review.md` + `docs/store/` |
 | UI 一般 / 合成パターン | `vercel-composition-patterns`, `vercel-react-best-practices` |
 | PR レビュー / セキュリティレビュー | `review`, `security-review` |
 | シンプル化 | `simplify` |

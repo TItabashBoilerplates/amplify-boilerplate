@@ -52,11 +52,14 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 > fastapi / tanstack-query / monorepo / maestro 等）は Amplify スタックの例に更新済み。
 >
 > UI/UX・品質系（`ui-ux-pro-max` / `baseline-ui` / `improve-ui` / `accessibility` /
-> `core-web-vitals` / `performance` / `fixing-motion-performance`）と自作の `mobile-uiux` は
-> インフラ非依存なので shadcn-boilerplate と同じものを入れている。
-> **skill の追加・更新は `pnpm dlx skills add <owner>/<repo> --skill <name>` で行う**
+> `core-web-vitals` / `performance` / `fixing-motion-performance`）と自作の
+> `mobile-uiux` / `mobile-release` / `store-screenshots` はインフラ非依存（または
+> ストア側の要件）なので shadcn-boilerplate と同じものを入れている。
+> **公式配布の skill の追加・更新は `pnpm dlx skills add <owner>/<repo> --skill <name>` で行う**
 > （`skills-lock.json` に source と hash が記録され、`.agents/skills/` の実体へ
 > `.claude/skills/` からシンボリックリンクが張られる）。手でディレクトリをコピーしない。
+> **自作 skill（`mobile-uiux` / `mobile-release` / `store-screenshots`）は lock 管理外**で、
+> `.claude/skills/<name>/SKILL.md` に直接置く。
 
 ## Architecture Overview
 
@@ -123,7 +126,21 @@ unit-test                       # 全 unit test（frontend + backend-py）
 
 # Deploy（CI）
 # Amplify Hosting が amplify.yml に従い ampx pipeline-deploy + Next.js build を実行
+
+# モバイルのリリース（EAS）— 資格情報は AWS SSM から自動注入される
+store-preflight                 # 人が画面で入力するしかない申告を一覧（通信も資格情報も不要）
+sync-eas-env production         # env の EXPO_PUBLIC_* を EAS へ
+mobile-release-ios              # build → App Store Connect へアップロード
+mobile-release-android          # build → Play へアップロード（draft）
+store-status                    # 両ストアの状態と「次の一手」（書き込まない）
+store-testflight --wait         # iOS: 処理待ち → TestFlight 配布
+store-submit-ios                # iOS: 版作成 → 審査提出
+store-release-play --track internal --rollout 1   # Play: テスターへ配る
 ```
+
+> **`mobile-release-*` は「アップロードまで」しかやらない。** そこで完了報告してはならない
+> （iOS は処理待ちで誰にも届かず、Android は `draft` のまま配られない）。
+> 手順の正本は `docs/store/release-runbook.md` / `.claude/skills/mobile-release/`。
 
 > ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
 
@@ -144,6 +161,8 @@ unit-test                       # 全 unit test（frontend + backend-py）
 - **モバイル UI はキーボードが画面の 4〜5 割を覆う前提で作る**（キーボード回避は
   `react-native-keyboard-controller`。RN 標準の `KeyboardAvoidingView` は使わない）。`.claude/rules/mobile-uiux.md`。
 - **ストア審査の不変条件を壊さない**。`.claude/rules/store-review.md`。
+- **ストア反映は必ず `--dry-run` を先に通す**（本番の掲載情報・課金商品を書き換える）。
+  正本は `frontend/apps/mobile/{store,play,iap}.config.js`。`.claude/skills/mobile-release/`。
 - **データモデルの破壊的変更は本番でデータ消失**。`.claude/rules/data-modeling.md`。
 - **生成物を手で編集しない / `amplify_outputs.json` をコミットしない**。`.claude/rules/auto-generated.md`。
 - **秘匿値は Amplify secrets。予約 prefix の env を作らない**。`.claude/rules/env-naming.md`。

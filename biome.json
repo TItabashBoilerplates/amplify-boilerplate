@@ -19,7 +19,6 @@
 			"!.github/skills",
 			"!.shared",
 			"!.vscode",
-			"!supabase/functions",
 			"!skills-lock.json"
 		]
 	}

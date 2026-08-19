@@ -73,6 +73,9 @@ amplify/backend/amplify-meta.json
 
 # E2E test results (Maestro)
 e2e-results/maestro/
+
+# ストア掲載用スクリーンショットの生ファイル（撮影 → 検証 → 反映を 1 回で回す前提の生成物）
+e2e-results/store-screenshots/
 htmlcov/
 
 # Metro
@@ -158,3 +161,7 @@ devenv.local.nix
 devenv.local.yaml
 .direnv/
 .pre-commit-config.yaml
+
+# ストア掲載用スクリーンショット（撮影 → 検証 → 反映を 1 回で回す前提の生成物）。
+# フィーチャーグラフィックは設計素材なのでコミットする（assets/store/ 配下）。
+store-listing/

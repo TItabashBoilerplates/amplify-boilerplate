@@ -41,3 +41,18 @@ app-example
 # generated native folders
 /ios
 /android
+
+# リリース script（scripts/mobile/*）が実行中だけ作る一時ファイル。
+# trap で消しているが、SIGKILL で落ちたときに残るのでコミットを防ぐ。
+credentials/
+eas.json.orig
+.env.eas
+*.ipa
+*.aab
+
+# 署名まわり（誤コミットは即失効させる必要がある）
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision

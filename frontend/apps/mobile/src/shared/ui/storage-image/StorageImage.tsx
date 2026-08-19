@@ -1,6 +1,6 @@
 import { snapImageWidth } from '@workspace/storage-image'
 import { Image } from 'expo-image'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PixelRatio } from 'react-native'
 
 /**
@@ -53,21 +53,23 @@ export function StorageImage({
 }: StorageImageProps) {
   // dp → 実ピクセル。段に丸めてキャッシュを効かせる
   const pixelWidth = snapImageWidth(PixelRatio.getPixelSizeForLayoutSize(width))
-  const resolved = resolveUrl(pixelWidth)
-  const isSync = typeof resolved === 'string'
 
-  const [uri, setUri] = useState<string | null>(isSync ? resolved : null)
+  // ⚠️ memo 化は必須。素で呼ぶと**レンダーのたびに新しい Promise** ができ、
+  // 下の effect が毎回張り直されて署名 URL を無駄に何度も発行することになる。
+  const resolved = useMemo(() => resolveUrl(pixelWidth), [resolveUrl, pixelWidth])
+
+  // 同期で返ってくる経路（公開パス）は state を経由しない。
+  // effect の中で同期に setState すると連鎖レンダーになる（react-hooks/set-state-in-effect）。
+  const syncUri = typeof resolved === 'string' ? resolved : null
+  const [asyncUri, setAsyncUri] = useState<string | null>(null)
 
   useEffect(() => {
-    if (typeof resolved === 'string') {
-      setUri(resolved)
-      return
-    }
+    if (typeof resolved === 'string') return
     let active = true
     resolved
       .then((value) => {
         if (active) {
-          setUri(value)
+          setAsyncUri(value)
         }
       })
       .catch((error: unknown) => {
@@ -79,6 +81,8 @@ export function StorageImage({
       active = false
     }
   }, [resolved])
+
+  const uri = syncUri ?? asyncUri
 
   return (
     <Image

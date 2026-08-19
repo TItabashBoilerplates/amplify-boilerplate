@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { View } from 'react-native'
-import { StorageImage } from './StorageImage'
+import { StorageImage, type StorageImageProps } from './StorageImage'
 
 /**
  * S3 の画像を表示サイズに合わせて配信するコンポーネント（Mobile）。
@@ -20,8 +20,10 @@ const meta = {
     ),
   ],
   args: {
-    resolveUrl: (pixelWidth: number) =>
-      `https://placehold.co/${pixelWidth}x${pixelWidth}/png?text=${pixelWidth}w`,
+    // `satisfies Meta` は既定 args から型を絞り込むため、注釈が無いと
+    // `(w: number) => string` に固定され、Promise を返すストーリーが型エラーになる
+    resolveUrl: ((pixelWidth) =>
+      `https://placehold.co/${pixelWidth}x${pixelWidth}/png?text=${pixelWidth}w`) satisfies StorageImageProps['resolveUrl'] as StorageImageProps['resolveUrl'],
     width: 96,
     height: 96,
     accessibilityLabel: 'Placeholder',
