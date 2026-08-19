@@ -80,8 +80,11 @@ def _extract_bearer_token(auth_header: str) -> str:
 
 def _verify_audience(claims: dict[str, Any], client_id: str) -> None:
     """Cognito access tokens carry `client_id`; id tokens carry `aud`."""
+    # S105: `token_use` は Cognito のクレーム名 ("access" | "id") で秘匿値ではない。
+    # flake8-bandit は名前に "token" を含む変数への文字列代入を一律で疑うので、
+    # ここだけ無効化する。
     token_use = claims.get("token_use")
-    expected = claims.get("aud") if token_use == "id" else claims.get("client_id")
+    expected = claims.get("aud") if token_use == "id" else claims.get("client_id")  # noqa: S105
     if expected != client_id:
         raise _unauthorized()
 
@@ -114,7 +117,9 @@ async def verify_token(
     claims = _decode(token)
     return CognitoUser(
         user_id=claims["sub"],
-        username=claims.get("username") or claims.get("cognito:username") or claims["sub"],
+        username=(
+            claims.get("username") or claims.get("cognito:username") or claims["sub"]
+        ),
         email=claims.get("email"),
     )
 

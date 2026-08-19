@@ -85,6 +85,12 @@
     #   devenv shell -P desktop -- tauri-desktop     # tauri dev
     #   devenv shell -P desktop -- build-desktop     # tauri build
     dev-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run dev "$@"'';
+
+    # Expo の対話的 TUI（デバイス選択・r でリロード等）。`dev-mobile` は非対話なので、
+    # 実機 / シミュレータを触るときはこちらを使う。
+    mobile-ios.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run ios "$@"'';
+    mobile-android.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run android "$@"'';
+    mobile-web.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run web "$@"'';
     tauri-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run tauri:dev "$@"'';
     build-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run tauri:build "$@"'';
     storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run storybook'';
@@ -105,19 +111,32 @@
 
     # ---------- Quality: frontend ----------
     lint-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run lint'';
+    # CI モード（`biome ci`。auto-fix せず差分があれば落ちる）
+    lint-frontend-ci.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run lint:ci'';
+    format-frontend-check.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run format-check'';
     # FSD のレイヤー境界検査（eslint-plugin-boundaries）。web / mobile / desktop を横断する。
     # Biome は境界を見ないので、`lint-frontend` が通っても
     # 「下位レイヤーが上位を import している」は検出されない。
     lint-fsd.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run lint:fsd'';
     format-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run format'';
     type-check-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run type-check'';
+    type-check-mobile.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run --filter @workspace/mobile type-check'';
     test-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run test'';
 
     # ---------- Quality: backend-py ----------
+    # ⚠️ **import 解決が要るツール（mypy / pytest）は `--all-packages` 必須**。
+    # backend-py は uv の virtual workspace（root が `package = false`）なので、素の
+    # `uv run` は root の dependency-group（ruff / mypy / pytest）しか同期せず、member の
+    # 依存（fastapi / pydantic / structlog 等）を入れない。結果、
+    #   - mypy: third-party が全部 `Any` に見え strict の untyped-decorator 等が誤爆する
+    #   - pytest: conftest の import が解決できず collection error になる
+    # という形で**壊れていないコードが落ちる**。ruff は import を解決しないので不要。
     lint-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run ruff check --fix apps packages'';
     format-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run ruff format apps packages'';
-    type-check-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run mypy apps packages'';
-    test-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run pytest'';
+    format-backend-py-check.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run ruff format --check apps packages'';
+    lint-backend-py-ci.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run ruff check apps packages'';
+    type-check-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run --all-packages mypy apps packages'';
+    test-backend-py.exec = ''cd "$DEVENV_ROOT/backend-py" && uv run --all-packages pytest'';
 
     # ---------- MCP 設定の同期 ----------
     # 正本は リポジトリ root の `.mcp.json`（Claude Code が直接読む形式）。
@@ -246,10 +265,20 @@
     # skills-lock.json から決定論的に復元（最新化せず固定したいとき）。
     skills-restore.exec = ''cd "$DEVENV_ROOT" && pnpm dlx skills experimental_install'';
 
+    # ---------- Build ----------
+    build-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run build'';
+
     # ---------- Aggregate ----------
     lint.exec = ''lint-frontend && lint-fsd && lint-backend-py'';
     format.exec = ''format-frontend && format-backend-py'';
+    format-check.exec = ''format-frontend-check && format-backend-py-check'';
+    type-check.exec = ''type-check-frontend && type-check-backend-py'';
     unit-test.exec = ''test-frontend && test-backend-py'';
+
+    # CI と同一の検査（**auto-fix しない**）。列挙の正本は `scripts/ci/check.sh` 1 か所で、
+    # GitHub Actions もこの script を直接呼ぶ。ここに検査を足すと CI にも自動で入る
+    # （逆に CI 側だけに足すとローカルで再現できなくなるので、必ず script 側へ書く）。
+    ci-check.exec = ''exec bash "$DEVENV_ROOT/scripts/ci/check.sh" "$@"'';
   };
 
   # ===== desktop: Tauri v2（apps/desktop）のネイティブビルド toolchain =====
@@ -329,7 +358,8 @@
     echo "  bootstrap            deps (pnpm + uv)"
     echo "  sandbox              Amplify backend (ampx sandbox)"
     echo "  dev-web / dev-mobile dev servers（desktop は -P desktop -- dev-desktop）"
-    echo "  lint / format / type-check-* / unit-test"
+    echo "  lint / format / type-check / unit-test"
+    echo "  ci-check             CI と同一の検査（auto-fix しない）"
     echo "  mcp-sync             regenerate .cursor/mcp.json / .codex/config.toml"
     echo "  e2e / e2e-mobile / e2e-web   Maestro E2E"
     echo "  store-preflight / store-status   ストア提出前の確認（書き込まない）"

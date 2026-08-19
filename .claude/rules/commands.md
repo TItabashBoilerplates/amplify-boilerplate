@@ -1,6 +1,6 @@
 # Development Command Policy
 
-**CRITICAL / NON-NEGOTIABLE**: Always use **devenv** commands (scripts on PATH or `devenv tasks run <name>`) for development. Direct execution of underlying tools (pnpm/uv/biome/ruff/tsc/ampx) is **strictly prohibited**.
+**CRITICAL / NON-NEGOTIABLE**: Always use **devenv** commands (scripts on PATH) for development. Direct execution of underlying tools (pnpm/uv/biome/ruff/tsc/ampx) is **strictly prohibited**.
 
 **Makefile は deprecated**。`make X` は使わない。誤って叩いた場合は案内メッセージのみが出る。
 
@@ -10,8 +10,12 @@
 
 | 種類 | 使い方 | 例 |
 |---|---|---|
-| **Scripts** (PATH 直結) | コマンド名を直接打つ | `bootstrap`, `lint`, `format`, `type-check-frontend`, `type-check-backend-py`, `unit-test`, `dev-web`, `dev-mobile`, `storybook`, `sandbox`, `sandbox-once`, `sandbox-delete`, `lint-frontend`, `format-backend-py`, `skills-update`, `skills-restore` |
-| **Processes** (常駐サービス) | `devenv up [PROCESSES...]` | `devenv up` (dev サーバ群), `devenv up web` |
+| **Scripts** (PATH 直結) | コマンド名を直接打つ | `bootstrap`, `lint`, `format`, `type-check`, `unit-test`, `ci-check`, `dev-web`, `dev-mobile`, `dev-desktop`, `storybook`, `sandbox`, `skills-update` |
+| **Processes** (常駐サービス) | `devenv up [PROCESSES...]` | `devenv up`（backend を起動） |
+| **Profiles** (opt-in の重い toolchain) | `devenv shell -P <name> -- <command>` | `-P desktop`（Tauri の WebKitGTK）/ `-P store-listing`（chromium + imagemagick） |
+
+**全 script の一覧は `devenv.nix` の `scripts` が正本**（`devenv shell` に入ると
+`enterShell` が主要なものを表示する）。
 
 scripts は devenv shell（direnv 自動アクティベート含む）下で PATH 上に存在する。direnv 未活性のセッションでは `devenv shell -- <command>` 経由で呼び出す。
 
@@ -29,14 +33,16 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Format check (CI)** | `format-check`（個別: `format-frontend-check`, `format-backend-py-check`） |
 | **Type check (all)** | `type-check` |
 | **Type check (per project)** | `type-check-frontend`, `type-check-mobile`, `type-check-backend-py` |
-| **Build** | `build-frontend`, `build-storybook`, `build-mobile-ios`, `build-mobile-android` |
+| **Build** | `build-frontend`（turbo build: web + desktop）, `build-storybook`, `build-desktop`（要 `-P desktop`） |
+| **Storybook の描画検査** | `verify-storybook-render`（`build-storybook` 済みが前提） |
 | **Tests (unit)** | `unit-test` (all), `test-frontend` (Vitest), `test-backend-py` (pytest) ※ `test` は bash 組み込みと衝突するため `unit-test` |
 | **Tests (E2E)** | `e2e`, `e2e-web`, `e2e-mobile` (Maestro) |
-| **CI Check (full gate)** | `ci-check` (= `devenv test`、execIfModified キャッシュで incremental) |
-| **CI Check (直叩き)** | `devenv test` (`ci:check` aggregator task が `before = devenv:enterTest`) |
+| **CI Check (full gate)** | **`ci-check`**（= `scripts/ci/check.sh`。`frontend` / `backend` を引数で絞れる） |
 | **Amplify backend (sandbox)** | `sandbox` (= `ampx sandbox`), `sandbox-once`, `sandbox-delete` |
-| **Services (dev サーバ)** | `dev-web`, `dev-mobile`, `storybook`, または `devenv up <names...>` |
-| **Services (devenv 外)** | `frontend` (turbo dev), `mobile-ios`, `mobile-android`, `mobile-web` (Expo TUI) |
+| **Services (dev サーバ)** | `dev-web`, `dev-mobile`, `dev-desktop`, `storybook` |
+| **Services (Expo の対話 TUI)** | `mobile-ios`, `mobile-android`, `mobile-web` |
+| **Desktop (Tauri ネイティブ)** | `devenv shell -P desktop -- tauri-desktop` / `-- build-desktop` |
+| **モバイルのリリース / ストア反映** | `store-preflight`, `store-status`, `mobile-release-ios`, `mobile-release-android`, `store-*`（`docs/store/release-runbook.md`） |
 
 ## Amplify backend（sandbox / deploy）
 
@@ -74,9 +80,8 @@ npx tsc --noEmit
 # ❌ Makefile は削除済み — `make X` は `make: *** No targets. Stop.` でエラー終了する
 make lint
 make ci-check
-make migrate-dev
 
-# ✅ 必ず devenv scripts または tasks を使用
+# ✅ 必ず devenv scripts を使用
 lint                              # 全体 lint
 lint-frontend                     # Frontend lint
 lint-backend-py                   # Backend lint
@@ -86,7 +91,7 @@ format-backend-py                 # Backend format
 type-check                        # 全体型チェック
 type-check-frontend               # Frontend 型チェック
 type-check-backend-py             # Backend 型チェック
-ci-check                          # CI チェック (lint + format + type)
+ci-check                          # CI と同一の検査（lint + format + type、auto-fix しない）
 sandbox                           # Amplify sandbox 起動 (= ampx sandbox)
 ```
 
@@ -98,42 +103,56 @@ Direct command execution is allowed ONLY for:
 - **Git operations**: `git status`, `git diff`, `git log` (read-only)
 - **Package info**: `pnpm list`, `npm list`, `uv pip list` (read-only)
 
-## 品質チェック設計（2 段階構成）
+## 品質チェック設計
 
-公式 devenv の推奨パターンに従い、品質チェックは **役割を分けた 2 段階構成**:
+### auto-fix する日常用 / 落とすだけの CI 用
 
-### 段階 1: コミット時の差分チェック (git-hooks)
+| 用途 | コマンド | 挙動 |
+|---|---|---|
+| 日常（書きながら直す） | `lint` / `format` | **auto-fix する**（`biome check --write` / `ruff --fix`） |
+| CI と同じ検査 | **`ci-check`** | **auto-fix しない**（`biome ci` / `ruff format --check`）。差分があれば落ちる |
 
-`.pre-commit-config.yaml` は `git-hooks.nix` ビルトインを使う:
+**CI で auto-fix してはならない。** 直った状態で緑になり、誰もコミットしないまま
+次の CI でまた落ちる（直っていないのに直ったように見える一番たちの悪い状態）。
 
-| Hook | 対象 |
+### 検査の一覧は `scripts/ci/check.sh` が単一の正本
+
+```
+ci-check（devenv script）  ─┐
+                            ├─→ scripts/ci/check.sh   ← 検査の列挙はここだけ
+.github/workflows/ci.yml  ─┘
+```
+
+**検査を足すときは必ず `scripts/ci/check.sh` に書く。** ローカルと CI で別々に
+列挙すると「CI では見ているのにローカルでは見ていない（逆も）」という drift が起き、
+どちらかが必ず腐る。CI の yml に検査を直接足すのは禁止。
+
+`ci-check` が回すもの:
+
+| 対象 | 何を守っているか |
 |---|---|
-| `biome` | JS/TS/JSON (lint + format、auto-fix、`pass_filenames=true` で変更ファイルのみ) |
-| `ruff` | Python lint (`pass_filenames=true`) |
-| `ruff-format` | Python format |
-| `mypy` | Python type check |
+| Biome（`frontend/`） | フォーマットと基本 lint |
+| Biome（リポジトリルート: `scripts/` `.maestro/`） | **`frontend/biome.json` とは別設定**。frontend から回す biome はここを見ない |
+| ESLint（web / mobile） | Biome が見ない React Hooks / Next / Expo の規則 |
+| ESLint FSD boundaries（web / mobile / desktop） | レイヤーの依存方向。**Biome も既定の ESLint severity も見ない** |
+| `tsc --noEmit`（turbo） | 型 |
+| ruff check / ruff format --check / mypy（backend-py） | Python |
 
-`prek` (Rust 実装) が pre-commit を駆動。**コミット 1 回 < 200ms** が普通。
+`unit-test`（vitest + pytest）と `build-frontend` / `build-storybook` +
+`verify-storybook-render` は **`ci-check` に含めない**（実行時間が桁違いなので分けてある）。
+CI ではそれぞれ別 step / 別 job で回す。
 
-### 段階 2: CI / 手動 verify (devenv test)
+### backend-py は `uv run --all-packages` が必須（mypy / pytest）
 
-`devenv test` を叩くと `ci:check` aggregator task が起動し、配下の verify task が並列・キャッシュ実行される:
+`backend-py` は uv の **virtual workspace**（root が `package = false`）。素の `uv run` は
+root の dependency-group（ruff / mypy / pytest）しか同期せず、member の依存
+（fastapi / pydantic / structlog 等）を入れない。その状態では:
 
-```
-devenv test
-└── ci:check (before = [devenv:enterTest])
-    ├── lint-ci:frontend / backend-py / fsd      (execIfModified)
-    ├── format-check:frontend / backend-py        (execIfModified)
-    └── type-check:frontend / mobile / backend-py (execIfModified)
-```
+- **mypy**: third-party が全部 `Any` に見え、strict の `untyped-decorator` 等が
+  **壊れていないコードに対して**誤爆する
+- **pytest**: conftest の import が解決できず collection error になる
 
-- `execIfModified` で **mtime + content hash** チェック → 変更なしならスキップ
-- キャッシュ: `.devenv/` 配下、`devenv-tasks` Rust binary が管理
-- 何も変更してなければ全 task キャッシュヒット → 数秒で完了
-- **ローカル**: `devenv test` (= `ci:check` aggregator、`before = devenv:enterTest` で processes も整える) を主に使う
-- **CI** (`.github/workflows/ci.yml`): Storybook 等の常駐 process を毎回起動したくないため、`devenv test` ではなく **配下の verify task (`lint-ci:* / format-check:* / type-check:*`) を直接列挙**して呼ぶ。verify ロジック（execIfModified キャッシュ含む）は同一だが process phase をスキップする
-
-> **使い分け**: 日常の auto-fix は `lint` / `format` script (シンプル sequential、execIfModified なし → 副作用ループ回避)。CI 相当の verify はローカルでは `ci-check` または `devenv test`、CI では verify task の直接列挙。
+ruff は import を解決しないので `--all-packages` は不要。
 
 ## devenv script 命名規則（MANDATORY）
 
@@ -154,7 +173,7 @@ type test           # → test is a shell builtin   ❌ 使用不可
 type unit-test      # → unit-test not found       ✅ 使用可（または既存 script なら PATH のパス表示）
 ```
 
-ハイフン付きの kebab-case（`lint-frontend`, `format-check`, `test-db`, `unit-test`, `dev-web` など）は builtin と衝突しないので安全。本リポジトリの既存命名もこれを踏襲している。
+ハイフン付きの kebab-case（`lint-frontend`, `format-check`, `ci-check`, `unit-test`, `dev-web` など）は builtin と衝突しないので安全。本リポジトリの既存命名もこれを踏襲している。
 
 ## Enforcement
 
