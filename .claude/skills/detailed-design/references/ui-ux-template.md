@@ -220,7 +220,7 @@ frontend/apps/mobile/app/
 | UI コンポーネント | shadcn/ui | gluestack-ui | - |
 | スタイリング | TailwindCSS 4 (className) | NativeWind 5 (tva) | デザイントークン (packages/tokens) |
 | ナビゲーション | Next.js App Router | Expo Router | - |
-| データ取得 | - | - | TanStack Query + supabase-js |
+| データ取得 | - | - | TanStack Query + Amplify Data（`getDataClient()`） |
 | 状態管理 | - | - | Zustand |
 
 ---

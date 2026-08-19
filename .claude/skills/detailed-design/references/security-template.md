@@ -2,180 +2,95 @@
 
 <!--
   出力先: docs/designs/{feature-name}/security.md
-  認証基盤の選択、データ分類に基づくアクセス制御、RLS設計を定義する。
+  認証方式の確定、データ分類に基づくアクセス制御、認可ルールの検証を定義する。
 
   必須参照:
-  - .claude/rules/supabase-first.md - Supabase-first ポリシー
-  - .claude/skills/supabase/SKILL.md - Supabase 認証
-  - .claude/rules/database.md - RLS ポリシー設計
-  - .claude/skills/Better Auth Best Practices/ - Better Auth
+  - .claude/rules/auth.md          - 認証方式・必須導線・Cognito の落とし穴
+  - .claude/rules/data-modeling.md - authorization ルールの設計
+  - .claude/rules/env-naming.md    - 秘匿値の置き場所（Amplify secrets / SSM）
+  - .claude/skills/amplify-gen2/   - Cognito / AppSync の実装ガイド
 
-  RLS ポリシーの正（Single Source of Truth）は data-model.md。
+  認可ルール（authorization）の正（Single Source of Truth）は data-model.md。
   このファイルではセキュリティ観点からの検証と補完のみ行う。
 -->
 
 [< ui-ux.md](./ui-ux.md) | [testing.md >](./testing.md)
 
-## 認証基盤選択
+## 認証方式の確定（**後から変えられないものを先に決める**）
 
 <!--
-  認証基盤はケースバイケースで判断する。
-  安易にどちらかに決めず、要件を分析して最適な選択を行う。
+  認証基盤は Amazon Cognito（Amplify Auth）で固定（.claude/rules/aws-first.md）。
+  ここで決めるのは基盤選択ではなく、**初回デプロイ後に変更できない項目**である。
 
-  Supabase Auth を推奨するケース:
-  - Supabase エコシステム（RLS, Realtime, Storage）と深く統合
-  - auth.uid() を RLS ポリシーで直接使用
-  - OAuth/MFA を Supabase の設定のみで完結
-  - シンプルな認証要件
-
-  Better Auth を検討するケース:
-  - 組織(Organization)ベースのマルチテナント
-  - 複数アプリ間での認証共有
-  - カスタム認証フロー（招待制、承認制）
-  - Supabase 以外のバックエンドとの認証共有
+  ⚠️ Cognito の `loginWith`（サインイン方式）は **immutable**。
+  変更するには User Pool の作り直し（＝全ユーザー移行）が要る。
 -->
 
-### 要件分析
+### サインイン方式
 
-| 要件 | Supabase Auth | Better Auth | 備考 |
-|------|:---:|:---:|------|
-| OAuth (Google/GitHub) | OK | OK | |
-| MFA | OK | OK | |
-| auth.uid() in RLS | 標準 | カスタム設定必要 | |
-| 組織管理 | 自前実装 | プラグイン対応 | |
-| 招待制サインアップ | Edge Function | プラグイン対応 | |
-| 複数アプリ認証共有 | 困難 | 容易 | |
+| 項目 | 決定 | 根拠 |
+|---|---|---|
+| モバイルアプリを出す（出す予定がある）か | はい / いいえ | — |
+| 主たるログイン手段 | **メール + パスワード** / Email OTP | モバイルがあるなら**パスワード必須**（App Store 2.1(a)。`.claude/rules/auth.md` §0） |
+| 併用する手段 | Email OTP / ソーシャル / passkey | — |
+| `defineAuth` の設定 | `loginWith: { email: { otpLogin: true } }` | この 1 行で password と Email OTP の両方が first factor になる |
 
-### 選択結果
+> **MFA とパスワードレス（OTP / passkey）は Cognito の制約で併用不可。**
+> `multifactor` を足すと OTP ログインが壊れる。
 
-**選択**: {Supabase Auth / Better Auth}
-
-**理由**:
-
-{選択理由を3-5文で記述。具体的な要件との対応を示す。}
-
-### Supabase Auth 設定
+### 必須導線（**指示を待たずに実装する**）
 
 <!--
-  Supabase Auth を選択した場合のみ記述。
+  .claude/rules/auth.md §2。これらは「あとで足せばいい機能」ではない。
+  入口を失ったユーザーは自力で復帰できず、モバイルではストア審査で落ちる。
+-->
 
-  参照: .claude/skills/supabase/SKILL.md
-  - getUser() でサーバー認証（getSession は信頼しない）
-  - proxy.ts で Middleware 設定（Next.js 16）
-  - RLS で auth.uid() を使用
+| # | 導線 | 置き場所 | この機能での扱い |
+|---|---|---|---|
+| 1 | メールアドレスの再設定 | 設定 / アカウント画面 | 実装 / 既存を利用 |
+| 2 | パスワードを忘れた方 | **ログイン画面**（設定画面ではない） | 実装 / 既存を利用 |
+| 3 | パスワードの変更 | 設定 / アカウント画面 | 実装 / 既存を利用 |
+| 4 | アカウント削除 | 設定 / アカウント画面（モバイルは必須） | 実装 / 既存を利用 |
+
+### backend の必須設定
+
+```typescript
+// frontend/packages/backend/amplify/backend.ts
+const { cfnUserPool } = backend.auth.resources.cfnResources
+
+// ⚠️ cfnUserPool.policies = {...} と**代入してはならない**。
+// otpLogin: true が設定する Policies.SignInPolicy ごと吹き飛び、OTP が無言で壊れる。
+cfnUserPool.addPropertyOverride('Policies.PasswordPolicy.MinimumLength', 12)
+
+// ⚠️ 必須: これが無いと、メール変更の検証完了前に email 属性が置き換わり、
+// **旧アドレスでも新アドレスでもログインできなくなる**（＝アカウント喪失）
+cfnUserPool.addPropertyOverride(
+  'UserAttributeUpdateSettings.AttributesRequireVerificationBeforeUpdate',
+  ['email'],
+)
+
+// ユーザー列挙の抑止
+backend.auth.resources.cfnResources.cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED'
+```
+
+### サーバー側の認可
+
+<!--
+  ⚠️ Client Component が持っている useAuthUser() の値を
+  サーバーの判断根拠にしてはならない（.claude/rules/auth.md §3.7）。
 -->
 
 ```typescript
-// proxy.ts (Next.js 16)
-export function proxy(request: NextRequest) {
-  return updateSession(request)
-}
-```
+// Server Component / Server Action / proxy
+import { cookies } from 'next/headers'
+import { getCurrentUser } from 'aws-amplify/auth/server'
+import { runWithAmplifyServerContext } from '@/shared/lib/amplify/server'
 
-### Better Auth 設定
-
-<!--
-  Better Auth を選択した場合のみ記述。
-  不要な場合: N/A -- Supabase Auth を選択したため Better Auth は使用しない
-
-  専用スキーマ設計:
-  1. PostgreSQL スキーマ: {app}_auth
-  2. Better Auth テーブル: {app}_auth.user, {app}_auth.session, etc.
-  3. public テーブル: public.{app}_users (アプリ固有のユーザーデータ)
-  4. 連携: {app}_auth.user.id -> public.{app}_users.auth_user_id
-
-  RLS 統合:
-  - Better Auth の session トークンから user_id を取得
-  - カスタム PostgreSQL 関数で auth_user_id を検証
-  - RLS ポリシーで使用
--->
-
-#### 専用スキーマ設計
-
-```sql
--- Better Auth 用スキーマ
-CREATE SCHEMA IF NOT EXISTS {app}_auth;
-
--- Better Auth テーブル（{app}_auth スキーマ内）
--- user, session, account, verification テーブルが自動作成される
-```
-
-#### public テーブルとの連携
-
-```typescript
-// drizzle/schema/schema.ts
-export const {app}Users = pgTable('{app}_users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  authUserId: text('auth_user_id').notNull().unique(),
-  // ... アプリ固有のフィールド
-  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
-    .notNull().defaultNow(),
-}).enableRLS()
-```
-
-#### Better Auth 配置場所（モノレポ構成）
-
-<!--
-  Better Auth はモノレポ内の専用パッケージとして配置する。
-  Web / Mobile / Backend から共通で参照できるようにする。
--->
-
-```
-frontend/
-├── packages/
-│   └── auth/                          # Better Auth 専用パッケージ
-│       ├── package.json               # @workspace/auth
-│       ├── src/
-│       │   ├── auth.ts                # Better Auth インスタンス（サーバー用）
-│       │   ├── auth-client.ts         # Better Auth クライアント（フロントエンド用）
-│       │   ├── plugins/               # カスタムプラグイン
-│       │   └── index.ts              # エクスポート
-│       └── tsconfig.json
-├── apps/
-│   ├── web/
-│   │   └── src/
-│   │       └── shared/
-│   │           └── api/
-│   │               └── auth.ts        # @workspace/auth を import して使用
-│   └── mobile/
-│       └── src/
-│           └── shared/
-│               └── api/
-│                   └── auth.ts        # @workspace/auth を import して使用
-```
-
-#### Better Auth 設定
-
-```typescript
-// frontend/packages/auth/src/auth.ts
-import { betterAuth } from 'better-auth'
-
-export const auth = betterAuth({
-  database: {
-    provider: 'pg',
-    url: process.env.DATABASE_URL,
-  },
-  user: {
-    modelName: '{app}_auth_user',
-  },
-  session: {
-    modelName: '{app}_auth_session',
-  },
-  // プラグイン
-  plugins: [
-    // 組織プラグイン（必要な場合）
-    // organization(),
-  ],
-})
-```
-
-```typescript
-// frontend/packages/auth/src/auth-client.ts
-import { createAuthClient } from 'better-auth/client'
-
-export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
-})
+const user = await runWithAmplifyServerContext({
+  nextServerContext: { cookies },
+  operation: (contextSpec) => getCurrentUser(contextSpec),
+}).catch(() => null)
+if (!user) redirect('/login')
 ```
 
 ## マルチテナント設計
@@ -187,35 +102,34 @@ export const authClient = createAuthClient({
 
 ### テナント境界
 
+<!--
+  ⚠️ **DynamoDB に RLS は無い。** 境界は (a) a.schema の authorization と
+  (b) パーティションキーの設計 の 2 つでしか作れない。
+  アプリ層の if で代替してはならない（漏れた 1 か所が全部）。
+-->
+
 | 境界レベル | 実装方法 | 適用箇所 |
-|-----------|---------|---------|
-| データ分離 | RLS ポリシー | 全テーブル |
-| API分離 | auth.uid() / org_id 検証 | Backend API |
-| UI分離 | 認証状態に基づくルーティング | Frontend |
+|---|---|---|
+| データ分離 | `authorization` ルール（AppSync が適用） | 全モデル |
+| キー設計 | パーティションキーにテナント ID を含める | 一覧を返す全モデル |
+| API 分離 | Function 内でも呼び出し元の identity を検証 | Amplify Functions / backend-py |
+| UI 分離 | サーバー側の認証結果に基づくルーティング | Frontend |
 
 ### テナント間アクセス防止
 
 ```typescript
-// RLS でテナント境界を強制
-// B2C パターン: user_id ベース
-export const selectPolicy = pgPolicy('select_own_data', {
-  for: 'select',
-  to: 'authenticated',
-  using: sql`(SELECT auth.uid()) = user_id`,
-}).link({tableName})
+// B2C: 本人のみ（owner フィールドに Cognito の sub が入る）
+.authorization((allow) => [allow.owner()])
 
-// B2B パターン: org_id ベース（組織メンバーシップ検証）
-export const selectPolicy = pgPolicy('select_org_data', {
-  for: 'select',
-  to: 'authenticated',
-  using: sql`
-    EXISTS (
-      SELECT 1 FROM org_members
-      WHERE org_members.org_id = {table_name}.org_id
-      AND org_members.user_id = (SELECT auth.uid())
-    )
-  `,
-}).link({tableName})
+// B2B: レコードの organizationId を Cognito グループ名として扱う
+.authorization((allow) => [
+  allow.groupDefinedIn('organizationId'),
+  allow.groups(['admin']),
+])
+
+// ⚠️ 認可条件に使う属性は**インデックスのキーにも含める**。
+// 含めないと「認可で落ちた分だけページが薄くなる」挙動になり、
+// nextToken を見ないページングが確実に壊れる。
 ```
 
 ## データ分類に基づくアクセス制御
@@ -225,55 +139,47 @@ export const selectPolicy = pgPolicy('select_org_data', {
   各分類レベルのアクセス制御方法を定義する。
 -->
 
-| 分類 | アクセス制御 | RLS パターン | 暗号化 |
-|------|------------|-------------|--------|
-| **public** | 誰でも読み取り可 | `using: sql\`true\`` | 不要 |
-| **internal** | 認証ユーザーのみ | `to: 'authenticated'` | 不要 |
-| **confidential** | 本人のみ | `(SELECT auth.uid()) = user_id` | 推奨 |
-| **restricted** | service_role のみ | `to: 'service_role'` | 必須 |
-
-## RLS ポリシー検証
-
 <!--
-  RLS ポリシーの定義は data-model.md が正（Single Source of Truth）。
-  このセクションではセキュリティ観点から以下を検証する:
-  - 全テーブル・全操作にポリシーが定義されているか
-  - データ分類と RLS パターンが整合しているか
-  - 権限昇格の抜け穴がないか
-
-  -> RLS ポリシーの詳細定義は [data-model.md](./data-model.md) を参照
+  ⚠️ **DynamoDB では「列単位の認可」ができない**。認可の単位はモデルである。
+  1 つのモデルに public と confidential を混ぜた時点で、そのモデル全体を
+  confidential として扱うしかなくなる（-> data-model.md の PII 分離）。
 -->
 
-### テーブル別ポリシーマトリクス（検証用）
+| 分類 | アクセス制御 | `authorization` | 置き場所 |
+|---|---|---|---|
+| **public** | 誰でも読み取り可 | `allow.guest().to(['read'])` | 公開モデル |
+| **internal** | 認証ユーザーのみ | `allow.authenticated().to(['read'])` | 公開モデル |
+| **confidential** | 本人のみ | `allow.owner()` | **PII 分離モデル** |
+| **restricted** | サーバーのみ | `allow.resource(fn)`（IAM） | 専用モデル。クライアントに露出させない |
 
-| テーブル | SELECT | INSERT | UPDATE | DELETE | 備考 |
-|---------|--------|--------|--------|--------|------|
-| {table1} | authenticated (own) | authenticated (own) | authenticated (own) | authenticated (own) | 自分のデータのみ |
-| {table2} | public | service_role | service_role | service_role | 公開読み取り |
-| {table3} | authenticated (org) | authenticated (org) | authenticated (org) | - | 組織メンバーのみ |
+## 認可ルールの検証
+
+<!--
+  authorization の定義は data-model.md が正（Single Source of Truth）。
+  ここではセキュリティ観点で以下を検証する:
+  - 全モデル・全操作にルールがあるか
+  - データ分類とルールが整合しているか
+  - 権限昇格の抜け穴がないか
+
+  -> ルールの詳細定義は [data-model.md](./data-model.md) を参照
+-->
+
+### モデル別の認可マトリクス（検証用）
+
+| モデル | read | create | update | delete | 備考 |
+|---|---|---|---|---|---|
+| {Model1} | owner | owner | owner | owner | 本人のデータのみ |
+| {Model2} | authenticated | resource(fn) | resource(fn) | — | 読み取り公開・書き込みはサーバーのみ |
+| {Model3} | groupDefinedIn(orgId) | 同左 | 同左 | admin | 組織メンバーのみ |
 
 ### セキュリティ検証項目
 
-- [ ] 全テーブルの全操作（SELECT/INSERT/UPDATE/DELETE）にポリシーが定義されているか
-- [ ] データ分類と RLS パターンが一致しているか（confidential -> 本人のみ等）
-- [ ] service_role ポリシーが必要最小限か
-- [ ] supabase_auth_admin は Auth Hook 用途のみか
-
-### 特別なポリシー
-
-<!-- 標準パターン以外の特殊なRLSポリシーがある場合 -->
-
-```typescript
-// MFA 必須の操作
-export const updateSensitiveData = pgPolicy('update_sensitive_mfa', {
-  for: 'update',
-  to: 'authenticated',
-  using: sql`
-    (SELECT auth.uid()) = user_id
-    AND (SELECT (auth.jwt()->>'aal')::text) = 'aal2'
-  `,
-}).link({tableName})
-```
+- [ ] **すべてのモデルに `authorization` があるか**（書き忘れは事故に直結する）
+- [ ] データ分類とルールが一致しているか（confidential -> `allow.owner()` かつ PII 分離モデル）
+- [ ] サーバー専用の書き込みが `allow.resource()`（IAM）になっているか（owner で代替していないか）
+- [ ] 一覧が返すフィールドに、その相手に見せてはいけないものが混ざっていないか
+      （**モデル単位でしか絞れない**ため、混ぜた時点で漏れる）
+- [ ] 削除の連鎖を自前で実装しているか（DynamoDB に CASCADE は無い）
 
 ## 入力バリデーション
 
@@ -301,10 +207,11 @@ export const updateSensitiveData = pgPolicy('update_sensitive_mfa', {
 ### 暗号化
 
 | データ | 保存時暗号化 | 通信時暗号化 | 方法 |
-|-------|:---:|:---:|------|
-| パスワード | 自動 (Supabase Auth) | TLS | bcrypt |
-| APIキー | 要 | TLS | pgcrypto |
-| PII | 推奨 | TLS | アプリケーション層暗号化 |
+|---|:---:|:---:|---|
+| パスワード | 自動（Cognito が保持。アプリは触らない） | TLS | Cognito |
+| API キー・署名鍵 | 要 | TLS | **Amplify secrets（SSM Parameter Store）**。env に置かない |
+| DynamoDB のデータ | 既定で保存時暗号化（AWS 管理キー） | TLS | 顧客管理キーが要るなら KMS を明記 |
+| S3 のオブジェクト | 既定で保存時暗号化 | TLS | 非公開バケット + 署名 URL |
 
 ### マスキング
 
@@ -324,16 +231,18 @@ function maskEmail(email: string): string {
 |-------|---------|---------|
 | セッション | 30日 | 自動期限切れ |
 | 監査ログ | 1年 | バッチ削除 |
-| ユーザーデータ | アカウント削除まで | CASCADE DELETE |
+| ユーザーデータ | アカウント削除まで | **削除フローで明示的に削除**（`deleteUser()` は Cognito ユーザーしか消さない） |
 
 ## セキュリティチェックリスト
 
-- [ ] 全テーブルに `.enableRLS()` が設定されている
-- [ ] 全操作（SELECT/INSERT/UPDATE/DELETE）に RLS ポリシーが定義されている
-- [ ] サーバーサイドで `getUser()` を使用（`getSession()` を信頼しない）
-- [ ] 機密データが PII テーブルに分離されている
-- [ ] service_role キーが Frontend に露出していない
+- [ ] 全モデルに `authorization` が設定されている
+- [ ] サーバー側の認可が `runWithAmplifyServerContext` + `aws-amplify/auth/server` を通っている
+      （Client の `useAuthUser()` を根拠にしていない）
+- [ ] 機密データが PII 分離モデルに切り出されている（モデル単位でしか絞れないため）
+- [ ] `AttributesRequireVerificationBeforeUpdate: ['email']` を設定している
+- [ ] 秘匿値が **Amplify secrets（SSM）** にあり、env（とくに `NEXT_PUBLIC_` / `EXPO_PUBLIC_`）に無い
+- [ ] `amplify_outputs.json` の値を env に複製していない
 - [ ] CORS が適切に設定されている
 - [ ] 入力バリデーションが全レイヤーで実装されている
-- [ ] エラーメッセージに機密情報が含まれていない
+- [ ] エラーメッセージに機密情報が含まれていない（`UserNotFoundException` をそのまま出していない）
 - [ ] ログに PII が出力されていない

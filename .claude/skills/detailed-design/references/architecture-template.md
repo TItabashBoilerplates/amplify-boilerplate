@@ -17,27 +17,33 @@
 
 ```mermaid
 graph TB
-    subgraph Frontend["Frontend (Next.js 16)"]
-        Web["Web App<br/>apps/web"]
-        Mobile["Mobile App<br/>apps/mobile"]
+    subgraph Frontend["Frontend"]
+        Web["Web App<br/>apps/web (Next.js 16)"]
+        Mobile["Mobile App<br/>apps/mobile (Expo 57)"]
+        Desktop["Desktop App<br/>apps/desktop (Tauri v2)"]
     end
 
-    subgraph Backend["Backend Services"]
-        EdgeFn["Edge Functions<br/>Deno"]
-        BackendPy["Backend Python<br/>FastAPI"]
+    subgraph Compute["Compute (Lambda)"]
+        TsFn["Amplify Function<br/>TypeScript (既定)"]
+        BackendPy["FastAPI on Lambda<br/>Python (escalation)"]
     end
 
-    subgraph Data["Data Layer"]
-        Supabase["Supabase<br/>PostgreSQL + Auth"]
-        Storage["Supabase Storage"]
+    subgraph AWS["AWS (Amplify Gen2)"]
+        Cognito["Amazon Cognito<br/>Auth"]
+        AppSync["AWS AppSync + DynamoDB<br/>Amplify Data"]
+        S3["Amazon S3<br/>Amplify Storage"]
     end
 
-    Web -->|supabase-js| Supabase
-    Mobile -->|supabase-js| Supabase
-    Web -->|fetch| EdgeFn
+    Web -->|aws-amplify/auth| Cognito
+    Mobile -->|aws-amplify/auth| Cognito
+    Web -->|getDataClient| AppSync
+    Mobile -->|getDataClient| AppSync
+    Desktop -->|getDataClient| AppSync
+    Web -->|fetch| TsFn
     Web -->|fetch| BackendPy
-    EdgeFn -->|postgres.js| Supabase
-    BackendPy -->|SQLModel| Supabase
+    TsFn -->|IAM| AppSync
+    BackendPy -->|IAM| AppSync
+    Web -->|StorageImage| S3
 ```
 
 <!--
@@ -152,26 +158,31 @@ backend-py/apps/api/src/api/
     └── {repository}.py    # 外部システム接続
 ```
 
-### Supabase-First 判定
+### 実行層の判定
 
-> **判定テーブルは [api.md](./api.md) の「Supabase-First 判定」セクションに記載。** ここでは記載しない。
+> **判定テーブルは [api.md](./api.md) の「実行層の判定」セクションに記載。** ここでは記載しない。
 >
-> 判定階層（詳細: `.claude/rules/supabase-first.md`）:
-> 1. supabase-js (DEFAULT) — CRUD + RLS で十分な場合
-> 2. Edge Functions — Webhook、service_role 必要時
-> 3. Backend Python (LAST RESORT) — 複雑なロジック、AI/ML
+> 判定階層（詳細: `.claude/rules/backend-architecture.md`）:
+> 1. **Amplify Data**（DEFAULT） — CRUD + `authorization` + サブスクリプションで足りる場合
+> 2. **TypeScript の Amplify Function** — サーバー側の処理が要る場合
+> 3. **backend-py**（LAST RESORT） — LLM / 長時間 / Python 固有 / 既存資産
 
-## Edge Functions
+## Amplify Functions
 
-<!-- この機能でEdge Functionsが必要な場合のみ記述。不要な場合は N/A と記載。 -->
+<!-- この機能で Function が必要な場合のみ記述。不要な場合は N/A と記載。 -->
 
 ```
-supabase/functions/
-├── {function-name}/
-│   └── index.ts
-└── _shared/
-    ├── drizzle/     # Drizzle スキーマ（自動コピー）
-    └── supabase.ts  # Supabase クライアント
+frontend/packages/backend/amplify/
+├── backend.ts                  # defineBackend(...) と CDK の配線
+├── auth/resource.ts            # Cognito
+├── data/resource.ts            # a.schema（AppSync + DynamoDB）
+├── storage/resource.ts         # S3
+└── functions/
+    └── {function-name}/
+        ├── resource.ts         # defineFunction（timeout / env / secret）
+        └── handler.ts
+
+frontend/packages/backend-core/  # Function 横断の共有ロジック（@workspace/backend-core）
 ```
 
 ## データフロー
@@ -186,12 +197,12 @@ supabase/functions/
 sequenceDiagram
     actor User
     participant Web as Next.js (Web)
-    participant Supabase as Supabase (PostgreSQL)
-    participant Backend as FastAPI (Python)
+    participant AppSync as AppSync + DynamoDB
+    participant Fn as Amplify Function (TS)
 
     User->>Web: {アクション}
-    Web->>Supabase: supabase.from('{table}').select()
-    Supabase-->>Web: {レスポンス}
+    Web->>AppSync: getDataClient().models.{Model}.list({ limit, nextToken })
+    AppSync-->>Web: { data, nextToken, errors }
     Web-->>User: {表示}
 ```
 

@@ -152,13 +152,13 @@
 | `packages/storage-image` | 🔴 欠落 | `storage-images.md` が要求（新規実装） |
 | `apps/web/src/app`（FSD の app レイヤー） | 🔴 欠落 | ✅ **対応済**（`src/app/styles/globals.css`） |
 | `apps/web/src/shared/ui` | 🔴 欠落 | |
-| `apps/web/src/features/cookie-consent` | 🔴 欠落 | |
+| `apps/web/src/features/cookie-consent` | ✅ 意図的 | **移植しない**。shadcn 版は PostHog の opt-in ゲートそのもの（判定と永続化を PostHog へ委譲）で、PostHog は `aws-first.md` が排除した外部 SaaS。**同意を取る対象が存在しない同意バナー**は YAGNI。AWS で解析を入れる時点（Pinpoint / CloudWatch）に、その実態に合わせて実装する |
 | `apps/web/app/{icon,manifest,opengraph-image,robots,sitemap}` | 🔴 欠落 | ✅ **対応済**（`page.tsx` は `localePrefix: 'always'` のため不要） |
-| `apps/web/src/shared/lib/server-actions.policy.test.ts` | 🔴 欠落 | Server Action の静的検査 |
+| `apps/web/src/shared/lib/server-actions.policy.test.ts` | 🔴 欠落 | ✅ **対応済**（収集器の生存確認つきで移植。この repo はまだ Server Action を持たないが、最初の 1 本を書いた人が踏むまで誰も気づけない罠なので先に置く） |
 | `apps/web/src/shared/config/app.ts` | 🔴 欠落 | ✅ **対応済**（`APP_URL` / `APP_NAME` + `generateMetadata` の i18n 化） |
 | `apps/mobile` の `babel.config.js` / `css.d.ts` / `eas.json` | 🔴 欠落 | ✅ **対応済**（`babel.config.js` / `css.d.ts`。`eas.json` はストア配布時） |
-| `apps/mobile` の `store.config.js` / `play.config.js` / `iap.config.js` + テスト | 🔴 欠落 | 残作業（ストア配布時。§7） |
-| `apps/desktop`（Tauri） | 🟡 欠落 | 移植するか要判断 |
+| `apps/mobile` の `store.config.js` / `play.config.js` / `iap.config.js` + テスト | 🔴 欠落 | ✅ **対応済**（`store-metadata.test.ts` / `release-plan.test.ts` で 42 件） |
+| `apps/desktop`（Tauri） | 🟡 欠落 | ✅ **対応済**（`pnpm dlx` / `tsc` / Amplify server context へ読み替え。`profiles.desktop` で WebKitGTK を opt-in 化） |
 | ✅ `packages/client`(Supabase) / `db-schema`(Drizzle) / `onesignal` | ✅ 意図的 | `data-client` / `backend` / SNS・Pinpoint が代替 |
 
 ### Storybook の欠落
@@ -174,14 +174,14 @@
 | 対象 | 状態 | 備考 |
 |---|---|---|
 | `scripts/mcp/`（`mcp-sync`。`.mcp.json` → `.codex` / `.cursor`） | 🔴 欠落 | ✅ **対応済**（Deno → Node へ移植し devenv に配線） |
-| `scripts/mobile/`（`mobile-release-*` / `store-*` / `screenshots-*`） | 🔴 欠落 | `store-review.md` / `mobile-release` skill が前提にする |
+| `scripts/mobile/`（`mobile-release-*` / `store-*` / `screenshots-*`） | 🔴 欠落 | ✅ **対応済**（Doppler → **AWS SSM Parameter Store** / `bunx` → `pnpm dlx`） |
 | `scripts/frontend/` | 🔴 欠落 | ✅ **対応済**（`verify-storybook-render.mjs`） |
 | ✅ `scripts/infra`(Vercel) / `scripts/supabase` | ✅ 意図的 | |
 | `e2e/` ディレクトリ | 🔴 欠落 | ✅ **対応済**（`scripts/e2e/run-maestro.mjs` + `e2e-results/` 出力） |
 | `.maestro`: `password-reset-flow` / `email-change-flow` / `store/` | 🔴 欠落 | ✅ **対応済**（login / password-reset を mobile + web で。`store/` はストア配布時） |
 | CI が **vitest / ESLint / Storybook を実行していない** | 🔴 | ✅ **対応済**（3 つとも追加。`verify-storybook-render` の Chromium パスも env で解決するようにした） |
-| CI が devenv 経由でない（`pnpm run lint:ci` 直叩き） | 🟡 | 未対応（Actions ランナー都合。shadcn は devenv + nix cache 方式） |
-| `docs/store/`（submission-checklist / release-runbook / aso） | 🔴 欠落 | |
+| CI が devenv 経由でない | 🟡 | ✅ **問題は解消**（`scripts/ci/check.sh` を単一の正本にし、`ci-check` と CI の両方が呼ぶ）。devenv shell 化そのものは未対応（ランナーに nix を用意する話であり、検査内容の一致とは別問題） |
+| `docs/store/`（submission-checklist / release-runbook / aso） | 🔴 欠落 | ✅ **対応済**（シークレットの記述を Doppler → SSM に読み替え） |
 | `docs/deployment/README.md` | 🔴 欠落 | |
 
 ---
@@ -215,16 +215,42 @@
 | 9b | **CI の追加穴埋め** | mobile の ESLint / **リポジトリルートの Biome**（`frontend/biome.json` とは別設定なので `scripts/` `.maestro/` が検査されていなかった）/ mobile 側の `amplify_outputs.json` スタブ |
 | 9c | **Next 16.3 の新 lint 対応** | `window.location.assign()` による認証後遷移を next-intl の `useRouter().replace()` + `refresh()` に置換（**ロケール prefix が落ちるバグも同時に解消**）。`error.tsx` も `Link` に変更 |
 
+### ✅ 対応済み（第 3 弾）
+
+| # | 作業 | 実装 |
+|---|---|---|
+| 1 | **Mobile の画像派生の生成基盤** | `storage-images.md` §1.2 の **方式 A（アップロード時に派生を生成）**を採用。S3 の `OBJECT_CREATED` を `functions/image-derivatives` で受け、`IMAGE_WIDTH_LADDER` の各幅を書き出す。**sharp ではなく jimp**（純 JS なので esbuild でバンドルでき、`ampx sandbox` に Docker もレイヤーも要らない）。派生自身のイベントで再帰しないよう `isDerivativePath()` で弾く。`snapImageWidth` / `buildDerivativePath` は Lambda から `@workspace/storage-image/ladder`（aws-amplify 非依存のサブパス）で共有 |
+| 2 | **ストア / リリースのツール群** | `scripts/mobile/`（28 ファイル）・`docs/store/`・`{store,play,iap}.config.js`・`eas.json`・自作 skill `mobile-release` / `store-screenshots`。**Doppler → AWS SSM Parameter Store**（env 優先 → `aws ssm get-parameter --with-decryption`。値は一切ログに出さない）、**`bunx` → `pnpm dlx`**、SDK 検出表を本スタックへ。devenv に store 系 script 16 本と `store-listing` profile |
+| 2b | **`ios.config.usesNonExemptEncryption`** | 未設定だとアップロードのたびに輸出コンプライアンスを聞かれ、版が `WAITING_FOR_EXPORT_COMPLIANCE` で止まる（ビルドも提出も成功して見えるのに配布されない）。`release-plan.test.ts` が検査する |
+| 3 | **`apps/desktop`（Tauri v2）** | 移植。UI は `@workspace/ui` を共有し、デスクトップ専用の複製を作らない。`pnpm dlx` / 素の `tsc` / Amplify server context へ読み替え。`profiles.desktop` で WebKitGTK を opt-in 化（closure が数 GB になるので web / mobile しか触らない人と CI に負わせない） |
+| 4 | **`server-actions.policy.test.ts`** | 移植。この repo はまだ Server Action を持たないので「1 本以上ある」検査は成立しない → **収集器が動いていること**を代わりに固定した（「0 件だから緑」と「検査が壊れて緑」を区別する） |
+| 5 | **CI と devenv の drift 解消** | `scripts/ci/check.sh` を検査一覧の**単一の正本**にし、`ci-check`（devenv）と `.github/workflows/ci.yml` の両方が呼ぶ。`commands.md` が約束していたのに存在しなかった 13 個の script を実装し、無いもの（`test-db` / pgTAP / git-hooks の 2 段構成）は記述ごと削除 |
+| 5b | **backend-py の `--all-packages`** | uv の virtual workspace では素の `uv run` が member の依存を入れないため、**mypy が third-party を `Any` と見て strict の untyped-decorator を誤爆**（11 件）し、**pytest が 4 ファイルで collection error** になっていた。devenv script と CI の両方を修正 |
+| 5c | **backend-py の既存 lint 違反 4 件** | S105（Cognito の `token_use` クレームを「ハードコードされたパスワード」と誤検出）/ E501 / RUF002（日本語 docstring の全角括弧）。ignore を広げず個別に直した |
+| 5d | **`lint-fsd` が存在しなかった** | `commands.md` が必須コマンドとして挙げていたのに turbo にも devenv にも無く、**FSD の境界違反が誰にも検出されていなかった**（Biome はレイヤーを見ない）。turbo task + devenv script を追加し `ci-check` に組み込み、desktop の設定はわざと違反を仕込んで落ちることを確認 |
+| 5e | **root `biome.json`** | 生成物（`storybook-static` / `.venv`）を除外していなかったため `biome check .` が Biome ごとクラッシュしていた（`HTML_BOGUS` cast panic）。CI が `scripts .maestro` にスコープしていたので誰も踏んでいなかった |
+| 6 | **`detailed-design` skill の全面移植** | shadcn から**逐語コピーのまま**で、Drizzle / RLS / pgTAP / Edge Functions / Better Auth / Supabase-first 判定を前提にした設計書テンプレート 9 ファイル（約 2,750 行）だった。**エージェントが書く設計書が丸ごと別スタックのもの**になるため、`a.schema` / `authorization` / DynamoDB のアクセスパターン設計 / Cognito の immutable 項目 / Amplify Data first 判定へ全面的に書き換えた |
+| 6b | 同上（周辺 skill） | `storybook`（存在しない `@workspace/client-supabase` alias の手順 → 現行の exports ベースへ）/ `nextjs` / `fastapi` |
+
 ### 🔴 残っている作業
 
 | # | 作業 | なぜ残したか |
 |---|---|---|
-| 1 | **Mobile の画像派生の生成基盤**（`storage-images.md` §1.2 の A / B） | **ユーザー判断が必要**。A（S3 作成イベント + Lambda/sharp で `@{width}w` 派生を事前生成）と B（Dynamic Image Transformation for CloudFront）でインフラ構成もコストも変わる。決まるまでは「アップロード時に `MAX_IMAGE_WIDTH` 以下へ縮小して保存（＝原本を持たない）」が最低ライン（`packages/storage-image` はどちらでも使える形にしてある） |
-| 2 | **`scripts/mobile` + `docs/store` + `store.config.js` / `play.config.js` / `iap.config.js`** | ストア配布を始める段階で移植する。App Store Connect / Play Developer API を直接叩く数千行規模のツール群で、**AWS 認証ではなくストアの資格情報が無いと 1 行も検証できない**。`store-review.md` の冒頭にも未移植であることを明記済み |
-| 3 | **`apps/desktop`（Tauri）** | 🟡 そもそも移植するかの判断から（shadcn 側も Web 技術ベースなのでインフラ非依存だが、対象プラットフォームを増やす判断はプロダクト側） |
-| 4 | `apps/web/src/features/cookie-consent` / `shared/lib/server-actions.policy.test.ts` | インフラ非依存だが Server Action を本リポジトリはまだ使っていないため、使い始める時点で入れる |
-| 5 | CI を devenv 経由にする | 🟡 Actions ランナー都合（nix cache の整備が前提）。検査内容は同一なので優先度は低い |
+| 1 | CI を **devenv shell の中で**回す | 🟡 ランナーに nix を用意する話であり、**検査内容の一致という本題は `scripts/ci/check.sh` で解消済み**。cachix / `cache-nix-action` の整備が前提で、この環境からは動作確認できない。切り替えても呼ぶものは変わらない |
+| 2 | `apps/desktop` の Rust ビルドを CI で回す | 🟡 `-P desktop`（WebKitGTK。closure 数 GB）が要る。フロント側（`vite build`）は CI で回している |
 
-> ストア関連（残 2）以外の「思想・設計・実装パターン」の差分は解消済み。
-> 残っているのは **(a) ユーザー判断が要るもの / (b) ストアの資格情報が無いと検証できないもの /
-> (c) そのプロダクトが使い始めた時点で入れるもの** の 3 種類。
+> 「思想・設計・実装パターン」の差分は解消済み。残り 2 件はどちらも
+> **CI ランナーの構成**の話で、リポジトリの設計・思想には影響しない。
+
+---
+
+## 8. 意図的に持ち込まなかったもの（差分ではなく判断）
+
+| shadcn 側にあるもの | 判断 | 理由 |
+|---|---|---|
+| `packages/client`（Supabase）/ `db-schema`（Drizzle）/ `onesignal` | 移植しない | `data-client` / `backend`(a.schema) / SNS・Pinpoint が代替 |
+| `scripts/infra`（Vercel）/ `scripts/supabase` | 移植しない | ホスティングは Amplify Hosting、バックエンドは `ampx` |
+| `features/cookie-consent` | 移植しない | PostHog の opt-in ゲートそのもの。**同意を取る対象が無い同意バナー**は作らない |
+| Doppler（`doppler` skill / MCP / `mcp-doppler.md`） | 移植しない | シークレットは **Amplify secrets（SSM）**。`aws-first.md` |
+| pgTAP / `test-db` | 移植しない | DynamoDB に相当物が無い。認可の検証は **sandbox への統合テスト + Maestro** で行う |
+| git-hooks（prek）+ `devenv test` の 2 段構成 | 未導入 | 検査は `ci-check` に単一化した。コミット時の差分チェックを足すかは別途判断 |

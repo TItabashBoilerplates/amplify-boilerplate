@@ -2,13 +2,13 @@
 
 <!--
   出力先: docs/designs/{feature-name}/testing.md
-  TDD、Storybook、RLSテスト、E2Eテストの計画を定義する。
+  TDD、Storybook、認可ルールの検証、E2E テストの計画を定義する。
 
   必須参照:
   - .claude/rules/tdd.md - TDD 必須ポリシー
   - .claude/rules/ui-testing.md - UI テスト方針
   - .claude/skills/storybook/SKILL.md - Storybook 10
-  - .claude/skills/pgtap/ - RLS・DB 層テスト（pgTAP + `supabase test db`）
+  - .claude/rules/data-modeling.md - 認可ルール（authorization）の設計
   - .claude/skills/python-testing/ - Python 単体テスト
   - .claude/skills/maestro/ - E2E テスト
 -->
@@ -28,7 +28,7 @@
 | UI コンポーネント | Storybook | Storybook 10 | - |
 | ビジネスロジック (Frontend) | 単体テスト | Vitest | 必須 |
 | API フック (Frontend) | 単体テスト | Vitest | 必須 |
-| RLS ポリシー / DB 関数 / 制約 | DB 層テスト | pgTAP (`supabase test db`) | 必須 |
+| **認可ルール（`authorization`）** | 統合 / E2E | `ampx sandbox` に対する実行 or Maestro | 必須 |
 | Backend UseCase | 単体テスト | pytest | 必須 |
 | Backend Gateway | 単体テスト | pytest | 必須 |
 | E2E フロー | E2E テスト | Maestro | - |
@@ -187,102 +187,53 @@ export const SubmitForm: Story = {
 }
 ```
 
-## RLS テスト
+## 認可ルール（`authorization`）の検証
 
 <!--
-  参照: .claude/skills/pgtap/
+  ⚠️ **認可ルールは単体テストでは検証できない。**
+  `a.schema` の `authorization` は AppSync 側で適用されるので、
+  ローカルのモックでは「許可されるはずのものが許可され、拒否されるはずのものが拒否される」
+  ことを一切確かめられない。**実際に sandbox へデプロイして叩く**しかない。
 
-  pgTAP + `supabase test db` で RLS ポリシーを SQL レベルで検証する。
-  テストは supabase/tests/ 配下にフラットに配置し、認証コンテキスト切替は
-  supabase-test-helpers (tests.authenticate_as 等) を使用する。
-  各テーブルの各操作について、許可/拒否のケースを両方テストする。
+  Supabase の pgTAP（`supabase test db`）に相当するものは Amplify には無い。
+  代わりに次の 2 つで担保する:
+    1. sandbox に対する統合テスト（別ユーザーのトークンで叩いて弾かれることを確認）
+    2. Maestro の E2E（画面越しに「他人のデータが見えない」ことを確認）
 -->
 
-### テスト対象ポリシー
+### 検証対象
 
-| テーブル | ポリシー | テストシナリオ |
-|---------|---------|-------------|
-| {table} | select_policy_{table} | 自分のデータのみ取得可能 |
-| {table} | insert_policy_{table} | 認証ユーザーが自分のデータを作成可能 |
-| {table} | update_policy_{table} | 自分のデータのみ更新可能 |
-| {table} | service_insert_{table} | service_role のみ作成可能 |
+| モデル | ルール | 検証シナリオ（**許可と拒否を必ず両方**） |
+|---|---|---|
+| {Model} | `allow.owner()` | 本人は read/create/update/delete できる ／ **別ユーザーからは 1 件も見えない** |
+| {Model} | `allow.authenticated().to(['read'])` | 他の認証ユーザーは読めるが書けない |
+| {Model} | `allow.groupDefinedIn('organizationId')` | 同組織のメンバーは見える ／ **別組織からは見えない** |
+| {Model} | `allow.resource(fn)` | Function からは書ける ／ **クライアントからは書けない** |
+| 全モデル | — | **未認証では 1 件も取れない** |
 
 ### 実行
 
 ```bash
-test-db   # = supabase test db --local
+sandbox-once   # 認可ルールを sandbox へ反映してから検証する
+e2e-web        # / e2e-mobile （Maestro。テストユーザの作成〜後始末はドライバが行う）
 ```
 
-### テストケース
+### 検証の書き方（sandbox に対する統合テスト）
 
-```sql
--- supabase/tests/{table}_rls.sql
-begin;
+```typescript
+// 「取れなかった」ことを **errors ではなく件数**で確かめる。
+// 認可で落ちた項目は AppSync 側で除外されるため、errors には出ず
+// 「単に少ないページ」として返ってくることがある（.claude/rules/list-pagination.md §6.5）。
+const asOther = generateClient<Schema>({ authMode: 'userPool' /* 別ユーザーのトークン */ })
+const { data, nextToken } = await asOther.models.{Model}.list({ limit: 50 })
 
-select plan(7);
-
--- ===== フィクスチャ =====
-select tests.create_supabase_user('user-1', 'user1@example.com');
-select tests.create_supabase_user('user-2', 'user2@example.com');
-
-select tests.authenticate_as_service_role();
-
-insert into public.{table} (user_id, /* ... */) values
-  (tests.get_supabase_uid('user-1'), /* ... */),
-  (tests.get_supabase_uid('user-2'), /* ... */);
-
--- ===== SELECT =====
-select tests.authenticate_as('user-1');
-
-select results_eq(
-  $$ select user_id from public.{table} $$,
-  $$ values (tests.get_supabase_uid('user-1')) $$,
-  '認証ユーザーは自分のデータのみ取得できる'
-);
-
-select is_empty(
-  $$ select 1 from public.{table} where user_id = tests.get_supabase_uid('user-2') $$,
-  '他ユーザーのデータは取得できない'
-);
-
-select tests.clear_authentication();
-
-select is_empty(
-  $$ select 1 from public.{table} $$,
-  '未認証ユーザーはアクセスできない'
-);
-
--- ===== INSERT =====
-select tests.authenticate_as('user-1');
-
-select lives_ok(
-  $$ insert into public.{table} (user_id /*, ...*/) values (tests.get_supabase_uid('user-1') /*, ...*/) $$,
-  '認証ユーザーは自分のデータを作成できる'
-);
-
-select throws_ok(
-  $$ insert into public.{table} (user_id /*, ...*/) values (tests.get_supabase_uid('user-2') /*, ...*/) $$,
-  null,
-  '他ユーザーの user_id で作成はブロックされる'
-);
-
--- ===== UPDATE =====
-select throws_ok(
-  $$ update public.{table} set /* col */ = /* val */ where user_id = tests.get_supabase_uid('user-2') $$,
-  null,
-  '他ユーザーのデータは更新できない'
-);
-
--- ===== DELETE =====
-select throws_ok(
-  $$ delete from public.{table} where user_id = tests.get_supabase_uid('user-2') $$,
-  null,
-  '他ユーザーのデータは削除できない'
-);
-
-select * from finish();
-rollback;
+expect(data).toHaveLength(0)
+expect(nextToken).toBeNull()   // ⚠️ 0 件でも nextToken が残るなら「空」と断定できない
 ```
+
+> **「送信できた」で終わらせない**のと同じで、**「エラーが出なかった」で終わらせない**。
+> 認可の検証は *拒否されること* を確かめるものなので、
+> 成功パスだけのテストは壊れていることに気づけない。
 
 ## Backend Python テスト (TDD)
 

@@ -145,7 +145,8 @@ frontend/apps/web/
 
 | パッケージ | 用途 |
 |-----------|------|
-| `@workspace/client-supabase` | Supabase クライアント |
+| `@workspace/data-client` | Amplify Data クライアント（`getDataClient()`） |
+| `@workspace/auth` | 認証（Cognito）のフック・API・バリデーション |
 | `next-intl` | 多言語対応 |
 | `@tanstack/react-query` | サーバー状態管理 |
 

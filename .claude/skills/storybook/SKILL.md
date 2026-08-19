@@ -19,10 +19,10 @@ description: Storybook ローカル環境でのコンポーネント開発ガイ
 Storybook は `frontend` で Next.js と同時にバックグラウンドで起動します。
 
 ```bash
-# 軽量セット (Supabase + backend + storybook) を起動 → TUI 内で Storybook ログ閲覧・再起動可能
-devenv up
+# Storybook を単体で起動
+storybook
 
-# Storybook + Next.js (web) を同時起動
+# Next.js (web) の開発サーバ
 dev-web
 ```
 
@@ -673,31 +673,32 @@ resolve: {
 
 ```
 Failed to resolve import "@workspace/query"
-Failed to resolve import "@workspace/client-supabase/client"
 ```
 
-**原因**: Storybook の Vite 設定にワークスペースエイリアスがない
+**原因**: そのパッケージの `package.json` に `exports` が無い（またはサブパスが漏れている）。
 
-**解決**: `main.ts` の `viteFinal` でエイリアスを追加
+**解決**: **alias は足さない。** `@workspace/*` は各パッケージの `package.json` の
+`exports` を Vite がそのまま解決するので、**足りないのは exports のほう**である
+（Webpack builder 時代に必要だった subpath alias のミラーは削除済み。
+alias で塞ぐと、実アプリのビルドでだけ壊れる状態が残る）。
 
-```typescript
-// frontend/.storybook/main.ts
-async viteFinal(config) {
-  return mergeConfig(config, {
-    resolve: {
-      alias: {
-        // Workspace packages
-        '@workspace/ui': join(__dirname, '../packages/ui'),
-        '@workspace/native-ui': join(__dirname, '../packages/native-ui'),
-        '@workspace/tokens': join(__dirname, '../packages/tokens/src'),
-        '@workspace/query': join(__dirname, '../packages/query'),
-        '@workspace/client-supabase/client': join(__dirname, './mocks/workspace-client-supabase.ts'),
-        // ...
-      },
-    },
-  })
+```jsonc
+// frontend/packages/<pkg>/package.json
+{
+  "exports": {
+    ".": "./src/index.ts",
+    "./components/*": "./src/components/*.tsx"
+  }
 }
 ```
+
+**アプリの中身（`@/...`）が解決できない場合は別問題。** web と mobile で指す先が
+違うため単純な alias では解決できず、`main.ts` の `fsdAliasPlugin` が importer を見て
+分岐している（片方に固定すると**エラーにならずもう片方が別アプリの同名モジュールに
+解決される**という最悪の壊れ方をする）。
+
+**実アプリでは動くがカタログでだけ落ちるもの**（`expo-router` の CJS `require()`、
+next-intl の `createNavigation`）だけを `.storybook/mocks/` へ差し替える。
 
 ---
 
@@ -856,7 +857,7 @@ export const MobileView: Story = { ... }  // これは不要
 ### 依存関係
 
 - [ ] 必要なワークスペースパッケージのエイリアスが `main.ts` にある
-- [ ] 外部依存（Supabase, next-intl 等）のモックがある
+- [ ] 外部依存（Amplify Data / expo-router / next-intl 等）のモックがある
 - [ ] TanStack Query を使用する場合、`preview.tsx` に QueryClientProvider がある
 
 ### UI/スタイル

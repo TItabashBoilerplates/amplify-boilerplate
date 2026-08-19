@@ -20,15 +20,17 @@
 
 | # | タスク | 担当 | 見積 | 依存 |
 |---|--------|------|------|------|
-| 1.1 | pgEnum 定義 (`drizzle/schema/types.ts`) | - | {h} | - |
-| 1.2 | テーブル定義 (`drizzle/schema/schema.ts`) | - | {h} | 1.1 |
-| 1.3 | RLS ポリシー定義 | - | {h} | 1.2 |
-| 1.4 | カスタムSQL (pre/post-migration) | - | {h} | 1.2 |
-| 1.5 | マイグレーション実行 (`devenv tasks run app:migrate-dev`) | User | {h} | 1.1-1.4 |
-| 1.6 | 型生成 (`devenv tasks run model:build`) | - | {h} | 1.5 |
-| 1.7 | RLS テスト作成・実行 | - | {h} | 1.6 |
+| 1.1 | アクセスパターンの列挙（data-model.md） | - | {h} | - |
+| 1.2 | モデル定義（`amplify/data/resource.ts` の `a.schema`） | - | {h} | 1.1 |
+| 1.3 | `authorization` ルール定義 | - | {h} | 1.2 |
+| 1.4 | `secondaryIndexes` 定義（1.1 と 1:1 で対応させる） | - | {h} | 1.2 |
+| 1.5 | sandbox へ反映（`sandbox` / `sandbox-once`） | - | {h} | 1.1-1.4 |
+| 1.6 | 認可ルールの検証（別ユーザーで弾かれることを確認） | - | {h} | 1.5 |
 
-**完了条件**: マイグレーション成功、RLS テスト All Green
+**完了条件**: sandbox へ反映済み、**許可と拒否の両方**を確認済み
+
+> 型（`Schema`）は `resource.ts` からの型推論なので生成コマンドは不要。
+> **破壊的変更を含む場合は本番反映にユーザー承認が必須**（`.claude/rules/data-modeling.md`）。
 
 ### Phase 2: Backend API
 
@@ -79,7 +81,7 @@
 |---|--------|------|------|------|
 | 5.1 | E2E テスト作成 (Maestro) | - | {h} | Phase 4 |
 | 5.2 | CI チェック (`ci-check`) | - | {h} | Phase 4 |
-| 5.3 | ビルド確認 (`make build`) | - | {h} | 5.2 |
+| 5.3 | ビルド確認 (`build-frontend`) | - | {h} | 5.2 |
 | 5.4 | 全テスト実行 (`unit-test`) | - | {h} | 5.3 |
 
 **完了条件**: `ci-check` + `unit-test` All Green
@@ -91,40 +93,37 @@
   注意: マイグレーション実行はユーザー承認必須。
 -->
 
-### 新規テーブルの場合
+### 新規モデルの場合
 
 ```bash
-# 1. スキーマファイル編集
-#    drizzle/schema/types.ts   - Enum 追加
-#    drizzle/schema/schema.ts  - テーブル + RLS 追加
+# 1. スキーマ編集
+#    frontend/packages/backend/amplify/data/resource.ts
 
-# 2. カスタムSQL編集（必要な場合）
-#    drizzle/config/pre-migration/{NN}_{name}.sql
-#    drizzle/config/post-migration/{NN}_{name}.sql
+# 2. sandbox へ反映（watch 中なら自動）
+sandbox
 
-# 3. マイグレーション実行（ユーザー承認必須）
-devenv tasks run app:migrate-dev
+# 3. 型は自動で追従（Schema は resource.ts からの型推論。生成コマンド不要）
 
-# 4. 型生成
-devenv tasks run model:build
-
-# 5. テスト実行 (devenv script。Makefile は削除済み)
-test
+# 4. テスト実行
+unit-test
 ```
 
-### 既存テーブル変更の場合
+### 既存モデル変更の場合（**破壊的変更は本番でデータが消える**）
 
 <!--
-  既存データへの影響を考慮した段階的なマイグレーション。
-  破壊的変更がある場合は特に注意。
+  ⚠️ sandbox では気づけない（自分のサンドボックスにはデータが無い）。
+  以下は本番でデータを失う変更:
+    フィールドの削除 / リネーム / 型変更 / 任意 -> 必須 / モデル名変更 /
+    パーティションキー・ソートキーの変更
+  本番反映は必ずユーザー承認を取る（.claude/rules/data-modeling.md）。
 -->
 
 | ステップ | 操作 | リスク | 対策 |
-|---------|------|--------|------|
-| 1 | カラム追加（NULL許容） | 低 | デフォルト値設定 |
-| 2 | データ移行 | 中 | バッチ処理で段階的に |
-| 3 | NOT NULL 制約追加 | 高 | データ移行完了後 |
-| 4 | 旧カラム削除 | 高 | アプリケーション更新後 |
+|---|---|---|---|
+| 1 | フィールド追加（任意） | 低 | 既存行は未設定のまま読める |
+| 2 | 新旧の両方へ書く（dual write） | 中 | アプリを先に更新する |
+| 3 | 既存行の移行（バッチ / worker Lambda） | 中 | 進捗をジョブモデルで可視化する |
+| 4 | 旧フィールドの削除 | **高** | 全クライアントの更新完了後。**本番はユーザー承認必須** |
 
 ## 代替案の検討
 
@@ -193,9 +192,10 @@ test
 ### 設計レビュー
 
 - [ ] ゴール/ノンゴールが明確か
-- [ ] Supabase-first 判定が適切か
+- [ ] 実行層の判定が適切か（Amplify Data first。Function / backend-py に理由があるか）
 - [ ] データ分類が完了しているか
-- [ ] RLS ポリシーが網羅的か
+- [ ] 全モデルに `authorization` があり、拒否ケースの検証計画があるか
+- [ ] アクセスパターンと `secondaryIndexes` が 1:1 で対応しているか
 - [ ] FSD レイヤー配置が適切か
 - [ ] i18n キーが en/ja 両方定義されているか
 - [ ] テスト計画が TDD に準拠しているか
@@ -205,7 +205,7 @@ test
 
 - [ ] `ci-check` が通過
 - [ ] `unit-test` が All Green
-- [ ] `make build` が成功
-- [ ] Storybook ビルドが成功
-- [ ] マイグレーションが適用済み
+- [ ] `build-frontend` が成功
+- [ ] Storybook ビルドと `verify-storybook-render` が成功
+- [ ] sandbox へ反映済み（破壊的変更があるなら本番反映の承認を得たか）
 - [ ] i18n メッセージが追加済み

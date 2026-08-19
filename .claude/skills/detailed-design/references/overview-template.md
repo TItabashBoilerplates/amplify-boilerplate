@@ -70,7 +70,7 @@
 | # | ドキュメント | 内容 |
 |---|-------------|------|
 | 1 | [architecture.md](./architecture.md) | システム構成・FSD構造・データフロー |
-| 2 | [data-model.md](./data-model.md) | ER図・Drizzle定義・RLSポリシー |
+| 2 | [data-model.md](./data-model.md) | ER図・`a.schema` 定義・認可ルール・インデックス |
 | 3 | [api.md](./api.md) | API設計・エンドポイント一覧 |
 | 4 | [ui-ux.md](./ui-ux.md) | 画面一覧・コンポーネント設計・i18n |
 | 5 | [security.md](./security.md) | 認証・認可・データ分類 |

@@ -2,131 +2,156 @@
 
 <!--
   出力先: docs/designs/{feature-name}/data-model.md
-  最重要セクション。データベーススキーマ、RLS、マイグレーション戦略を定義する。
+  最重要セクション。`a.schema` のモデル定義・認可ルール・アクセスパターン（インデックス）を定義する。
 
   必須参照:
-  - .claude/rules/database.md - スキーマ設計ルール
+  - .claude/rules/data-modeling.md - スキーマ設計ルール・破壊的変更の扱い
+  - .claude/rules/list-pagination.md - 一覧は nextToken ページング前提
   - .claude/rules/datetime.md - 日時設計ルール
-  - .claude/skills/drizzle/SKILL.md - Drizzle ORM パターン
-  - drizzle/schema/schema.ts - 既存スキーマのパターン
-  - drizzle/schema/types.ts - 既存 Enum 定義
+  - .claude/skills/amplify-gen2/ - Amplify Data の実装ガイド
+  - frontend/packages/backend/amplify/data/resource.ts - 既存スキーマのパターン
+
+  ⚠️ **DynamoDB は「後からクエリを足す」ができない。**
+  RDB なら後から index を張れば済む話が、ここでは
+  **アクセスパターンの列挙 → キー設計** を設計時にやり切る必要がある。
+  ここを飛ばすと、本番で `filter` 頼みの全走査になり、料金と遅延が線形に増える。
 -->
 
 [< architecture.md](./architecture.md) | [api.md >](./api.md)
 
+## アクセスパターン一覧（**最初に埋める**）
+
+<!--
+  「誰が」「どのモデルを」「どんな条件で」「どんな順で」取るかを全部列挙する。
+  この表が下のインデックス設計とそのまま 1:1 で対応していなければ設計は未完成。
+
+  ⚠️ `filter` は**読み取り後の絞り込み**なので、選択率が低いほど無駄読みと空ページが増える。
+  「filter で絞る」と書いた行は、原則インデックスへ移せないか再検討する。
+-->
+
+| # | 呼び出し元 | 取りたいもの | 絞り込み条件 | 並び順 | 実現方法 |
+|---|---|---|---|---|---|
+| 1 | {画面 / 関数} | {Model} の一覧 | {ownerId = 自分} | {createdAt DESC} | `secondaryIndexes`: pk={} / sk={} |
+| 2 | | | | | 主キー `get` |
+
 ## データ分類マトリクス
 
 <!--
-  各テーブル/カラムのデータ分類を定義する。
-  この分類はRLSポリシー設計とPII分離設計の基礎となる。
+  各モデル/フィールドのデータ分類を定義する。
+  この分類が認可ルール（authorization）と PII 分離設計の基礎になる。
 
   分類基準:
-  - public: 誰でもアクセス可能（プロフィール名、公開設定等）
+  - public: 誰でもアクセス可能（表示名、公開設定等）
   - internal: 認証ユーザーのみ（内部メタデータ等）
   - confidential: 本人のみ（メールアドレス、電話番号等）
-  - restricted: システム管理者のみ（決済ID、APIキー等）
+  - restricted: システム / 管理者のみ（決済ID、外部サービスの顧客ID等）
 -->
 
-| テーブル | カラム | 分類 | 理由 |
-|---------|--------|------|------|
-| {table} | {column} | public / internal / confidential / restricted | {理由} |
+| モデル | フィールド | 分類 | 理由 |
+|---|---|---|---|
+| {Model} | {field} | public / internal / confidential / restricted | {理由} |
 
-## PII テーブル分離設計
+## PII のモデル分離設計
 
 <!--
-  個人情報（PII: Personally Identifiable Information）を含むカラムは
-  メインテーブルから分離して専用テーブルに配置する。
+  個人情報を含むフィールドは、公開されるモデルから分離する。
 
-  既存パターン参照:
-  - users テーブル: displayName, accountName (public)
-  - user_profiles テーブル: email, phoneNumber, polarCustomerId (confidential/restricted)
+  ⚠️ **DynamoDB では「列単位の認可」ができない**。認可の単位はモデル（テーブル）である。
+  したがって RDB 以上に「分離するかどうか」が効いてくる:
+  1 つのモデルに public と confidential を混ぜた時点で、
+  そのモデル全体を confidential として扱うしかなくなる。
 
   分離の判断基準:
-  1. 法規制対象のデータ（GDPR, 個人情報保護法）-> 分離必須
-  2. 決済・課金関連のID -> 分離必須
-  3. 連絡先情報 -> 分離推奨
-  4. 内部メタデータ -> 分離不要
+  1. 法規制対象のデータ（GDPR / 個人情報保護法） -> 分離必須
+  2. 決済・課金関連の ID                          -> 分離必須
+  3. 連絡先情報                                    -> 分離推奨
+  4. 内部メタデータ                                -> 分離不要
 -->
 
 ### 分離方針
 
-| メインテーブル | 分離テーブル | 分離カラム | 理由 |
-|--------------|------------|-----------|------|
-| {main_table} | {pii_table} | {columns} | PII / 決済情報 |
+| 公開モデル | 分離モデル | 分離するフィールド | 理由 |
+|---|---|---|---|
+| {Model} | {Model}Private | {fields} | PII / 決済情報 |
 
 ### 分離パターン
 
 ```typescript
-// メインテーブル: 公開情報のみ
-export const {entities} = pgTable('{entities}', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  // ... 公開フィールドのみ
-  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
-    .notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
-    .notNull().defaultNow(),
-}).enableRLS()
+// frontend/packages/backend/amplify/data/resource.ts
+const schema = a.schema({
+  // 公開モデル: 他人も読む情報だけ
+  Profile: a
+    .model({
+      displayName: a.string().required(),
+      accountName: a.string().required(),
+      avatarPath: a.string(), // ⚠️ 完全な URL ではなく path を保存（storage-images.md §5）
+    })
+    .authorization((allow) => [
+      allow.owner(),                       // 本人は読み書き
+      allow.authenticated().to(['read']),  // 他の認証ユーザーは読み取りのみ
+    ]),
 
-// PIIテーブル: 機密情報を分離
-// NOTE: PII分離テーブルは serial PK も許容（外部露出しないため）
-//       メインテーブルとは userId FK + UNIQUE で 1:1 連携
-export const {entity}Profiles = pgTable('{entity}_profiles', {
-  id: serial('id').primaryKey(),
-  {entity}Id: uuid('{entity}_id')
-    .notNull().unique()
-    .references(() => {entities}.id, { onDelete: 'cascade' }),
-  email: text('email').notNull(),
-  // ... 機密フィールド
-}).enableRLS()
+  // PII モデル: 本人以外は一切読めない
+  ProfilePrivate: a
+    .model({
+      email: a.string().required(),
+      phoneNumber: a.string(),
+      billingCustomerId: a.string(),
+    })
+    .authorization((allow) => [allow.owner()]),
+})
 ```
 
 ## マルチテナント設計
 
 <!--
-  テナント分離の方式を定義する。
+  テナント分離の方式を定義する。**DynamoDB に RLS は無い**ので、境界は
+  (a) authorization ルール と (b) パーティションキーの設計 の 2 つで作る。
+  アプリ層の `if` で代替してはならない（漏れた 1 か所が全部）。
 
   パターン:
-  - B2C (user_id): 個人ユーザー単位でデータ分離
-  - B2B (org_id): 組織単位でデータ分離
-  - ハイブリッド: 組織内でユーザー別のアクセス制御
-
-  選択した方式の理由を明記する。
+  - B2C: allow.owner() -- Cognito の sub が owner フィールドに入る
+  - B2B: allow.groups() / allow.groupDefinedIn('orgId') -- Cognito グループ単位
+  - ハイブリッド: 組織で絞ったうえでロールごとに操作を制限
 -->
 
 ### テナント分離方式
 
-| 方式 | 分離キー | RLS条件 | 適用テーブル |
-|------|---------|---------|-------------|
-| B2C | `user_id` | `(SELECT auth.uid()) = user_id` | {テーブル一覧} |
-| B2B | `org_id` | `EXISTS (SELECT 1 FROM org_members ...)` | {テーブル一覧} |
-| ハイブリッド | `org_id` + `role` | 組織メンバー + ロール検証 | {テーブル一覧} |
+| 方式 | 分離キー | 認可ルール | 適用モデル |
+|---|---|---|---|
+| B2C | `owner`（Cognito sub） | `allow.owner()` | {モデル一覧} |
+| B2B | `organizationId` | `allow.groupDefinedIn('organizationId')` | {モデル一覧} |
+| ハイブリッド | `organizationId` + role | 上記 + `.to(['read'])` 等で操作を制限 | {モデル一覧} |
 
-## ER図
+> **認可条件に使う属性は、インデックスのキーにも含める**
+> （`.claude/rules/data-modeling.md`）。含めないと「認可で落ちた分だけページが薄くなる」
+> 挙動になり、`nextToken` を見ないページングが確実に壊れる。
+
+## ER 図
 
 ```mermaid
 erDiagram
-    users ||--o{ user_profiles : "has"
-    users {
-        uuid id PK
-        text account_name UK
-        text display_name
-        timestamptz created_at
-        timestamptz updated_at
+    Profile ||--o| ProfilePrivate : "has"
+    Profile ||--o{ Item : "owns"
+    Profile {
+        id id PK
+        string owner "Cognito sub"
+        string displayName
+        datetime createdAt
+        datetime updatedAt
     }
-    user_profiles {
-        serial id PK
-        uuid user_id FK,UK
-        text email UK
-        text phone_number
-        text polar_customer_id UK
+    Item {
+        id id PK
+        id ownerId FK
+        enum status
+        datetime createdAt
     }
 ```
 
 <!--
-  上記は既存テーブルの参考パターン。
-  この機能で追加するテーブルとリレーションを定義する。
-  既存テーブルへの参照がある場合は含める。
+  上記は参考パターン。この機能で追加するモデルとリレーションを定義する。
+  ⚠️ DynamoDB に外部キー制約は無い。線は「アプリケーション上の関連」であって
+  DB が保証する整合性ではない（削除時の連鎖は自分で書く。後述）。
 -->
 
 ## 日時設計
@@ -135,293 +160,180 @@ erDiagram
   必須参照: .claude/rules/datetime.md
 
   基本原則:
-  - DB/Backend/API: すべて UTC で統一
+  - DB / Backend / API: すべて UTC で統一
   - Frontend: 入出力時にのみ UTC <-> ローカル変換
-  - Drizzle: 必ず withTimezone: true, precision: 3 を指定
+  - スキーマ: a.datetime()（GraphQL の AWSDateTime = ISO 8601・TZ オフセット必須）
 -->
-
-### タイムスタンプルール
 
 | レイヤー | タイムゾーン | 形式 |
-|---------|------------|------|
-| Database | UTC | `TIMESTAMP WITH TIME ZONE` |
+|---|---|---|
+| DynamoDB | UTC | ISO 8601 文字列（`AWSDateTime`） |
 | Backend | UTC | ISO 8601 文字列 |
 | API Request/Response | UTC | ISO 8601 文字列 |
-| Frontend | 入出力時にUTC<->ローカル変換 | `Date.toISOString()` / `Intl.DateTimeFormat` |
-
-### Drizzle 定義ルール
+| Frontend | 入出力時に UTC <-> ローカル変換 | `Date.toISOString()` / `Intl.DateTimeFormat` |
 
 ```typescript
-// 全タイムスタンプカラムに withTimezone: true, precision: 3 を必須で指定
-createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
-  .notNull().defaultNow(),
-updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
-  .notNull().defaultNow(),
-
-// timestamp（without timezone）は禁止 -- タイムゾーン情報が失われる
+scheduledAt: a.datetime(),   // ✅ "2026-01-15T10:30:00.000Z"
+scheduledAt: a.string(),     // ❌ 形式も TZ も検証されない
 ```
 
-### この機能の日時カラム一覧
+> `createdAt` / `updatedAt` は **Amplify Data が自動で付与**する（UTC ISO 8601）。
+> 自分で定義しない。
 
-| テーブル | カラム | 用途 | デフォルト |
-|---------|--------|------|-----------|
-| {table} | created_at | 作成日時 | `defaultNow()` |
-| {table} | updated_at | 更新日時 | `defaultNow()` |
-| {table} | {custom_at} | {用途} | {指定 or null} |
+### この機能の日時フィールド一覧
 
-## Drizzle テーブル定義
+| モデル | フィールド | 用途 | 備考 |
+|---|---|---|---|
+| {Model} | {customAt} | {用途} | ソートキーに使うか？ |
+
+## `a.schema` のモデル定義
 
 <!--
-  必須ルール（.claude/rules/database.md より）:
+  必須ルール（.claude/rules/data-modeling.md より）:
 
-  PK設計ガイド:
-  - 通常テーブル: uuid('id').primaryKey().defaultRandom()
-  - auth.users連携テーブル: uuid('id').primaryKey()  (.defaultRandom() なし -- auth.users.id を受け取る)
-  - PII分離テーブル: serial('id').primaryKey() も許容（外部露出しないため）
-  - 外部ID連携: text('id').primaryKey()  (外部サービスのIDをそのまま使用)
-
-  その他:
-  - FK: .references(() => table.id, { onDelete: 'cascade' })
-  - Timestamp: timestamp('col', { withTimezone: true, precision: 3 })
-  - 同一テーブルへの複数FK参照は禁止（中間テーブルで解決）
-  - .enableRLS() を全テーブルに設定
-  - テーブル名: snake_case（複数形）
+  - **すべてのモデルに `authorization` を書く**（書き忘れは事故に直結する）
+  - id は Amplify Data が自動採番する。明示したいときだけ `a.id()`
+  - enum は a.enum([...])
+  - 一覧に出るモデルは secondaryIndexes を必ず検討する
+  - `.required()` を後から足すのは**破壊的変更**（既存行が不正になる）
 -->
 
-### pgEnum 定義
+### モデル定義
+
+```typescript
+// frontend/packages/backend/amplify/data/resource.ts
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend'
+
+const schema = a.schema({
+  {Model}: a
+    .model({
+      ownerId: a.id().required(),
+      status: a.enum(['VALUE1', 'VALUE2', 'VALUE3']),
+      title: a.string().required(),
+      scheduledAt: a.datetime(),
+    })
+    // 上の「アクセスパターン一覧」と 1:1 で対応させる
+    .secondaryIndexes((index) => [
+      index('ownerId').sortKeys(['createdAt']).queryField('list{Model}ByOwner'),
+    ])
+    .authorization((allow) => [allow.owner()]),
+})
+
+export type Schema = ClientSchema<typeof schema>
+```
+
+### 型の受け取り方
 
 <!--
-  Enum は drizzle/schema/types.ts に定義する。
-  既存の Enum: subscriptionStatusEnum, orderStatusEnum
+  `Schema` は生成ファイルではなく **resource.ts からの型推論**。
+  したがって「型を再生成するコマンド」は無い（resource.ts を直すだけ）。
 -->
 
 ```typescript
-// drizzle/schema/types.ts に追加
-export const {featureName}StatusEnum = pgEnum('{feature_name}_status', [
-  'value1',
-  'value2',
-  'value3',
+import type { Schema } from '@workspace/backend'
+
+type {TypeName} = Schema['{Model}']['type']
+```
+
+## 認可ルール設計（RLS の代わり）
+
+<!--
+  Amplify Data の authorization は AppSync 側で適用される。
+  アプリ層の if 文で代替してはならない（.claude/rules/minimal-implementation.md）。
+
+  よく使う 4 パターン:
+  1. allow.owner()                      -- 本人のみ（owner フィールドに Cognito sub が入る）
+  2. allow.authenticated().to(['read']) -- 認証ユーザーは読み取りのみ
+  3. allow.groups(['admin'])            -- 固定の Cognito グループ
+  4. allow.groupDefinedIn('orgId')      -- レコードのフィールドで動的にグループを決める
+
+  サーバー側の書き込み（ワーカー Lambda 等）は **owner ではなく IAM** で通す:
+    allow.resource(myFunction)  /  allow.authenticated('identityPool')
+-->
+
+### ルール一覧
+
+| モデル | 誰が | 操作 | ルール |
+|---|---|---|---|
+| {Model} | 本人 | CRUD | `allow.owner()` |
+| {Model} | 認証ユーザー | read | `allow.authenticated().to(['read'])` |
+| {Model} | 管理者 | update / delete | `allow.groups(['admin'])` |
+| {Model} | ワーカー Lambda | update | `allow.resource({fn})` |
+
+### 定義
+
+```typescript
+// パターン1: 本人のみ
+.authorization((allow) => [allow.owner()])
+
+// パターン2: 本人は書ける / 他の認証ユーザーは読める
+.authorization((allow) => [
+  allow.owner(),
+  allow.authenticated().to(['read']),
+])
+
+// パターン3: 組織単位（レコードの organizationId が Cognito グループ名）
+.authorization((allow) => [
+  allow.groupDefinedIn('organizationId'),
+  allow.groups(['admin']),
+])
+
+// パターン4: バックグラウンド処理が状態を書き戻す
+//   ジョブの「読み取り / 監視」は owner、「書き込み」は関数のロールで行う
+//   （.claude/rules/generative-ai.md §3）
+.authorization((allow) => [
+  allow.owner().to(['read', 'create']),
+  allow.resource(worker),
 ])
 ```
 
-### テーブル定義
-
-```typescript
-// drizzle/schema/schema.ts に追加
-import { {featureName}StatusEnum } from './types.ts'
-
-export const {tableName} = pgTable('{table_name}', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  status: {featureName}StatusEnum('status').notNull().default('value1'),
-  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
-    .notNull()
-    .defaultNow(),
-}).enableRLS()
-```
-
-## RLS ポリシー設計
+## 削除時の連鎖（**DB は何もしてくれない**）
 
 <!--
-  必須ルール（.claude/rules/database.md より）:
-  - ヘルパー関数を作成しない。全ロジックをインラインで定義
-  - pgPolicy(...).link(table) パターンを使用
-  - ポリシー名: snake_case
+  DynamoDB に ON DELETE CASCADE は無い。
+  「親を消したら子も消える」は自分で実装しない限り起きない。
 
-  4つの基本パターン:
-
-  1. 直接比較: (SELECT auth.uid()) = user_id
-  2. EXISTS 副問合: EXISTS (SELECT 1 FROM related_table WHERE ...)
-  3. service_role / supabase_auth_admin: withCheck: sql`true`
-  4. public read: to: ['anon', 'authenticated'], using: sql`true`
-
-  supabase_auth_admin vs service_role の使い分け:
-  - supabase_auth_admin: Auth Hook（handle_new_user トリガー等）でのみ使用
-  - service_role: Edge Functions（Webhook）やバックエンドからの管理操作で使用
+  とくに **アカウント削除**は `deleteUser()` が Cognito ユーザーを消すだけで
+  DynamoDB のデータは残る（.claude/rules/auth.md §3.5）。
+  「退会したのにデータが残る」は法令・ストア審査の両面でリスクになる。
 -->
 
-### ポリシー一覧
+| 親 | 子 | 消し方 | 実装場所 |
+|---|---|---|---|
+| {Model} | {ChildModel} | 親削除時に子を列挙して削除 | {関数 / mutation} |
+| Cognito ユーザー | owner 認可の全モデル | 削除フローの一部として明示的に削除 | アカウント削除用 Lambda |
 
-| テーブル | ポリシー名 | 操作 | ロール | パターン |
-|---------|-----------|------|--------|---------|
-| {table} | select_policy_{table} | SELECT | authenticated | 直接比較 |
-| {table} | insert_policy_{table} | INSERT | authenticated | 直接比較 |
-| {table} | update_policy_{table} | UPDATE | authenticated | 直接比較 |
-| {table} | delete_policy_{table} | DELETE | authenticated | 直接比較 |
-| {table} | service_insert_{table} | INSERT | service_role | service_role |
-
-### ポリシー定義
-
-```typescript
-// パターン1: 直接比較（自分のデータのみ）
-export const selectPolicy{TableName} = pgPolicy('select_policy_{table_name}', {
-  for: 'select',
-  to: 'authenticated',
-  using: sql`(SELECT auth.uid()) = user_id`,
-}).link({tableName})
-
-// パターン2: EXISTS 副問合（関連テーブル経由）
-export const selectPolicy{TableName} = pgPolicy('select_policy_{table_name}', {
-  for: 'select',
-  to: 'authenticated',
-  using: sql`
-    EXISTS (
-      SELECT 1
-      FROM {related_table}
-      WHERE {related_table}.id = {table_name}.{foreign_key}
-      AND {related_table}.user_id = (SELECT auth.uid())
-    )
-  `,
-}).link({tableName})
-
-// パターン3a: supabase_auth_admin（Auth Hook用 -- handle_new_user トリガー等）
-export const authInsert{TableName} = pgPolicy('auth_insert_{table_name}', {
-  for: 'insert',
-  to: 'supabase_auth_admin',
-  withCheck: sql`true`,
-}).link({tableName})
-
-// パターン3b: service_role（Webhook/Backend管理操作用）
-export const serviceInsert{TableName} = pgPolicy('service_insert_{table_name}', {
-  for: 'insert',
-  to: 'service_role',
-  withCheck: sql`true`,
-}).link({tableName})
-
-// パターン4: 公開読み取り
-export const publicSelect{TableName} = pgPolicy('public_select_{table_name}', {
-  for: 'select',
-  to: ['anon', 'authenticated'],
-  using: sql`true`,
-}).link({tableName})
-```
-
-## 型推論
+## スキーマ変更の影響（**破壊的変更の申告**）
 
 <!--
-  Drizzle の InferSelectModel / InferInsertModel を使用して
-  テーブルから自動的に型を生成する。
+  必須参照: .claude/rules/data-modeling.md
+
+  ⚠️ 本番でデータが消えるのは以下:
+  - フィールドの削除 / リネーム
+  - 型の変更
+  - 任意 -> 必須（.required()）への変更
+  - モデル名の変更
+  - パーティションキー / ソートキーの変更（インデックス作り直し）
+
+  sandbox では気づけない（自分のサンドボックスにはデータが無い）。
+  **本番反映は必ずユーザー承認**。
 -->
 
-```typescript
-// drizzle/schema/schema.ts の末尾に追加
-import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
+| 変更内容 | 破壊的か | 影響 | 対策（移行手順） |
+|---|---|---|---|
+| {変更1} | はい / いいえ | {影響範囲} | {新フィールドを追加 → 両書き → 移行 → 旧削除 等} |
 
-// SELECT型（既存レコードの型）
-export type {TypeName} = InferSelectModel<typeof {tableName}>
-
-// INSERT型（新規作成時の型）
-export type New{TypeName} = InferInsertModel<typeof {tableName}>
-```
-
-## カスタム SQL
-
-<!--
-  テーブルに依存する関数・トリガーを定義する。
-  配置場所:
-  - drizzle/config/pre-migration/  -> マイグレーション前に実行（拡張機能等）
-  - drizzle/config/post-migration/ -> マイグレーション後に実行（関数・トリガー等）
-
-  既存パターン参照:
-  - pre-migration/00_extensions.sql: 拡張機能の有効化
-  - post-migration/00_functions.sql: generate_cuid(), handle_new_user() トリガー
--->
-
-### Pre-Migration SQL
-
-<!-- 拡張機能の有効化など、テーブルに依存しないSQL -->
-
-```sql
--- drizzle/config/pre-migration/{NN}_{name}.sql
--- 必要な場合のみ記述
-
--- 例: 拡張機能の有効化
--- CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-```
-
-### Post-Migration SQL
-
-<!-- 関数・トリガーなど、テーブルに依存するSQL -->
-
-```sql
--- drizzle/config/post-migration/{NN}_{name}.sql
-
--- updated_at 自動更新トリガー
-CREATE OR REPLACE FUNCTION update_{table_name}_updated_at()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trigger_{table_name}_updated_at ON {table_name};
-CREATE TRIGGER trigger_{table_name}_updated_at
-BEFORE UPDATE ON {table_name}
-FOR EACH ROW
-EXECUTE FUNCTION update_{table_name}_updated_at();
-```
-
-## マイグレーション戦略
-
-<!--
-  2フェーズのマイグレーションプロセス:
-  1. pre-migration: 拡張機能の有効化
-  2. Drizzle migration: テーブル・Enum・RLS の作成
-  3. post-migration: 関数・トリガーの作成
-
-  注意: マイグレーション実行はユーザー承認が必須（.claude/rules/database.md）
--->
-
-### 実行順序
+## 反映手順
 
 ```bash
 # 1. スキーマ編集
-#    drizzle/schema/schema.ts
-#    drizzle/schema/types.ts
+#    frontend/packages/backend/amplify/data/resource.ts
 
-# 2. カスタムSQL編集（必要な場合）
-#    drizzle/config/pre-migration/{file}.sql
-#    drizzle/config/post-migration/{file}.sql
+# 2. サンドボックスへ反映（watch 中なら自動）
+sandbox
 
-# 3. マイグレーション実行（ユーザー承認必須）
-devenv tasks run app:migrate-dev
+# 3. 型は自動で追従する（Schema は resource.ts からの型推論。生成コマンド不要）
 
-# 4. 型生成
-devenv tasks run model:build
+# 4. 本番 / ブランチ環境は Amplify Hosting が amplify.yml に従って
+#    ampx pipeline-deploy を実行する（破壊的変更を含むならユーザー承認必須）
 ```
-
-### 既存データへの影響
-
-<!-- 既存テーブルへの変更がある場合、データマイグレーションの戦略を記述 -->
-
-| 変更内容 | 影響 | 対策 |
-|---------|------|------|
-| {変更1} | {影響範囲} | {対策} |
-
-## 複数FK制約の確認
-
-<!--
-  .claude/rules/database.md の制約:
-  同一テーブルへの複数外部キー参照は禁止。
-  sqlacodegen の AmbiguousForeignKeysError を防ぐため。
-
-  以下のチェックを行う:
-  1. 新規テーブルが同一テーブルへ2つ以上のFKを持っていないか
-  2. 該当する場合は中間テーブルで解決する
-
-  例:
-  NG: messages テーブルに sender_id と receiver_id の両方が users を参照
-  OK: message_participants 中間テーブルで role (sender/receiver) を管理
--->
-
-| テーブル | 参照先 | FK数 | 対策 |
-|---------|--------|------|------|
-| {table} | users | 1 | 問題なし |

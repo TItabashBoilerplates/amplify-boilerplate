@@ -676,7 +676,7 @@ async def read_me(user: CurrentUserDep) -> dict:
 
 ## Accessing AWS resources from Lambda (boto3)
 
-There is no Postgres/Supabase client. Reach DynamoDB (Amplify Data tables) and S3 (Amplify Storage)
+There is no Postgres client. Reach DynamoDB (Amplify Data tables) and S3 (Amplify Storage)
 with **boto3** using the Lambda execution role's IAM credentials (no static keys). Use a
 `def` *path operation* (or `asyncify`) since boto3 is blocking.
 

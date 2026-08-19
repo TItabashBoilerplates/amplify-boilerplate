@@ -2,56 +2,64 @@
 
 <!--
   出力先: docs/designs/{feature-name}/api.md
-  Supabase-first ポリシーに基づく API 設計を定義する。
+  「その操作をどの層で実行するか」を判定し、API を定義する。
 
   必須参照:
-  - .claude/rules/supabase-first.md - Supabase-first 判定階層
-  - .claude/rules/backend-py.md - Backend Python 規約
-  - .claude/rules/edge-functions.md - Edge Functions 規約
-  - .claude/rules/datetime.md - 日時設計ルール
+  - .claude/rules/backend-architecture.md - Amplify Data first / TS Function 既定 / Python は escalation
+  - .claude/rules/list-pagination.md      - 一覧は nextToken ページング前提
+  - .claude/rules/error-handling.md       - Amplify Data は throw せず { data, errors } を返す
+  - .claude/rules/generative-ai.md        - 生成 AI は SSE / worker Lambda / AgentCore の 3 択
+  - .claude/rules/datetime.md             - 日時設計ルール
 -->
 
 [< data-model.md](./data-model.md) | [ui-ux.md >](./ui-ux.md)
 
-## Supabase-First 判定
+## 実行層の判定（Amplify Data first）
 
 <!--
-  すべてのデータ操作は以下の優先順位で実行層を決定する:
+  すべてのデータ操作は以下の優先順位で実行層を決める:
 
-  1. supabase-js (DEFAULT) - CRUD + RLS で十分な場合
-  2. Edge Functions - Webhook、service_role が必要な場合
-  3. Backend Python (LAST RESORT) - 複雑なロジック、AI/ML が必要な場合
+  1. **Amplify Data**（DEFAULT） -- CRUD + authorization + サブスクリプションで足りる場合
+  2. **TypeScript の Amplify Function**（`defineFunction`） -- サーバー側の処理が要る場合
+  3. **backend-py**（LAST RESORT） -- LLM / エージェント / 長時間 / Python 固有ライブラリ / 既存資産
 
-  各操作について、なぜその層を選択したかを明記する。
-  Backend Python を選択する場合は、supabase-js で不十分な理由を必須で記述。
+  各操作について、なぜその層を選んだかを明記する。
+  2 を選ぶなら「なぜ Amplify Data だけでは足りないか」、
+  3 を選ぶなら **escalation トリガーのどれに該当するか**を必須で書く。
 
-  参照: .claude/rules/supabase-first.md
+  ⚠️ **CRUD だけの API エンドポイントを作らない**。
+  それは Amplify Data + authorization が既にやっている仕事である
+  （.claude/rules/minimal-implementation.md）。
 -->
 
 ### 判定結果
 
 | 操作 | 実行層 | 理由 |
-|------|--------|------|
-| {操作1: データ取得} | supabase-js | RLS で行レベルアクセス制御が可能 |
-| {操作2: データ作成} | supabase-js | INSERT + RLS withCheck で十分 |
-| {操作3: Webhook処理} | Edge Functions | service_role キーが必要 |
-| {操作4: AI処理} | Backend Python | LangChain によるLLM処理が必要 |
+|---|---|---|
+| {操作1: データ取得} | Amplify Data | `allow.owner()` でレコード単位の認可が効く |
+| {操作2: データ作成} | Amplify Data | `create` + authorization で十分 |
+| {操作3: Webhook 受信} | TS Amplify Function | 外部からの HTTP を受ける必要があり、署名検証もサーバー側でしか行えない |
+| {操作4: LLM 処理} | backend-py | escalation: LangGraph の多段エージェント（`backend-architecture.md` §2） |
 
-## supabase-js API（Frontend 直接）
+## Amplify Data API（Frontend から直接）
 
 <!--
-  RLS で保護された操作。Frontend から直接 supabase-js を使用する。
+  authorization で保護された操作。Frontend / Server Component の双方から
+  `getDataClient()`（@workspace/data-client）で呼ぶ。
 
-  コード例の詳細パターンは .claude/skills/supabase/SKILL.md を参照。
-  ここではこの機能固有のクエリ・ミューテーションのみ記載する。
+  ⚠️ Amplify Data のクライアントは **throw せず `{ data, errors }` を返す**。
+  errors のチェックを省くと「エラーなのか空なのか区別できない」状態になる
+  （.claude/rules/error-handling.md）。
 -->
 
 ### データ取得
 
 ```typescript
 // entities/{entity}/api/queries.ts
-// TanStack Query + supabase-js パターン
-// 詳細: .claude/skills/tanstack-query/SKILL.md, .claude/skills/supabase/SKILL.md
+// TanStack Query + Amplify Data
+// 詳細: .claude/skills/tanstack-query/, .claude/skills/amplify-gen2/
+
+import { getDataClient } from '@workspace/data-client'
 
 export const {entity}Keys = {
   all: ['{entities}'] as const,
@@ -61,238 +69,204 @@ export const {entity}Keys = {
   detail: (id: string) => [...{entity}Keys.details(), id] as const,
 }
 
-// queryKey: {entity}Keys.list(filters)
-// queryFn: supabase.from('{table_name}').select('*').order('created_at', { ascending: false })
+export const PAGE_SIZE = 20
 
-// queryKey: {entity}Keys.detail(id)
-// queryFn: supabase.from('{table_name}').select('*').eq('id', id).single()
+// 一覧: **必ず limit を明示し、終端判定は nextToken**
+//   ⚠️ data.length < limit を「末尾」と解釈してはならない。DynamoDB は limit 件を
+//   読んでからフィルタするため、フィルタ付きクエリは 0 件を返しつつ nextToken を返す
+//   （.claude/rules/list-pagination.md §6.1）。
+export function use{Entities}Infinite() {
+  return useInfiniteQuery({
+    queryKey: {entity}Keys.list('infinite'),
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      const { data, nextToken, errors } = await getDataClient()
+        .models.{Model}.list{Model}ByOwner(
+          { ownerId },
+          { sortDirection: 'DESC', limit: PAGE_SIZE, nextToken: pageParam ?? undefined },
+        )
+      if (errors) {
+        console.error('Failed to load {entities}:', errors)
+        throw new Error(errors[0]?.message ?? 'Query failed')
+      }
+      return { items: data, nextToken: nextToken ?? null }
+    },
+    getNextPageParam: (lastPage) => lastPage.nextToken ?? undefined,
+  })
+}
+
+// 単体取得
+// getDataClient().models.{Model}.get({ id })
 ```
 
-### データ変更
+### データ更新
 
 ```typescript
 // features/{feature}/api/{action}.ts
-// mutationFn: supabase.from('{table_name}').insert(input).select().single()
-// onSuccess: queryClient.invalidateQueries({ queryKey: {entity}Keys.all })
+// getDataClient().models.{Model}.create({ ... })
+// getDataClient().models.{Model}.update({ id, ... })
+// getDataClient().models.{Model}.delete({ id })
+//
+// 成功後の invalidate は**そのリストのキーにピンポイント**で
+// （.claude/rules/render-optimization.md）
 ```
 
-### Server Action
+### Server Component から呼ぶ場合
 
 ```typescript
-// features/{feature}/api/{action}.ts
-// 'use server'
-// supabase = await createClient() (server)
-// supabase.auth.getUser() で認証確認
-// supabase.from('{table_name}').insert({...})
-// revalidatePath('/{path}')
+// 認可判断は必ずサーバー側で。Client の useAuthUser() の値を根拠にしない
+// （.claude/rules/auth.md §3.7）
+import { cookies } from 'next/headers'
+import { getCurrentUser } from 'aws-amplify/auth/server'
+import { runWithAmplifyServerContext } from '@/shared/lib/amplify/server'
+
+const user = await runWithAmplifyServerContext({
+  nextServerContext: { cookies },
+  operation: (contextSpec) => getCurrentUser(contextSpec),
+}).catch(() => null)
 ```
 
-## Storage 設計
+## Storage（Amazon S3）
 
 <!--
-  Supabase Storage を使用する場合に記載する。
-  使用しない場合: N/A -- この機能では Storage は使用しない
+  Amplify Storage を使う場合に記載する。不要なら:
+  N/A -- この機能ではファイルを扱わない
 
-  必須参照: .claude/rules/supabase-first.md の Storage Policy
-
-  ルール:
-  - デフォルトは Private バケット（public = false）
-  - ファイルアクセスは createSignedUrl を使用
-  - パスは RESTful 階層構造: {resource}/{id}/{sub-resource}/{filename}
-  - Public バケットはユーザーが明示的に要求した場合のみ
+  必須参照: .claude/rules/storage-images.md
 -->
-
-### バケット設計
-
-| バケット名 | 公開設定 | サイズ上限 | 用途 |
-|-----------|---------|-----------|------|
-| {bucket} | private | {size}MiB | {用途} |
 
 ### パス設計
 
-```
-{resource}/{id}/{sub-resource}/{filename}
-
-例:
-users/{user_id}/avatar.png
-projects/{project_id}/attachments/{file_id}.pdf
-```
-
-### アップロード
+| パス | 公開性 | 用途 |
+|---|---|---|
+| `media/{entityId}/avatar.jpg` | 非公開（本人のみ） | {用途} |
+| `public/hero/cover.jpg` | 公開 | {用途} |
 
 ```typescript
-// features/{feature}/api/upload.ts
-const path = `{resource}/${id}/{filename}`
-const { error } = await supabase.storage
-  .from('{bucket}')
-  .upload(path, file)
+// frontend/packages/backend/amplify/storage/resource.ts
+export const storage = defineStorage({
+  name: '{bucketName}',
+  access: (allow) => ({
+    'media/{entity_id}/*': [allow.entity('identity').to(['read', 'write', 'delete'])],
+    'public/*': [allow.guest().to(['read']), allow.authenticated().to(['read'])],
+  }),
+})
 ```
 
-### ダウンロード（Signed URL）
+### 画像の配信（**原本を配らない**）
+
+<!--
+  ⚠️ 表示する画像を元サイズのまま配ってはならない（.claude/rules/storage-images.md）。
+  無変換でも画面は正しく表示され、lint も型も通るので、レビューでは見つからない。
+  気づけるのは請求が上がったときだけ。
+-->
+
+| 対象 | 使うもの |
+|---|---|
+| Web | `@/shared/ui` の `StorageImage`（`next/image` 経由） |
+| Mobile | `@/shared/ui` の `StorageImage`（`resolveUrl(pixelWidth)`） |
+| URL だけ欲しい | `@workspace/storage-image` の `createSignedImageUrl` / `buildDerivativePath` |
+
+**DB には `path` を保存する**（完全な URL を保存すると、バケット移行・ドメイン変更・
+公開/非公開の切り替えで全レコードが一斉に壊れる）。
+
+## リアルタイム（AppSync サブスクリプション）
+
+<!--
+  Amplify Data のサブスクリプションを使う場合に記載する。不要なら:
+  N/A -- この機能ではリアルタイム更新を行わない
+
+  ⚠️ observeQuery は**モデル全体の同期**を前提にしており、
+  件数が増えうる一覧のページングとは併用しない（.claude/rules/list-pagination.md §5）。
+  一覧は list + nextToken、更新の反映は onCreate / onUpdate / onDelete を購読する。
+-->
+
+| 購読 | モデル | イベント | 用途 |
+|---|---|---|---|
+| {name} | {Model} | onCreate / onUpdate / onDelete | {用途} |
 
 ```typescript
-// Private バケットのファイルアクセス（createSignedUrl 必須）
-const { data } = await supabase.storage
-  .from('{bucket}')
-  .createSignedUrl(path, 60)  // 60秒有効
-
-// getPublicUrl は Private バケットでは使用不可
-```
-
-### Storage RLS
-
-```sql
--- supabase/config.toml で設定
--- [storage.buckets.{bucket}]
--- public = false
--- file_size_limit = "{size}MiB"
-```
-
-## Realtime 設計
-
-<!--
-  Supabase Realtime を使用する場合に記載する。
-  使用しない場合: N/A -- この機能では Realtime は使用しない
-
-  パターン:
-  1. postgres_changes: テーブル変更のリアルタイム購読
-  2. Broadcast: クライアント間のメッセージ送受信
-  3. Presence: オンライン状態の追跡
--->
-
-### Realtime チャネル設計
-
-| チャネル | パターン | テーブル/トピック | イベント | 用途 |
-|---------|---------|----------------|---------|------|
-| {channel} | postgres_changes | {table} | INSERT / UPDATE / DELETE | {用途} |
-| {channel} | broadcast | {topic} | {event} | {用途} |
-| {channel} | presence | {topic} | sync / join / leave | {用途} |
-
-### Realtime Publication 設定（必須）
-
-<!--
-  postgres_changes を使用するテーブルは、Realtime Publication に追加する必要がある。
-  配置先: drizzle/config/post-migration/ 内の SQL ファイル
-
-  既存パターン参照: drizzle/config/post-migration/00_functions.sql
-
-  注意: この設定がないと postgres_changes イベントが発火しない。
--->
-
-```sql
--- drizzle/config/post-migration/{NN}_{name}.sql
--- Realtime を有効にするテーブルを Publication に追加
-ALTER PUBLICATION supabase_realtime ADD TABLE {table_name};
-```
-
-<!--
-  SQL ファイルの追記 vs 新規作成の判断基準:
-  - 独立した機能の Realtime 設定 → 新規ファイル（例: 01_realtime.sql）
-  - 既存トリガーに関連する変更 → 既存ファイルに追記
--->
-
-### postgres_changes 購読
-
-```typescript
-// entities/{entity}/api/realtime.ts
-const channel = supabase
-  .channel('{channel-name}')
-  .on(
-    'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: '{table_name}',
-      filter: 'user_id=eq.{userId}',
+'use client'
+// Client Component でのみ購読する（Server Component では動かない）
+useEffect(() => {
+  const sub = getDataClient().models.{Model}.onUpdate().subscribe({
+    next: (item) => {
+      // 該当するクエリキーだけを更新 / invalidate する
     },
-    (payload) => {
-      queryClient.invalidateQueries({ queryKey: {entity}Keys.all })
-    }
-  )
-  .subscribe()
+    error: (error) => console.error('subscription failed:', error),
+  })
+  return () => sub.unsubscribe()
+}, [])
 ```
 
-### Broadcast / Presence
-
-```typescript
-// Broadcast: クライアント間メッセージ
-const channel = supabase.channel('{room}')
-channel.send({ type: 'broadcast', event: '{event}', payload: { ... } })
-
-// Presence: オンライン状態
-const channel = supabase.channel('{room}')
-channel.subscribe(async (status) => {
-  if (status === 'SUBSCRIBED') {
-    await channel.track({ user_id: userId, online_at: new Date().toISOString() })
-  }
-})
-```
-
-## Edge Functions API
+## TypeScript の Amplify Function
 
 <!--
-  service_role が必要な操作、Webhook 処理。
-  参照: .claude/rules/edge-functions.md
+  Amplify Data だけでは足りない処理。**バックエンドの既定はここ**
+  （.claude/rules/backend-architecture.md §1）。
 
-  不要な場合: N/A -- この機能では Edge Functions は使用しない
+  不要な場合: N/A -- この機能では Function を追加しない
 
-  注意:
-  - npm: prefix で npm パッケージをインポート
-  - postgres.js は deno.land/x から（npm:postgres は禁止）
-  - prepare: false を必ず指定
+  置き場所: frontend/packages/backend/amplify/functions/{name}/
+  - REST は Hono（hono/aws-lambda）
+  - 共有ロジックは @workspace/backend-core
+  - AppSync のカスタムロジックなら a.query / a.mutation + a.handler.function
 -->
 
-### エンドポイント一覧
+### なぜ Amplify Data だけでは足りないか
 
-| 関数名 | メソッド | 用途 | 認証 |
-|--------|---------|------|------|
-| {function-name} | POST | {用途} | service_role / JWT |
+{具体的な理由を記述。例: 外部 Webhook の署名検証はクライアントに置けない / 秘匿値を使う処理}
 
-### 実装例
+### 定義
 
 ```typescript
-// supabase/functions/{function-name}/index.ts
-// バージョンは Context7/WebSearch で最新を確認すること（research-first ポリシー）
-import { createClient } from "npm:@supabase/supabase-js"
+// frontend/packages/backend/amplify/functions/{name}/resource.ts
+import { defineFunction, secret } from '@aws-amplify/backend'
 
-Deno.serve(async (req: Request) => {
-  // CORS handling
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
-
-    const body = await req.json()
-
-    // ... ビジネスロジック
-
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
+export const {name} = defineFunction({
+  name: '{name}',
+  entry: './handler.ts',
+  timeoutSeconds: 30,
+  // 秘匿値は env ではなく Amplify secrets（SSM）。.claude/rules/env-naming.md
+  environment: { EXTERNAL_API_KEY: secret('EXTERNAL_API_KEY') },
 })
 ```
+
+```typescript
+// frontend/packages/backend/amplify/functions/{name}/handler.ts
+import { env } from '$amplify/env/{name}'
+
+export const handler = async (event: {EventType}) => {
+  // 握りつぶさない。catch したら必ずログを出して再送出する
+  // （.claude/rules/error-handling.md）
+}
+```
+
+### 生成 AI を含む場合の実装パターン
+
+<!--
+  .claude/rules/generative-ai.md の 3 択から選び、理由を書く:
+  A. 対話的・短時間        -> SSE ストリーミング（Hono streamSSE + RESPONSE_STREAM）
+  B. 背景処理・15 分以内   -> worker Lambda + ジョブモデルのステータス + AppSync サブスク監視
+  C. 15 分超 / サンドボックス -> Amazon Bedrock AgentCore + 同上の監視
+-->
+
+| 選んだパターン | 理由 |
+|---|---|
+| A / B / C | {なぜそれか。とくに「15 分を超えうるか」「未検証コードを実行するか」} |
 
 ## Backend Python API
 
 <!--
-  supabase-js で不十分な場合のみ使用。
-  必ず「なぜ supabase-js では不十分か」を明記する。
-  参照: .claude/rules/backend-py.md
+  **TypeScript の Amplify Function でも足りない場合のみ**使用する（escalation）。
+  必ず「どの escalation トリガーに該当するか」を明記する。
+  参照: .claude/rules/backend-architecture.md §2 / .claude/rules/backend-py.md
 
-  不要な場合: N/A -- この機能では Backend Python は使用しない（Supabase-first 判定により supabase-js で完結）
+  不要な場合: N/A -- この機能では Backend Python は使用しない
+  （Amplify Data first 判定で完結し、escalation トリガーにも該当しない）
+
+  > 環境が用意されていること自体は「Python を使え」という意味ではない。
+  > トリガーが無いなら backend-py/ は一切触らないのが正しい。
 
   構造:
   - controller/ -> HTTP エンドポイント
@@ -300,16 +274,19 @@ Deno.serve(async (req: Request) => {
   - gateway/ -> データアクセス
 -->
 
-### supabase-js で不十分な理由
+### escalation トリガー（該当するものに ✓）
 
 <!--
-  以下のいずれかに該当する場合のみ Backend Python を使用:
-  - 複雑なトランザクション（マルチテーブルのアトミック操作）
-  - AI/ML 処理（LangChain, エンベディング）
-  - 外部API連携（複雑なリトライ/エラーハンドリング）
-  - 長時間実行のバックグラウンドジョブ
-  - Python 固有のライブラリが必要
+  .claude/rules/backend-architecture.md §2 の 4 つ。**いずれにも該当しないなら
+  TypeScript の Amplify Function で書く**（理由なく Python を選んだ実装はやり直し）。
 -->
+
+| トリガー | 該当 | 具体的な内容 |
+|---|---|---|
+| LLM / エージェント（LangChain / LangGraph / RAG） | ☐ | {内容} |
+| 長時間・重い処理（Function URL の同期上限を超える / バッチ / 重い数値計算） | ☐ | {内容} |
+| Python 固有ライブラリ（pandas / numpy / ML 系 / Python だけにある SDK） | ☐ | {内容} |
+| 既存の Python 資産の再利用 | ☐ | {内容} |
 
 {具体的な理由を記述}
 
@@ -367,7 +344,7 @@ async def {action}(
   生成先: frontend/packages/api-client/src/generated/
   自動生成ファイルは編集禁止（.claude/rules/auto-generated.md）
 
-  生成コマンド: devenv tasks run model:build-frontend
+  生成コマンド: cd frontend && pnpm run --filter @workspace/api-client generate（backend-py の起動が前提）
 
   Backend Python を使用しない場合:
   N/A -- Backend Python を使用しないため Hey API クライアント生成は不要
@@ -413,15 +390,34 @@ export function use{Action}() {
 | 409 | 競合（重複等） | ユーザーに確認を促す |
 | 500 | サーバーエラー | 汎用エラーメッセージ |
 
-### Supabase エラーの変換
+### Amplify Data のエラー（**throw しない**）
+
+<!--
+  Amplify Data のクライアントは例外を投げず `{ data, errors }` を返す。
+  したがって try/catch では捕まらない。errors を見ない実装は
+  「エラーなのか空なのか区別できない」状態になる（.claude/rules/error-handling.md）。
+-->
 
 ```typescript
-// shared/lib/error.ts
-export function handleSupabaseError(error: PostgrestError): AppError {
-  switch (error.code) {
-    case '23505': return { code: 409, message: 'Already exists' }
-    case '42501': return { code: 403, message: 'Permission denied' }
-    default: return { code: 500, message: error.message }
-  }
+const { data, errors } = await getDataClient().models.{Model}.list({ limit: PAGE_SIZE })
+if (errors) {
+  console.error('{Model}.list failed:', errors)
+  throw new Error(errors[0]?.message ?? 'Query failed')
 }
 ```
+
+### Amplify Auth のエラー（**throw する**）
+
+<!--
+  こちらは契約が逆で、`aws-amplify/auth` の関数は例外を投げる。
+  features/auth/api/* は try/catch で受けて
+  `{ success: true } | { error: string }` を返す（.claude/rules/auth.md §3）。
+  Cognito の例外名 -> 表示メッセージのマッピングは @workspace/auth/validation が正本。
+-->
+
+| Cognito の例外 | 意味 | UI の扱い |
+|---|---|---|
+| `NotAuthorizedException` | 資格情報が違う | 汎用の失敗メッセージ（どちらが違うかは出さない） |
+| `UserNotFoundException` | 未登録 | **そのまま出さない**（ユーザー列挙になる） |
+| `UsernameExistsException` | 既に登録済み | サインアップ画面で案内 |
+| `LimitExceededException` | レート制限 | 時間をおいて再試行を案内 |
