@@ -36,20 +36,31 @@
 
 ## セキュリティのベストプラクティス
 
-### 環境変数の管理
+### シークレットの管理
 
-- `env/.env.secrets`ファイルを**絶対に**コミットしないでください
-- 本番環境では環境変数を安全に管理してください（AWS Secrets Manager, HashiCorp Vault等）
+- **秘匿値は環境変数に置かず、Amplify secrets（SSM Parameter Store）を使ってください**
+  （`ampx sandbox secret set <KEY>` / Amplify コンソールの Secret management）
+- **`NEXT_PUBLIC_` / `EXPO_PUBLIC_` は「バンドルに焼き込まれる」という意味です。**
+  秘匿値に付けないでください
+- `amplify_outputs.json`（環境固有の生成物）をコミットしないでください
+- 詳細: `.claude/rules/env-naming.md`
 
 ### 認証・認可
 
-- Supabase Auth使用時は`getUser()`を使用し、`getSession()`は避けてください
-- JWTトークンを適切に検証してください
+- サーバー側の認可判断は `runWithAmplifyServerContext` + `aws-amplify/auth/server` を
+  通した結果で行ってください。Client Component が持つ値を根拠にしないでください
+- レコード単位の認可は `amplify/data/resource.ts` の `authorization`
+  （`allow.owner()` / `allow.groups()`）で宣言してください。アプリ層の `if` で
+  代替しないでください
+- 認証・セッション・パスワードの保管を自作しないでください（Cognito に任せる）
 
-### データベース
+### データ
 
-- RLS（Row Level Security）ポリシーを必ず設定してください
-- SQLインジェクション対策として、パラメータ化されたクエリを使用してください
+- **すべてのモデルに `authorization` を設定してください**（書き忘れは事故に直結します）
+- DynamoDB では**列単位の認可ができません**。公開情報と機密情報を同じモデルに
+  混ぜないでください（PII は別モデルへ分離）
+- `deleteUser()` は Cognito ユーザーしか消しません。**関連データの削除は
+  削除フローの一部として明示的に実装**してください
 
 ### 依存関係
 

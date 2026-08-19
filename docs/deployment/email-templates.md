@@ -1,137 +1,146 @@
-# Supabase Auth Email Templates - 運用手順書
+# Cognito の認証メール - 運用手順書
 
-## 概要
+このリポジトリの認証メール（確認コード / Email OTP / パスワードリセット / メールアドレス変更）は
+**Amazon Cognito** が送る。Cognito のメッセージ設定は `defineAuth` と CDK オーバーライドで
+Git 管理し、Dashboard での手動編集はしない。
 
-認証メール（サインアップ確認 / パスワードリセット等）のテンプレートは **Config-as-Code** で管理する。
+> ポリシーの正本は [`.claude/rules/auth.md`](../../.claude/rules/auth.md) と
+> [`.claude/skills/amplify-gen2/`](../../.claude/skills/amplify-gen2/)。
 
-- **HTML 本文**: `supabase/templates/email/*.html`（Git 管理）
-- **配線（subject + content_path）**: `supabase/config.toml` の `[auth.email.template.*]`
-- **本番反映**: Supabase の **GitHub 連携（config 同期）** に委譲
+---
 
-> Dashboard へ手動でコピペする運用はしない。設定は必ず `config.toml` → PR → GitHub 連携で反映する。
-> ルールの正本は [`.claude/rules/supabase-config.md`](../../.claude/rules/supabase-config.md)。
+## 0. 先に押さえること: **本番は必ず SES に切り替える**
 
-## config.toml への配線
+Cognito の既定の送信元（`COGNITO_DEFAULT`）は **1 日あたりの送信上限が非常に小さい**
+（検証・開発用の枠であって、本番トラフィックを想定していない）。
 
-`supabase/config.toml` に以下を記載してテンプレートを配線する（HTML は既に `supabase/templates/email/` に存在）。
-
-```toml
-[auth.email.template.confirmation]
-subject = "Confirm Your Signup / サインアップ確認"
-content_path = "./supabase/templates/email/confirmation.html"
-
-[auth.email.template.recovery]
-subject = "Reset Your Password / パスワードリセット"
-content_path = "./supabase/templates/email/recovery.html"
-
-[auth.email.template.magic_link]
-subject = "Your Magic Link / マジックリンク"
-content_path = "./supabase/templates/email/magic_link.html"
-
-[auth.email.template.invite]
-subject = "You have been invited / 招待されました"
-content_path = "./supabase/templates/email/invite.html"
-
-[auth.email.template.email_change]
-subject = "Confirm Email Change / メールアドレス変更確認"
-content_path = "./supabase/templates/email/email_change.html"
-```
-
-対応テンプレート種別: `invite` / `confirmation` / `recovery` / `magic_link` / `email_change` / `reauthentication`。
-セキュリティ通知を使う場合は `[auth.email.notification.<type>]`（`enabled = true` + `subject` + `content_path`）。
-
-## ローカル開発
-
-ローカル / セルフホストでは `config.toml` の `content_path` がそのまま適用される。
-**`config.toml` またはテンプレート変更後は再起動が必要**：
-
-```bash
-stop && supabase-start
-# または
-supabase stop && supabase start
-```
-
-Inbucket（http://localhost:54324）で送信メールを確認できる。
-
-## 本番反映（hosted）
-
-本番への反映は **Supabase の GitHub 連携（config 同期）** に委譲する。`config.toml` を含む変更を main 連携ブランチにマージすると設定が同期される。
-
-> ⚠️ **公式仕様の注意**: hosted プロジェクトでは、メールテンプレートの**本文**が `supabase config push` 単体では反映されないケースがあると公式ドキュメントに記載がある（[customizing-email-templates](https://supabase.com/docs/guides/local-development/customizing-email-templates)）。
-> GitHub 連携で本文が同期されない場合のフォールバックは以下のいずれか。**必要になったらユーザーに判断をあおぐこと**（勝手に実装しない）。
-> - Management API: `PATCH https://api.supabase.com/v1/projects/{ref}/config/auth`（`mailer_subjects_*` / `mailer_templates_*_content`）
-> - Dashboard: [Email Templates](https://supabase.com/dashboard/project/_/auth/templates) に貼り付け
-
-## 多言語対応の仕組み
-
-テンプレート内で Go Template の条件分岐を使用：
-
-```html
-{{ if eq .Data.locale "ja" }}
-  <!-- 日本語コンテンツ -->
-{{ else }}
-  <!-- 英語コンテンツ（デフォルト） -->
-{{ end }}
-```
-
-利用可能な変数: `{{ .ConfirmationURL }}` / `{{ .Token }}` / `{{ .TokenHash }}` / `{{ .SiteURL }}` / `{{ .Email }}` / `{{ .Data }}`（`user_metadata`）。
-
-### 前提条件
-
-フロントエンドで認証時に `user_metadata.locale` を設定する必要がある：
+- **Email OTP をログイン手段に含めるなら SES は前提**（毎回のログインでメールが飛ぶ）
+- 上限に当たると**エラーではなく「コードが届かない」**という形で失敗する。
+  アプリ側は正常に見えるので、気づけるのは問い合わせが来たときだけ
 
 ```typescript
-await supabase.auth.signInWithOtp({
-  email,
-  options: {
-    data: {
-      locale: 'ja', // or 'en'
-    },
-  },
+// frontend/packages/backend/amplify/auth/resource.ts
+export const auth = defineAuth({
+  loginWith: { email: { otpLogin: true } },
+  senderEmail: 'no-reply@example.com', // ← SES で検証済みの ID
 })
 ```
 
-## ファイル一覧
+SES 側の前提:
 
+1. ドメイン（またはメールアドレス）の **ID を検証**する
+2. **DKIM / SPF / DMARC** を設定する（到達性。設定しないと迷惑メール送りになる）
+3. **サンドボックスを解除**する（未解除だと**検証済みの宛先にしか送れない**。
+   自分宛のテストだけ通って本番で全滅する典型）
+
+---
+
+## 1. 文面の設定（`backend.ts` の CDK オーバーライド）
+
+件名・本文は `defineAuth` に十分に露出していないため、L1（CFN）で設定する。
+
+```typescript
+// frontend/packages/backend/amplify/backend.ts
+const { cfnUserPool } = backend.auth.resources.cfnResources
+
+// 確認コード（サインアップ / 属性検証）
+cfnUserPool.addPropertyOverride('EmailVerificationSubject', 'Confirm your account')
+cfnUserPool.addPropertyOverride(
+  'EmailVerificationMessage',
+  'Your verification code is {####}',
+)
+cfnUserPool.addPropertyOverride('VerificationMessageTemplate.DefaultEmailOption', 'CONFIRM_WITH_CODE')
 ```
-supabase/
-├── config.toml                          # [auth.email.template.*] でテンプレートを配線
-└── templates/
-    └── email/
-        ├── confirmation.html            # サインアップ確認
-        ├── invite.html                  # 招待
-        ├── magic_link.html              # マジックリンク
-        ├── recovery.html                # パスワードリセット
-        └── email_change.html            # メールアドレス変更
+
+> **`{####}` を消さないこと。** これがコードのプレースホルダで、
+> 落とすとメールは届くのに**コードが書かれていない**状態になる。
+
+---
+
+## 2. 多言語（en / ja）は customMessage トリガーで出し分ける
+
+**Cognito のメッセージテンプレートは単一言語**しか持てない。
+`.claude/rules/i18n.md` は全ユーザー向けテキストの en / ja 対応を必須にしているので、
+多言語が要るなら **customMessage Lambda トリガー**で分岐する。
+
+```typescript
+// frontend/packages/backend/amplify/auth/custom-message/handler.ts
+import type { CustomMessageTriggerHandler } from 'aws-lambda'
+
+export const handler: CustomMessageTriggerHandler = async (event) => {
+  // ロケールは sign-up 時に userAttributes へ入れておく（例: 'locale'）
+  const locale = event.request.userAttributes.locale === 'ja' ? 'ja' : 'en'
+  const code = event.request.codeParameter // ← "{####}" に相当
+
+  if (event.triggerSource === 'CustomMessage_SignUp') {
+    event.response.emailSubject = locale === 'ja' ? 'アカウントの確認' : 'Confirm your account'
+    event.response.emailMessage =
+      locale === 'ja' ? `確認コード: ${code}` : `Your verification code is ${code}`
+  }
+  return event
+}
 ```
 
-## 注意事項
+- **`triggerSource` をすべて分岐すること**（`CustomMessage_SignUp` /
+  `CustomMessage_ForgotPassword` / `CustomMessage_UpdateUserAttribute` /
+  `CustomMessage_Authentication` 等）。分岐が漏れたトリガーは**既定の文面のまま**送られる
+- **`codeParameter` を本文に必ず含める**。含め忘れるとコード無しのメールが届く
 
-- **locale未設定時**: 英語がデフォルト表示
-- **既存ユーザー**: `user_metadata.locale` がない場合は英語表示
-- **設定変更後**: ローカルは再起動（`stop && supabase-start`）、本番は GitHub 連携での同期を確認
+---
 
-## トラブルシューティング
+## 3. 反映
 
-### テンプレートが反映されない（ローカル）
+| 環境 | 反映方法 |
+|---|---|
+| sandbox（開発者ごと） | `sandbox`（watch 中なら保存で自動再デプロイ） |
+| ブランチ / 本番 | Amplify Hosting が `amplify.yml` に従って `ampx pipeline-deploy` を実行 |
+
+`senderEmail` の変更や customMessage トリガーの追加は **User Pool の更新**になるので、
+反映後に**実際にメールを受け取って確認する**（「デプロイが成功した」は
+「メールが届く」を意味しない）。
+
+---
+
+## 4. 動作確認（**送信できたで終わらせない**）
+
+パスワード再設定もメールアドレス変更も、**コードを受け取って確定するまでが 1 本のフロー**
+であり、そこを踏まないテストは壊れていることに気づけない（`.claude/rules/auth.md` §6）。
 
 ```bash
-stop && supabase-start
+e2e-web       # Maestro。ログイン〜パスワード再設定の往復
+e2e-mobile
 ```
 
-`config.toml` は CLI 起動時にのみ読み込まれるため、変更後は必ず再起動する。
+E2E ドライバ（`scripts/e2e/run-maestro.mjs`）は、テストユーザの作成 → OTP ブリッジの起動
+（`AUTH_E2E_OTP_CAPTURE` の DynamoDB からコードを読む）→ maestro 実行 → 後始末までを行う。
+**Maestro の graaljs は SigV4 を扱えない**ため、AWS を触る処理はすべて外側に置いてある。
 
-### テンプレートにエラーがある場合
+手動で確認する場合のチェック:
 
-Go Template の構文エラーがあると、デフォルトテンプレートにフォールバックする（エラーは表示されない）。構文を注意深く確認すること。
+| # | 確認 |
+|---|---|
+| 1 | サインアップの確認コードが届き、コードで確定できる |
+| 2 | 「パスワードを忘れた方」のコードが届き、新パスワードでログインできる |
+| 3 | メールアドレス変更のコードが**新アドレス**に届く。かつ**確認完了までは旧アドレスでログインできる**（`AttributesRequireVerificationBeforeUpdate` が効いている証拠） |
+| 4 | 文面が en / ja で切り替わる |
+| 5 | 送信元が SES 経由になっている（本番） |
 
-### localeが反映されない
+---
 
-1. フロントエンドで `signInWithOtp` 等に `options.data.locale` が渡されているか確認
-2. `user_metadata.locale` が正しく設定されているか確認
+## 5. 落とし穴
 
-## 参照
+| 症状 | 原因 |
+|---|---|
+| コードが届かない（エラーは出ない） | Cognito 既定の送信上限。**SES に切り替える** |
+| 検証済みの宛先にしか届かない | SES が**サンドボックス**のまま |
+| 迷惑メールに入る | DKIM / SPF / DMARC 未設定 |
+| メールは届くがコードが空 | 本文から `{####}` / `codeParameter` が抜けている |
+| 一部のメールだけ文面が変わらない | customMessage の `triggerSource` 分岐が漏れている |
+| メール変更後にログインできなくなった | **`AttributesRequireVerificationBeforeUpdate: ['email']` の設定漏れ**（`.claude/rules/auth.md` §3.4） |
 
-- ルール（正本）: [`.claude/rules/supabase-config.md`](../../.claude/rules/supabase-config.md)
-- Skill: `.claude/skills/supabase-config/`（全キー一覧・CI/CD・マルチ環境）
-- 公式: [Customizing email templates](https://supabase.com/docs/guides/local-development/customizing-email-templates) / [Email Templates](https://supabase.com/docs/guides/auth/auth-email-templates)
+## 参考
+
+- [Amplify Gen2: Passwordless](https://docs.amplify.aws/react/build-a-backend/auth/concepts/passwordless/)
+- [Amplify Gen2: Email customization](https://docs.amplify.aws/react/build-a-backend/auth/moderate-and-manage-users/)
+- [Cognito: Custom message Lambda trigger](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-message-trigger.html)
+- [Cognito: Email settings（SES への切り替え）](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-email.html)
