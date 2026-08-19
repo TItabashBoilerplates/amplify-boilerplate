@@ -9,6 +9,8 @@
 			"!**/dist",
 			"!**/build",
 			"!**/storybook-static",
+			"!**/src-tauri/target",
+			"!**/src-tauri/gen",
 			"!**/.venv",
 			"!e2e-results",
 			"!**/.expo",

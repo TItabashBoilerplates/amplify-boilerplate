@@ -42,6 +42,7 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Services (dev サーバ)** | `dev-web`, `dev-mobile`, `dev-desktop`, `storybook` |
 | **Services (Expo の対話 TUI)** | `mobile-ios`, `mobile-android`, `mobile-web` |
 | **Desktop (Tauri ネイティブ)** | `devenv shell -P desktop -- tauri-desktop` / `-- build-desktop` |
+| **Desktop の Rust 検査（CI と同じ）** | `check-desktop`（要 `-P desktop`。`cargo fmt --check` → `clippy -D warnings` → `cargo check --locked`） |
 | **モバイルのリリース / ストア反映** | `store-preflight`, `store-status`, `mobile-release-ios`, `mobile-release-android`, `store-*`（`docs/store/release-runbook.md`） |
 
 ## Amplify backend（sandbox / deploy）
@@ -55,7 +56,7 @@ scripts は devenv shell（direnv 自動アクティベート含む）下で PAT
 | **Sandbox 1 回デプロイ** | `sandbox-once` |
 | **Sandbox 破棄** | `sandbox-delete` |
 | **本番/ブランチデプロイ** | Amplify Hosting が `amplify.yml` に従い `ampx pipeline-deploy` を実行（CI） |
-| **依存ブートストラップ** | `bootstrap`（frontend: pnpm / backend-py: uv）。通常は `devenv shell` 進入時に自動 |
+| **依存ブートストラップ** | `bootstrap`（frontend: pnpm / backend-py: uv）。通常は `devenv shell` 進入時に自動。**CI は `bootstrap --frozen`**（`pnpm install --frozen-lockfile` / `uv sync --frozen`。lockfile を書き換えさせない） |
 | **エージェントスキル更新** | `skills-update`（最新化）/ `skills-restore`（lock から復元）。`devenv shell` 進入時に 1 日 1 回**同期・ロック付き**で自動更新（更新完了までシェルは待機 → 半端な状態で起動しない。`SKILLS_AUTOUPDATE=0` で無効・`SKILLS_AUTOUPDATE_INTERVAL=<秒>` で間隔変更） |
 
 > ⚠️ `sandbox` / デプロイには AWS 認証情報（プロファイル）が必要。
@@ -118,14 +119,24 @@ Direct command execution is allowed ONLY for:
 ### 検査の一覧は `scripts/ci/check.sh` が単一の正本
 
 ```
-ci-check（devenv script）  ─┐
-                            ├─→ scripts/ci/check.sh   ← 検査の列挙はここだけ
-.github/workflows/ci.yml  ─┘
+ローカル: ci-check ─┐
+                    ├─→ scripts/ci/check.sh   ← 検査の列挙はここだけ
+CI:       ci-check ─┘   （CI も devenv shell の中で同じ script を呼ぶ）
 ```
 
 **検査を足すときは必ず `scripts/ci/check.sh` に書く。** ローカルと CI で別々に
 列挙すると「CI では見ているのにローカルでは見ていない（逆も）」という drift が起き、
 どちらかが必ず腐る。CI の yml に検査を直接足すのは禁止。
+
+**CI は `run:` をすべて devenv shell の中で実行する**（`.github/workflows/ci.yml` の
+`defaults.run.shell: devenv shell bash -- -e {0}`）。したがって CI が叩くのは
+`ci-check` / `unit-test` / `build-frontend` / `build-storybook` /
+`verify-storybook-render` / `check-desktop` という **devenv script そのもの**であり、
+「CI 用の別コマンド」は存在しない。nix / devenv とキャッシュの用意は
+`.github/actions/devenv`（composite action）に閉じている。
+
+> `desktop` job だけは **job 単位の `defaults` で `devenv shell -P desktop ...`** を使う
+> （WebKitGTK の closure が数 GB あるので他の job に負わせない）。shell を入れ子にしない。
 
 `ci-check` が回すもの:
 

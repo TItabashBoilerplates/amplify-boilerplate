@@ -27,21 +27,10 @@ SCOPE="${1:-all}"
 
 step() { printf '\n\033[0;36m▶ %s\033[0m\n' "$*"; }
 
-# 型チェックとビルドは `amplify_outputs.json` を参照する。これは環境固有の生成物で
-# gitignore されているため、クローン直後や CI には存在しない。公開情報のみの
-# スタブ（`apps/web/amplify_outputs.ci.json`）を **無い場合だけ** 置く
-# （既にある = sandbox を張っている開発者の実物を絶対に上書きしない）。
-stub_amplify_outputs() {
-  local stub="$REPO_ROOT/frontend/apps/web/amplify_outputs.ci.json"
-  local app
-  for app in web mobile; do
-    local dest="$REPO_ROOT/frontend/apps/$app/amplify_outputs.json"
-    if [ ! -e "$dest" ]; then
-      cp "$stub" "$dest"
-      echo "  (placed CI stub: apps/$app/amplify_outputs.json)"
-    fi
-  done
-}
+# `amplify_outputs.json` の CI スタブ配置。**置き方の正本は 1 か所**にしておく
+# （CI の build / storybook job も同じ script を直接呼ぶ）。
+# shellcheck source=scripts/ci/stub-amplify-outputs.sh
+. "$REPO_ROOT/scripts/ci/stub-amplify-outputs.sh"
 
 check_frontend() {
   stub_amplify_outputs

@@ -42,12 +42,29 @@
   # ===== Scripts（PATH に追加される単発コマンド）=====
   scripts = {
     # ---------- Install ----------
+    # `--frozen` を付けると lockfile を書き換えない（CI 用）。差分があればそこで落ちる
+    # ＝「lockfile と合わないツリーで検査を通してしまう」ことを防ぐ。
+    # ⚠️ `uv sync` は **`--all-packages` を外さない**。外すと member の依存が入らず、
+    # mypy / pytest が壊れていないコードに対して落ちる（`.claude/rules/commands.md`）。
     bootstrap.exec = ''
       set -euo pipefail
+      frozen=""
+      for arg in "$@"; do [ "$arg" = "--frozen" ] && frozen=1; done
+
       echo "→ frontend: pnpm install"
-      (cd "$DEVENV_ROOT/frontend" && pnpm install)
+      if [ -n "$frozen" ]; then
+        (cd "$DEVENV_ROOT/frontend" && pnpm install --frozen-lockfile)
+      else
+        (cd "$DEVENV_ROOT/frontend" && pnpm install)
+      fi
+
       echo "→ backend-py: uv sync"
-      (cd "$DEVENV_ROOT/backend-py" && uv sync --all-packages --all-groups)
+      if [ -n "$frozen" ]; then
+        (cd "$DEVENV_ROOT/backend-py" && uv sync --all-packages --all-groups --frozen)
+      else
+        (cd "$DEVENV_ROOT/backend-py" && uv sync --all-packages --all-groups)
+      fi
+
       echo "→ amplify outputs: link into apps"
       link-amplify-outputs
     '';
@@ -93,6 +110,21 @@
     mobile-web.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run web "$@"'';
     tauri-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run tauri:dev "$@"'';
     build-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run tauri:build "$@"'';
+
+    # Rust 側（src-tauri）の検査。**要 `-P desktop`**（Linux は WebKitGTK が要る）。
+    # `tauri build` は配布物まで作るので CI では重すぎる。壊れを捕まえるのに必要なのは
+    # コンパイルが通ることと lint なので、fmt / clippy / check の 3 本だけ回す。
+    # `--locked` で Cargo.lock を書き換えさせない（CI で lockfile が動くのを防ぐ）。
+    check-desktop.exec = ''
+      set -euo pipefail
+      cd "$DEVENV_ROOT/frontend/apps/desktop/src-tauri"
+      echo "▶ cargo fmt --check"
+      cargo fmt --all -- --check
+      echo "▶ cargo clippy"
+      cargo clippy --locked --all-targets -- -D warnings
+      echo "▶ cargo check"
+      cargo check --locked --all-targets
+    '';
     storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run storybook'';
     build-storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run build-storybook'';
 

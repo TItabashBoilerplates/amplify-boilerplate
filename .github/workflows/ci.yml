@@ -10,128 +10,114 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# CI（lint / format / type-check / unit-test / build）は **シークレット不要**。
+# Amplify backend の接続情報は `apps/web/amplify_outputs.ci.json`（公開情報のみのスタブ）で足りる
+# ため、AWS 認証情報を CI に持ち込まない（`.claude/rules/env-naming.md`）。
+#
+# エージェントスキルの自動更新は CI では要らない（毎 run で数十秒を捨てるだけ）。
+env:
+  SKILLS_AUTOUPDATE: "0"
+
+# 公式推奨: すべての `run:` を devenv shell の中で実行する。
+# これで **ローカルと CI がまったく同じ script を実行する**ことが構造的に保証される
+# （`ci-check` / `unit-test` / `build-frontend` はすべて devenv の script）。
+# Refs: https://devenv.sh/integrations/github-actions/
+defaults:
+  run:
+    shell: devenv shell bash -- -e {0}
+
 jobs:
   # lint / format / type-check。**検査の列挙は scripts/ci/check.sh が単一の正本**で、
-  # ローカルの `ci-check`（devenv script）も同じものを呼ぶ。
+  # ローカルの `ci-check` も同じものを呼ぶ。
   # ⚠️ 検査をここ（yml）に直接足さないこと。ローカルで再現できなくなる。
   ci-check:
     name: CI Check (lint + format + type-check)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Install JS dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.13"
-      # ⚠️ `--all-packages` を外さないこと。backend-py は uv の virtual workspace なので、
-      # member の依存が入っていないと mypy から third-party が全部 `Any` に見え、
-      # strict の untyped-decorator 等が**壊れていないコードに対して**誤爆する。
-      - name: Sync Python workspace
-        working-directory: backend-py
-        run: uv sync --all-packages --all-groups --frozen
-      # amplify_outputs.json は環境固有の生成物（gitignore）。CI では AWS へデプロイせず
-      # 型チェック / ビルドを通すため、check.sh が公開情報のみのスタブを
-      # （存在しないときだけ）配置する。
+      - uses: ./.github/actions/devenv
+      - name: Install dependencies
+        run: bootstrap --frozen
       - name: Run ci-check
-        run: bash scripts/ci/check.sh
+        run: ci-check
 
   test:
     name: Unit Tests (vitest + pytest)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Install JS dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
-      - uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.13"
-      - name: Sync Python workspace
-        working-directory: backend-py
-        run: uv sync --all-packages --all-groups --frozen
+      - uses: ./.github/actions/devenv
+      - name: Install dependencies
+        run: bootstrap --frozen
       # `.claude/rules/tdd.md` の All Green を CI でも担保する
       # （無いと「ローカルでは通っていたはず」で壊れたまま main に入る）。
-      - name: Unit tests (vitest)
-        working-directory: frontend
-        run: pnpm run test
-      - name: Unit tests (pytest)
-        working-directory: backend-py
-        run: uv run --all-packages pytest
+      - name: Run unit-test
+        run: unit-test
 
   build:
     name: Build (next + vite)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: ./.github/actions/devenv
       - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
+        run: bootstrap --frozen
+      # amplify_outputs.json は環境固有の生成物（gitignore）。CI では AWS へデプロイせず
+      # ビルドを通すため、公開情報のみのスタブを配置する（check.sh と同じ扱い）。
       - name: Stub amplify_outputs.json (no secrets; build only)
-        working-directory: frontend
-        run: |
-          cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
-          cp apps/web/amplify_outputs.ci.json apps/mobile/amplify_outputs.json
-      # web(next) と desktop(vite) の両方。desktop はここでしか壊れが出ない
-      # （Rust 側は `-P desktop` が要るので CI では回さない）。
-      - name: Build
-        working-directory: frontend
-        run: pnpm run build
+        run: bash scripts/ci/stub-amplify-outputs.sh
+      # web(next) と desktop(vite) の両方。desktop のフロントはここでしか壊れが出ない。
+      - name: Run build-frontend
+        run: build-frontend
 
   storybook:
     name: Storybook (build + render check)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: ./.github/actions/devenv
       - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
+        run: bootstrap --frozen
       - name: Stub amplify_outputs.json (no secrets)
-        working-directory: frontend
-        run: |
-          cp apps/web/amplify_outputs.ci.json apps/web/amplify_outputs.json
-          cp apps/web/amplify_outputs.ci.json apps/mobile/amplify_outputs.json
+        run: bash scripts/ci/stub-amplify-outputs.sh
       - name: Build Storybook
-        working-directory: frontend
-        run: pnpm run build-storybook
+        run: build-storybook
       # ビルド成功は描画を保証しない（`.claude/rules/ui-testing.md`）。
       # 実行時エラー・未翻訳キーの露出・画像・入力欄の font-size を computed style で実測する。
       # ランナーに同梱の Chrome を使う（playwright-core はブラウザを同梱しない）。
       - name: Verify stories actually render
         env:
           CHROMIUM_PATH: /usr/bin/google-chrome
-        run: node scripts/frontend/verify-storybook-render.mjs
+        run: verify-storybook-render
+
+  # Tauri（Rust）側。**`-P desktop` が要る**（Linux は WebKitGTK / GTK3 にリンクするため、
+  # 無いと `cargo check` の時点で「you may need to install a package such as glib-2.0」で落ちる）。
+  # closure が数 GB になるので他の job とは別 profile・別 cache キーに分けてある。
+  #
+  # `tauri build`（配布物の作成）は CI では回さない。壊れを捕まえるのに必要なのは
+  # 「コンパイルが通ること」と lint なので、`check-desktop` が fmt / clippy / check を回す。
+  desktop:
+    name: Desktop (cargo fmt + clippy + check)
+    runs-on: ubuntu-latest
+    # この job だけ **profile 付きの devenv shell** で `run:` を実行する
+    # （workflow の defaults を job 単位で上書きする。shell を入れ子にしない）。
+    defaults:
+      run:
+        shell: devenv shell -P desktop bash -- -e {0}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/devenv
+        with:
+          profile: desktop
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/apps/desktop/src-tauri/target
+          # ⚠️ restore-keys（prefix fallback）は付けない。付けると Cargo.lock が変わった時に
+          # 別 lockfile で作られた target/ をそのまま復元してしまう。
+          key: v1-${{ runner.os }}-cargo-${{ hashFiles('frontend/apps/desktop/src-tauri/Cargo.lock') }}
+      - name: Run check-desktop
+        run: check-desktop

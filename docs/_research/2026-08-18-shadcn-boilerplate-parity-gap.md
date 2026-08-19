@@ -231,16 +231,17 @@
 | 5e | **root `biome.json`** | 生成物（`storybook-static` / `.venv`）を除外していなかったため `biome check .` が Biome ごとクラッシュしていた（`HTML_BOGUS` cast panic）。CI が `scripts .maestro` にスコープしていたので誰も踏んでいなかった |
 | 6 | **`detailed-design` skill の全面移植** | shadcn から**逐語コピーのまま**で、Drizzle / RLS / pgTAP / Edge Functions / Better Auth / Supabase-first 判定を前提にした設計書テンプレート 9 ファイル（約 2,750 行）だった。**エージェントが書く設計書が丸ごと別スタックのもの**になるため、`a.schema` / `authorization` / DynamoDB のアクセスパターン設計 / Cognito の immutable 項目 / Amplify Data first 判定へ全面的に書き換えた |
 | 6b | 同上（周辺 skill） | `storybook`（存在しない `@workspace/client-supabase` alias の手順 → 現行の exports ベースへ）/ `nextjs` / `fastapi` |
+| 7 | **CI を devenv shell の中で回す** | 全 job の `run:` を `defaults.run.shell: devenv shell bash -- -e {0}` で包み、**CI がローカルとまったく同じ devenv script を実行する**状態にした。nix / devenv のセットアップは `.github/actions/devenv`（composite）に切り出し、`cache-nix-action` で `/nix/store` を、`actions/cache` で `node_modules` と `.venv` をキャッシュする。`bootstrap --frozen` を追加（CI は lockfile を書き換えない） |
+| 8 | **`apps/desktop` の Rust を CI で検査** | `check-desktop`（`cargo fmt --check` → `clippy -D warnings` → `cargo check --locked`）を追加し、`desktop` job だけ **job 単位の defaults で `-P desktop` の shell** を使う（WebKitGTK の closure を他 job に負わせない）。**`tauri build` は回さない** — 壊れを捕まえるのに要るのはコンパイルと lint であって配布物の作成ではない |
+| 8b | **stub の抽出とダングリング symlink の修正** | `bootstrap` が張る `amplify_outputs.json` は **ダングリング symlink**（sandbox 未実行のため）で、`[ -e ]` が false になるので `cp` が **リンク先（`packages/backend/`）へ書き抜けていた**。`scripts/ci/stub-amplify-outputs.sh` に切り出し、`-L` かつ `! -e` なら先に `rm -f` する |
 
 ### 🔴 残っている作業
 
-| # | 作業 | なぜ残したか |
-|---|---|---|
-| 1 | CI を **devenv shell の中で**回す | 🟡 ランナーに nix を用意する話であり、**検査内容の一致という本題は `scripts/ci/check.sh` で解消済み**。cachix / `cache-nix-action` の整備が前提で、この環境からは動作確認できない。切り替えても呼ぶものは変わらない |
-| 2 | `apps/desktop` の Rust ビルドを CI で回す | 🟡 `-P desktop`（WebKitGTK。closure 数 GB）が要る。フロント側（`vite build`）は CI で回している |
+**なし。** shadcn-boilerplate に対する「思想・設計・実装パターン・CI」の差分は解消した。
 
-> 「思想・設計・実装パターン」の差分は解消済み。残り 2 件はどちらも
-> **CI ランナーの構成**の話で、リポジトリの設計・思想には影響しない。
+> 検証したこと: `devenv shell` 内で `ci-check`（frontend / backend 双方）・`unit-test`・
+> `bootstrap --frozen` → stub → `build-frontend`・`check-desktop`（`-P desktop`）が
+> すべて緑になることをこの環境で実際に確認している。
 
 ---
 

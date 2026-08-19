@@ -1,0 +1,74 @@
+name: Set up devenv
+description: >-
+  Install Nix + devenv and warm the caches so that a job's `run:` steps can execute
+  this repository's devenv scripts (`ci-check`, `unit-test`, `build-frontend`, …) —
+  the same commands developers run locally.
+
+inputs:
+  profile:
+    description: >-
+      devenv profile the calling job will use (e.g. `desktop`). Only affects the Nix
+      store cache key: an opt-in profile pulls in a very different (much larger)
+      closure, so it must not share a cache entry with the default shell.
+    required: false
+    default: default
+
+runs:
+  using: composite
+  steps:
+    - uses: cachix/install-nix-action@v31
+      with:
+        # cache-nix-action 公式推奨。これが無いと nix store の自動 GC で
+        # devenv shell の依存（中間ビルド成果物・derivation）が落ち、
+        # 2 回目以降に「あるはずのものが無い」状態になる。
+        # Refs: https://github.com/nix-community/cache-nix-action
+        extra_nix_config: |
+          keep-outputs = true
+          keep-env-derivations = true
+
+    # `/nix/store` そのものを GHA cache に乗せる。
+    # `.devenv/` を actions/cache で抱える方式では `.devenv/profile` が
+    # `/nix/store/...` への symlink を持つため、別 runner で restore すると
+    # 参照先の実体が無く `no substituter that can build it` で失敗する。
+    - uses: nix-community/cache-nix-action@v7
+      with:
+        primary-key: >-
+          nix-${{ runner.os }}-${{ inputs.profile }}-${{ hashFiles('devenv.nix', 'devenv.lock', 'devenv.yaml') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-${{ inputs.profile }}-
+        # GHA cache の上限（10GB/repo）を考慮し、保存前に GC する
+        gc-max-store-size-linux: 5G
+        purge: true
+        purge-prefixes: nix-${{ runner.os }}-${{ inputs.profile }}-
+        purge-created: 0
+        purge-primary-key: never
+
+    # devenv 公式 cachix を読み取り substituter として併用。
+    # cache が cold な初回でも devenv 共通の依存はここから引けるので、
+    # ソースからのビルドを避けられる。
+    - uses: cachix/cachix-action@v16
+      with:
+        name: devenv
+
+    # ⚠️ node_modules / venv の**ツリー自体**はキャッシュしない。
+    #   - devenv は uv の venv を `.devenv/state/venv`（`UV_PROJECT_ENVIRONMENT`）に置くので、
+    #     `backend-py/.venv` を保存しても uv は見に行かない（保存しても効かない）。
+    #   - ツリーを直接復元すると `pnpm install --frozen-lockfile` の浅い検証をすり抜けて、
+    #     別 lockfile 時代のパッケージを抱えたまま検査に入りうる。
+    #
+    # 代わりに**内容アドレスのダウンロードキャッシュ**を持つ。install はここから展開する
+    # だけになり（ネットワーク不要）、中身が古くても余分なだけで正しさは崩れない。
+    # そのため prefix fallback（restore-keys）を付けても安全 — 足りないぶんだけ取りに行く。
+    - name: Cache pnpm store / uv cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/share/pnpm/store
+          ~/.cache/uv
+        key: >-
+          v1-${{ runner.os }}-pkgcache-${{ hashFiles('frontend/pnpm-lock.yaml', 'backend-py/uv.lock') }}
+        restore-keys: |
+          v1-${{ runner.os }}-pkgcache-
+
+    - name: Install devenv.sh
+      shell: bash
+      run: nix profile add nixpkgs#devenv
