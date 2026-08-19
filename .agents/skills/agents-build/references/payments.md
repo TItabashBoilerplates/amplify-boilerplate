@@ -1,12 +1,14 @@
 # payments
 
-Add AgentCore Payments to your agent — the managed service that lets your agent pay for x402-protected APIs, MCP tools, and web content via microtransactions (Coinbase CDP, Stripe Privy).
+Add AgentCore Payments to your agent — the managed service that lets your agent pay for x402- and MPP-protected APIs, MCP tools, and web content via microtransactions (Coinbase CDP, Stripe Privy).
 
-The control-plane resources (payment manager, connector, credential provider) are provisioned with the AgentCore **CLI**. The per-user data-plane resources (instrument, session) are created with the AgentCore **SDK** (a provided script). Payments can be wired into the agent in two ways: (1) a **framework-native integration** for Strands (plugin) or LangGraph (middleware) that handles 402 detection, payment signing, and retry transparently — no custom tool code needed, or (2) a **framework-agnostic local tool** (`scripts/x402_payment_tool.py`) for any other Python framework (OpenAI Agents SDK, CrewAI, etc.) or when you need full manual control.
+AgentCore Payments is **protocol-agnostic**: it supports both **x402** (Coinbase/Cloudflare's HTTP-native stablecoin micropayment protocol) and **MPP** (the Machine Payments Protocol from Stripe and Tempo). Both are exercised through the same `ProcessPayment` API and the same manager/connector/instrument/session resources — the service detects which protocol a merchant speaks from its `402 Payment Required` response and mints the matching payment proof. You do not pick a protocol up front; you provision payments once and the agent can pay either kind of merchant. See **How x402 Payment Works** and **MPP (Machine Payments Protocol)** below for the two wire flows.
+
+The control-plane resources (payment manager, connector, credential provider) are provisioned with the AgentCore **CLI**. The per-user data-plane resources (instrument, session) are created with the AgentCore **SDK** (a provided script). Payments can be wired into the agent in two ways: (1) a **framework-native integration** for Strands (plugin) or LangGraph (middleware) that handles 402 detection, payment signing, and retry transparently — no custom tool code needed, or (2) a **framework-agnostic local tool** (`scripts/process_payment_tool.py`) for any other Python framework (OpenAI Agents SDK, CrewAI, etc.) or when you need full manual control.
 
 ## When to use
 
-- You want your agent to autonomously pay for x402-protected content (APIs, MCP tools, paywalled sites)
+- You want your agent to autonomously pay for x402- or MPP-protected content (APIs, MCP tools, paywalled sites)
 - A tool call returns `402 Payment Required` and you want it settled and retried automatically
 - You have a payment manager and need to wire payments into your agent code
 - You want budget controls on what the agent can spend
@@ -60,7 +62,7 @@ The CLI provisions payment resources into a project (`agentcore/agentcore.json`)
 - **Case A — nothing configured**: proceed to Step 3.
 - **Case B — manager/connector exist, needs wiring**: skip to Step 5.
 - **Case C — wired, debugging**: ask what's failing, then use the Debugging section.
-- **Case D — developer asking about payments without a project** (architecture, flow explanation): explain the x402 end‑to‑end flow (see **How x402 Payment Works** section), and ask whether they want to set up payments (→ proceed to Step 3) or need wiring help (→ Step 5).
+- **Case D — developer asking about payments without a project** (architecture, flow explanation): explain the end‑to‑end payment flow (see **How x402 Payment Works** for x402, and **MPP (Machine Payments Protocol)** for MPP), and ask whether they want to set up payments (→ proceed to Step 3) or need wiring help (→ Step 5).
 
 **Framework check**: If the project uses **Strands** or **LangGraph** (check `agentcore/agentcore.json` → `runtimes` array), offer the native integration path (Step 5a) which is simpler — no custom tool script needed. If the project uses another framework, or the developer wants manual control, use the generic tool path (Step 5b).
 
@@ -148,7 +150,7 @@ agentcore deploy -y
 
 #### Step 5a: Native integration (Strands or LangGraph) — agent runs
 
-If the project uses Strands or LangGraph, use the framework's native payments integration. This is simpler than the generic tool — no `x402_payment_tool.py` needed, no `x402_fetch` registration, and the middleware/plugin automatically handles ALL tool calls (not just a dedicated payment tool).
+If the project uses Strands or LangGraph, use the framework's native payments integration. This is simpler than the generic tool — no `process_payment_tool.py` needed, no `x402_fetch` registration, and the middleware/plugin automatically handles ALL tool calls (not just a dedicated payment tool).
 
 **Strands:**
 
@@ -213,7 +215,7 @@ The middleware wraps ALL tool calls, detects 402 from any response format (no `P
 
 **LangGraph simplifications vs the generic tool path:**
 
-- No `x402_payment_tool.py` script needed — the middleware IS the payment tool
+- No `process_payment_tool.py` script needed — the middleware IS the payment tool
 - No special system prompt — no need to tell the model to use a specific tool for paid URLs; all tools are payment-aware
 - `auto_session=True` can lazily create a session on first 402 (dev/test convenience — requires `CreatePaymentSession` IAM permission on the runtime role)
 - Error recovery — optional `on_payment_error` callback for programmatic recovery (create new session, swap instrument) without the LLM seeing errors
@@ -224,14 +226,14 @@ The middleware wraps ALL tool calls, detects 402 from any response format (no `P
 
 Payments are wired with a small local tool, not a framework-specific plugin — so the same code works in any framework.
 
-1. **Copy [`scripts/x402_payment_tool.py`](../scripts/x402_payment_tool.py) into the agent project.** It exposes `x402_fetch(url, method="GET")`, which on a `402` calls the SDK's `PaymentManager.generate_payment_header` — the SDK validates the 402, selects the network, processes the payment, and builds the version-aware proof (v1 `X-PAYMENT` / v2 `PAYMENT-SIGNATURE`) — then retries with a fresh client. Base Sepolia settlement is intermittently transient (the header is valid but the paid retry still returns 402), so the tool re-runs the settle+replay flow up to `X402_MAX_PAYMENT_ATTEMPTS` times (default 5, env-overridable) before giving up. It reuses a single idempotency token across those retries, so `ProcessPayment` stays idempotent — every attempt replays the same on-chain authorization/nonce and the user is never charged twice (a retry either settles the not-yet-settled payment or, if it was already settled, reverts on-chain). It reads its config from environment variables (set in Step 8): `PAYMENT_MANAGER_ARN`, `PAYMENT_INSTRUMENT_ID`, `PAYMENT_SESSION_ID`, `PAYMENT_USER_ID`, `AWS_REGION`.
+1. **Copy [`scripts/process_payment_tool.py`](../scripts/process_payment_tool.py) into the agent project.** It exposes `x402_fetch(url, method="GET")`, which on a `402` calls the SDK's `PaymentManager.generate_payment_header` — the SDK validates the 402, selects the network, processes the payment, and builds the version-aware proof (v1 `X-PAYMENT` / v2 `PAYMENT-SIGNATURE`) — then retries with a fresh client. Base Sepolia settlement is intermittently transient (the header is valid but the paid retry still returns 402), so the tool re-runs the settle+replay flow up to `X402_MAX_PAYMENT_ATTEMPTS` times (default 5, env-overridable) before giving up. It reuses a single idempotency token across those retries, so `ProcessPayment` stays idempotent — every attempt replays the same on-chain authorization/nonce and the user is never charged twice (a retry either settles the not-yet-settled payment or, if it was already settled, reverts on-chain). It reads its config from environment variables (set in Step 8): `PAYMENT_MANAGER_ARN`, `PAYMENT_INSTRUMENT_ID`, `PAYMENT_SESSION_ID`, `PAYMENT_USER_ID`, `AWS_REGION`.
 
 2. **Register `x402_fetch` as a tool** in the agent's framework. The tool function is identical; only the registration decorator differs:
 
    ```python
    # Strands
    from strands import Agent, tool
-   from x402_payment_tool import x402_fetch as _x402
+   from process_payment_tool import x402_fetch as _x402
    x402_fetch = tool(_x402)
    agent = Agent(model=..., tools=[x402_fetch], system_prompt="... use x402_fetch for paid URLs ...")
    ```
@@ -240,14 +242,14 @@ Payments are wired with a small local tool, not a framework-specific plugin — 
    # LangGraph
    from langchain_core.tools import tool
    from langgraph.prebuilt import create_react_agent
-   from x402_payment_tool import x402_fetch as _x402
+   from process_payment_tool import x402_fetch as _x402
    graph = create_react_agent(model, tools=[tool(_x402)])
    ```
 
    ```python
    # OpenAI Agents SDK
    from agents import Agent, function_tool
-   from x402_payment_tool import x402_fetch as _x402
+   from process_payment_tool import x402_fetch as _x402
    agent = Agent(name="PaymentAgent", tools=[function_tool(_x402)], instructions="... use x402_fetch for paid URLs ...")
    ```
 
@@ -307,6 +309,27 @@ Fetch https://sandbox.node4all.com/v1/x402-test and tell me what you find.
 
 Run it however your agent runs — directly in your framework, or `agentcore dev` for a local server / `agentcore invoke` for the deployed runtime (set the same `PAYMENT_*` env vars on the runtime). A successful run shows `x402_fetch` hitting `402`, settling payment, and the retry returning `200`.
 
+## The `upto` scheme and Permit2 allowance
+
+The setup and wiring above are scheme-agnostic: the agent passes through whichever x402 scheme the merchant's `402` advertises. Most endpoints use `exact` (a fixed price known up front). Some use **`upto`**, for metered or usage-based pricing such as pay-per-inference — the agent authorizes a spending ceiling and the merchant settles the actual amount consumed, up to that ceiling. No configuration change is required to pay an `upto` endpoint.
+
+The `upto` scheme has one additional prerequisite: it settles through the [Uniswap Permit2](https://docs.uniswap.org/contracts/permit2/overview) contract, so the payer wallet must hold a Permit2 allowance for the asset. The optional **`permit2_allowance_limit`** field is an add-on for `upto` that grants this allowance — when set, `ProcessPayment` submits the one-time on-chain `approve` before signing. Set it on the native integration config (Step 5a):
+
+```python
+config = AgentCorePaymentsPluginConfig(   # AgentCorePaymentsConfig for LangGraph
+    ...,
+    permit2_allowance_limit="1000000",     # decimal string, asset's smallest unit (1000000 = 1 USDC)
+)
+```
+
+- A decimal string in the asset's smallest denomination. The uint256 maximum (`115792089237316195423570985008687907853269984665640564039457584007913129639935`) grants an unlimited allowance.
+- Applies only to `upto`; supplying it for an `exact` payment returns a validation error.
+- It broadcasts a real on-chain `approve` transaction — gas is paid from the wallet's native-token balance (not its USDC balance).
+- Needed only for a wallet's first `upto` payment. `approve` sets the allowance rather than adding to it, so omit it on later calls to avoid a redundant transaction.
+- Requires an SDK build whose integration config (or `generate_payment_header`) accepts `permit2_allowance_limit`.
+
+For the generic `x402_fetch` tool (Step 5b), pass `permit2_allowance_limit="..."` to its `generate_payment_header` call when paying an `upto` endpoint.
+
 ## Debugging payments
 
 **Agent sees 402 but does not pay:**
@@ -340,6 +363,24 @@ Run it however your agent runs — directly in your framework, or `agentcore dev
 **ProcessPayment succeeds (PROOF_GENERATED) but merchant returns 402 with an empty `{}` body and no error:**
 
 - The merchant is x402 **v2** and is ignoring the v1 `X-PAYMENT` header. Detect the version from the challenge (`x402Version: 2`, present in the body or the `payment-required` response header) and send a `PAYMENT-SIGNATURE` header. The v2 proof puts `accepted` (the full requirements, CAIP-2 network) as a top-level sibling of `payload`, with `payload` containing only `signature` + `authorization`. Note: if ProcessPayment returns `PROOF_GENERATED` and the proof shape is correct but the merchant still 402s, it may be a transient on-chain settlement failure — retry once before assuming a format problem.
+
+**MPP: `ProcessPayment` fails with `ValidationException` mentioning gas/network fees:**
+
+- The MPP challenge does not offer seller-sponsored fees (`methodDetails.feePayer` is `false` or absent), so AgentCore will not silently charge the buyer for network fees. Either set `paymentInput.mpp.buyerPaysGasFees: true` to authorize paying them from the buyer's wallet, or obtain a challenge whose seller sponsors fees.
+
+**MPP: `ProcessPayment` fails with `ValidationException` on the challenge header:**
+
+- `wwwAuthenticateHeaders` must contain the raw `WWW-Authenticate: Payment …` value **verbatim** and **exactly one** entry. Do not decode, reassemble, or re-encode it — altering the bytes breaks the challenge HMAC binding. If the `402` returned several `WWW-Authenticate: Payment` lines, send only the single option your instrument can satisfy.
+- Confirm `paymentType` is `MPP` and the payload is under the `mpp` arm of `paymentInput` (not `cryptoX402`).
+
+**MPP: agent gets a fresh `402` after retrying with the credential:**
+
+- Attach the credential exactly as returned: `Authorization: Payment <token>`, using `paymentOutput.mpp.paymentCredential` verbatim (it already includes the `Payment` scheme prefix). Retry with a fresh HTTP client so cookies from the initial `402` are not resent.
+- MPP credentials are single-use — a replay of an already-consumed `challenge.id` is rejected. Re-run `ProcessPayment` against the new challenge from the fresh `402`.
+
+**MPP: `ProcessPayment` fails with `SubscriptionRequiredException` (403):**
+
+- The account is not subscribed to the required AWS Marketplace offering. Follow the `subscriptionUrl` in the error to subscribe, then retry.
 
 **ProcessPayment fails with "Payment session not found":**
 
@@ -475,6 +516,91 @@ Agent calls x402_fetch("https://paid-api.example.com/data")
   └─ 6. Return content to agent
 ```
 
+## MPP (Machine Payments Protocol)
+
+MPP is the second payment protocol AgentCore Payments speaks, alongside x402. It is a protocol-neutral, HTTP-native scheme for machine-to-machine payments (an IETF-track draft; see <https://mpp.dev>). AgentCore acts on the **buyer** side: the agent hits a paid endpoint, receives an MPP challenge in a `402 Payment Required` response, and calls `ProcessPayment` to mint the credential that satisfies it — the same lifecycle as x402, over a different wire format.
+
+### How MPP differs from x402 on the wire
+
+x402 carries its challenge in the response **body** (`x402Version` + `accepts`) and the proof in an `X-PAYMENT` (v1) or `PAYMENT-SIGNATURE` (v2) header. MPP uses the standard HTTP auth handshake instead:
+
+| Primitive | Direction | HTTP header | Encoding |
+|---|---|---|---|
+| **Challenge** | server → agent (402) | `WWW-Authenticate: Payment ...` | RFC 9110 auth-params (`id="…", realm="…", method="…", intent="…", request="<base64url>", …`) |
+| **Credential** | agent → server (retry) | `Authorization: Payment <token>` | `base64url(JSON)`, no padding |
+| **Receipt** | server → agent (200) | `Payment-Receipt: <token>` | `base64url(JSON)`, no padding |
+
+Each `402` may carry **one or more** `WWW-Authenticate: Payment` header lines — one per payment option (each a distinct `method`/`intent`). The agent picks one it can satisfy and returns exactly one `Authorization: Payment` header. `method` (`tempo`, `evm`, `solana`, `stripe`, `card`, …) and `intent` (`charge`, `session`, `subscription`) are open IANA registries — MPP is method- and currency-agnostic (crypto or fiat), where x402 is USDC-only. The per-method `request` payload rides inside the challenge as an opaque base64url blob; AgentCore parses it and mints the matching proof, so you forward the challenge verbatim rather than decoding it yourself.
+
+### The MPP ProcessPayment contract
+
+Call the same `ProcessPayment` operation used for x402, with `paymentType` set to `MPP` and the `mpp` arm of `paymentInput`:
+
+```jsonc
+// ProcessPayment request (MPP)
+{
+  "paymentManagerArn": "arn:aws:bedrock-agentcore:us-west-2:111122223333:payment-manager/pm-abc123",
+  "paymentSessionId": "payment-session-…",
+  "paymentInstrumentId": "payment-instrument-…",
+  "paymentType": "MPP",
+  "paymentInput": {
+    "mpp": {
+      "version": "1",
+      // The raw WWW-Authenticate: Payment header value(s) from the 402, passed verbatim.
+      // Exactly one entry in this release (ACP fulfills a single challenge per call).
+      "wwwAuthenticateHeaders": [
+        "Payment id=\"qB3…\", realm=\"api.example.com\", method=\"evm\", intent=\"charge\", request=\"eyJ…\""
+      ],
+      // Optional. Authorizes ACP to sign when the buyer pays the blockchain (gas) fees.
+      "buyerPaysGasFees": false
+    }
+  }
+}
+```
+
+```jsonc
+// ProcessPayment response (MPP) — status PROOF_GENERATED
+{
+  "paymentType": "MPP",
+  "status": "PROOF_GENERATED",
+  "paymentOutput": {
+    "mpp": {
+      "version": "1",
+      // Echoes the id of the challenge that was paid, so you can correlate without decoding.
+      "selectedPaymentId": "qB3…",
+      // Ready-to-send Authorization header value: "Payment <base64url-token>".
+      // Attach it verbatim and retry the original request — no assembly required.
+      "paymentCredential": "Payment eyJ…"
+    }
+  }
+}
+```
+
+Notes grounded in the API model:
+
+- **Forward the header verbatim.** Pass the raw `WWW-Authenticate: Payment …` value(s) unchanged. AgentCore parses the auth-params itself — you do no field-mapping or base64 handling — and forwarding as-is preserves the exact bytes the challenge's HMAC binds to.
+- **One challenge per call.** `wwwAuthenticateHeaders` accepts exactly one entry in this release. When a `402` offers several options, select the one the instrument can satisfy and send just that line. (It is modeled as a list so the contract can widen to multiple options later without a breaking change.)
+- **`paymentCredential` is the finished `Authorization` header.** No assembly needed — attach it to the retry as `Authorization: Payment <token>`. It is a bearer-like secret; do not log it.
+- **`buyerPaysGasFees` controls fee sponsorship.** A crypto challenge advertises who pays network (gas) fees via `methodDetails.feePayer`: `true` = the seller sponsors, `false`/absent = the buyer pays from their own wallet on top of the amount. Because that extra cost is not in the challenge `amount`, AgentCore will not assume the buyer accepts it — if the challenge does not offer seller-sponsored fees, it signs only when you set `buyerPaysGasFees: true`, otherwise it fails with `ValidationException`. Omit it (or `false`) for fee-sponsored challenges; it has no effect there.
+- **`version`** is the MPP protocol version (a bare numeric string, e.g. `"1"`), distinct from the x402 version.
+
+### MPP end-to-end flow
+
+```
+Agent GETs https://paid-api.example.com/data
+  │
+  ├─ 1. 402 Payment Required
+  │     WWW-Authenticate: Payment id="qB3…", realm="api.example.com", method="evm", intent="charge", request="eyJ…"
+  │
+  ├─ 2. ProcessPayment(paymentType="MPP", paymentInput.mpp.wwwAuthenticateHeaders=[<that header, verbatim>])
+  │     → status PROOF_GENERATED, paymentOutput.mpp.paymentCredential = "Payment eyJ…"
+  │
+  ├─ 3. Retry with  Authorization: Payment eyJ…   (fresh HTTP client, no cookies)
+  │     → 200 OK + paid content  (optional  Payment-Receipt: <token>)
+  │
+  └─ 4. Return content to agent
+```
+
 ## Supported Networks
 
 Two concepts: **network** (blockchain family, used when creating instruments) and **chain** (specific chain, used in x402 challenges and balance queries).
@@ -506,4 +632,6 @@ For testing, start with **Base Sepolia** (network: `ETHEREUM`, chain: `BASE_SEPO
 - If the project is Strands or LangGraph, the native integration (Step 5a) is offered first as the simpler path
 - The generic tool path (Step 5b) is used only for other frameworks or when the developer explicitly wants manual control
 - Payments are wired via the framework-native integration (Step 5a) or the framework-agnostic `x402_fetch` tool (Step 5b)
+- Both x402 and MPP merchants are payable through the same manager/connector/instrument/session and the same `ProcessPayment` API — no protocol is chosen up front
+- For MPP, the raw `WWW-Authenticate: Payment` header is forwarded verbatim (one per call) and the returned `paymentCredential` is attached as `Authorization: Payment <token>` unchanged
 - Credentials never pass through the agent or the chat

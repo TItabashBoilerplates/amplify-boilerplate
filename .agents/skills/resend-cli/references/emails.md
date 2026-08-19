@@ -24,10 +24,26 @@ Send an email via the Resend API.
 | `--bcc <addresses...>` | string[] | No | BCC recipients |
 | `--reply-to <address>` | string | No | Reply-to address |
 | `--scheduled-at <datetime>` | string | No | Schedule for later — ISO 8601 or natural language (e.g. `"in 1 hour"`, `"tomorrow at 9am ET"`) |
-| `--attachment <paths...>` | string[] | No | File paths to attach (not compatible with `--template`) |
+| `--attachment <specs...>` | string[] | No | File path or `https://` URL to attach, with optional `;cid=`, `;type=`, `;filename=` params (not compatible with `--template`) |
+| `--attachments-file <path>` | string | No | Path to a JSON array of attachment objects (`"-"` for stdin; not compatible with `--template`) |
 | `--headers <key=value...>` | string[] | No | Custom headers |
 | `--tags <name=value...>` | string[] | No | Email tags |
 | `--idempotency-key <key>` | string | No | Deduplicate request |
+
+**Attachment syntax:** append `;cid=<id>` (inline content-id referenced as `cid:` in HTML), `;type=<mime>`, and/or `;filename=<name>` to the path or URL. ALWAYS double-quote values containing `;` — single quotes break on Windows cmd, and unquoted `;` breaks on every shell:
+
+```bash
+resend emails send ... --html "<img src=cid:logo>" --attachment "./logo.png;cid=logo"
+resend emails send ... --attachment "https://example.com/report.pdf;type=application/pdf"
+```
+
+For paths containing a literal `;key=` or for scripted use, pass `--attachments-file` with a JSON array of objects with `content` (base64) or `path` (URL), plus optional `filename`, `content_type`, `content_id` (camelCase also accepted).
+
+**URL attachment caveats:** the API fetches the URL *after* the send request returns an email ID — an unreachable URL fails the email asynchronously (`last_event: "failed"` on `emails get <id>`). Filename and MIME type are NOT derived from the URL (stored as `attachment-0` / `application/octet-stream`), so pass `;filename=` and `;type=` with every URL attachment:
+
+```bash
+resend emails send ... --attachment "https://example.com/report.pdf;filename=report.pdf;type=application/pdf"
+```
 
 **Output:** `{"id":"<uuid>"}`
 
@@ -49,7 +65,7 @@ Retrieve a sent email by ID.
   "to": ["user@example.com"],
   "subject": "Hello",
   "last_event": "delivered",
-  "created_at": "<iso-date>",
+  "created_at": "<date>",
   "scheduled_at": null
 }
 ```
@@ -85,14 +101,16 @@ Send up to 100 emails in a single request.
 ```json
 [
   {"from":"a@domain.com","to":["b@example.com"],"subject":"Hi","text":"Body"},
-  {"from":"a@domain.com","to":["c@example.com"],"subject":"Hi","html":"<b>Body</b>"}
+  {"from":"a@domain.com","to":["c@example.com"],"subject":"Hi","html":"<b>Body</b>","scheduled_at":"in 1 hour","tags":[{"name":"campaign","value":"welcome"}]}
 ]
 ```
+
+Per-email `scheduled_at` (ISO 8601 or natural language) and `tags` are supported.
 
 **Output (success):** `[{"id":"..."},{"id":"..."}]`
 **Output (permissive with errors):** `{"data":[{"id":"..."}],"errors":[{"index":1,"message":"..."}]}`
 
-**Constraints:** Max 100 emails. Attachments and `scheduled_at` not supported per-email.
+**Constraints:** Max 100 emails. Attachments not supported per-email.
 
 ---
 

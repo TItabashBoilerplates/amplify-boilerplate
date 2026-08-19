@@ -17,13 +17,13 @@
       "source": "resend/resend-skills",
       "sourceType": "github",
       "skillPath": "skills/agent-email-inbox/SKILL.md",
-      "computedHash": "25ffa798578026fcfdc5bdbe5b10ec2d2cd1784f8a94344c0ac055f3a82b57d4"
+      "computedHash": "65ed829de5d962d032c4d0aa96c8557bc48b79e5ba00ee13eb29b3bc881623d2"
     },
     "agents-build": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "plugins/aws-agents/skills/agents-build/SKILL.md",
-      "computedHash": "0fc6335f1b95e3771465ea3c271c328f3c4666f11502bf584975a9873f3636a0"
+      "computedHash": "e2d1b19842aec70406986fa6b19fb78933d0134e7bdbf8bbdd9ff1add800cf04"
     },
     "agents-connect": {
       "source": "aws/agent-toolkit-for-aws",
@@ -77,7 +77,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/amazon-bedrock/SKILL.md",
-      "computedHash": "acb9135739cf7a4d6d7b06c107a9c455a725a9a1d62c3ff46a631418b4c8df33"
+      "computedHash": "a8237913e5c42ae09095d8a8682f984862ffb68698fb5e46e4ef6553ac362c6c"
     },
     "amazon-documentdb": {
       "source": "aws/agent-toolkit-for-aws",
@@ -89,7 +89,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/database-skills/amazon-elasticache/SKILL.md",
-      "computedHash": "9ad08ae122860cd1b243da2e7715e40ae7f3ef227ff87f5553452a6ef0bc1c26"
+      "computedHash": "e2aaf67330db3b8a545d70db052a39eac032e46a46de314d3899ccbc30d1640a"
     },
     "amazon-keyspaces": {
       "source": "aws/agent-toolkit-for-aws",
@@ -113,7 +113,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-billing-and-cost-management/SKILL.md",
-      "computedHash": "ae87473cabc7f314484dd51056371ed38485dd218d145a1519399b564cfd9b71"
+      "computedHash": "3ba0125ac6c2cf7487ae01a3b8e78b247fe227c2935c92e0284d5b2577c48844"
     },
     "aws-blocks": {
       "source": "aws/agent-toolkit-for-aws",
@@ -125,7 +125,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-cdk/SKILL.md",
-      "computedHash": "681d65ddfdb1d5f0454230c09cf3bc01b5dcf4c1484d99a098222b35f125d3ca"
+      "computedHash": "4480c20e15885a356ba96334c50b0e726d0e89b533872ad92c03a767972ef28d"
     },
     "aws-cleanrooms": {
       "source": "aws/agent-toolkit-for-aws",
@@ -137,25 +137,25 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-cloudformation/SKILL.md",
-      "computedHash": "269f25e8ad4a59db4fdd28fbd616cf2018f8ca36e16a04bbce8c172ba05b2d78"
+      "computedHash": "07911e0b2cec762b57df991414608f1cb1066e035c826ca427133a1e6e2eda6c"
     },
     "aws-containers": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-containers/SKILL.md",
-      "computedHash": "f81e67c01327d28233e90f4eceb2c1f1d09b8bd41717ba917e5ff828608b911a"
+      "computedHash": "f325803972dd4b37e317c4da6a11172d05bc58f7b406b933198fbba84614bdd8"
     },
     "aws-iam": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-iam/SKILL.md",
-      "computedHash": "30d3c561de046c6a97102cccb4b4806c1d15d716ed0550d9c8ab5c3a032652b5"
+      "computedHash": "67b278df3b015551bc81ebca239866fde4832090211fdd923274ef5d0af87d72"
     },
     "aws-lambda-durable-functions": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/serverless-skills/aws-lambda-durable-functions/SKILL.md",
-      "computedHash": "04decab9aed133a4fcf1e82efaa3d16b10829c3adb7265406bd14c185331dda9"
+      "computedHash": "913495499ac5431f08952fb312f827572859079d4038b88caeda54a5b115b8bc"
     },
     "aws-lambda-managed-instances": {
       "source": "aws/agent-toolkit-for-aws",
@@ -173,13 +173,13 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-messaging-and-streaming/SKILL.md",
-      "computedHash": "5f67e1a255f200cf4dadbd7f268aad51e7fcfd882fd0ea9182518c207e8371cb"
+      "computedHash": "1cc9e81baa562f4b5378ef3e5df98101af5904a3dd977d0c1fd3a9d87a5febb6"
     },
     "aws-observability": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-observability/SKILL.md",
-      "computedHash": "71f48dddcd21ddd62e16327b03317c918c373c5ccde38a9c227be892fd4bf8a6"
+      "computedHash": "fdcc252cef2f61c3775cbd0bf6a2ed758fd5e5d16a1d10f36479b584b4ee4098"
     },
     "aws-sdk-js-v3-usage": {
       "source": "aws/agent-toolkit-for-aws",
@@ -203,7 +203,7 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/core-skills/aws-serverless/SKILL.md",
-      "computedHash": "ddfb728e0bc152fd6128328181a8ae0ec11fbc27c923aa0ecfbbf8ca2fb8a324"
+      "computedHash": "f932a616f7b064c4355e6acfe156fb146259438ceb53c8cde06f00e7725bea06"
     },
     "aws-transform": {
       "source": "aws/agent-toolkit-for-aws",
@@ -239,7 +239,7 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/claude-api/SKILL.md",
-      "computedHash": "adf50b5ad4d1a4a1026455c77311fe56051d41912d2b5f7fc987f14eb4dfd4ba"
+      "computedHash": "e26a93926a5bfe5d488178cbb77d7ab0fc3a00dd367057adfdef01c70d35621b"
     },
     "configuring-vpc-endpoints-for-private-aws-service-access": {
       "source": "aws/agent-toolkit-for-aws",
@@ -353,19 +353,19 @@
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/analytics-skills/developing-applications-on-managed-service-for-apache-flink/SKILL.md",
-      "computedHash": "b816600704479493ff4981e4539d886928247b8cf679aada2578f64d3a21411d"
+      "computedHash": "30a875450fec29913dc631a8e51d67b02d70778c212583039b9825468bcc2110"
     },
     "eas-update-insights": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/eas-update-insights/SKILL.md",
-      "computedHash": "295e60284aff7236a8a3bf65e91db0fd52d27c4f0d6507cbc39f65e836748de0"
+      "computedHash": "d5d79f243bfaab0324e87581016cae7ad7b6392439134418827b4408863c0b12"
     },
     "ecosystem-primer": {
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
       "skillPath": "config/skills/ecosystem-primer/SKILL.md",
-      "computedHash": "792007c035568732166705ab3b2e01b29fff39f4630e974226e7e2ca5fea4352"
+      "computedHash": "cdcbe9115ec444518fc963fa1a5425aacad984f2b03c5e56980e4f9ad3888bc1"
     },
     "email-and-password-best-practices": {
       "source": "better-auth/skills",
@@ -401,7 +401,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-brownfield/SKILL.md",
-      "computedHash": "393bb62ec8661deb43ea593116f7073dbd8c24f489aaeb0df52029995f36e044"
+      "computedHash": "07ce124e416f89a24c21c57402c03960a16e573675752be6a89735fba073b9d4"
     },
     "expo-cicd-workflows": {
       "source": "expo/skills",
@@ -419,19 +419,19 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-dev-client/SKILL.md",
-      "computedHash": "1e6884aa880a5d1cec669d37935a0fe0a57507cc0ff4cb17e7b183adcf2ff535"
+      "computedHash": "41496a5bb64bb753640c3a7de9d58fce81330fbba61f822dabbc04b5f1d7447d"
     },
     "expo-examples": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-examples/SKILL.md",
-      "computedHash": "705ccfc1783607789e69ec85f934da685d38587ee92b13709222685f2d6fb07a"
+      "computedHash": "1d525c773458f166590f40cd3575d6fca440786fc99fdf58d4704af77d1495df"
     },
     "expo-module": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-module/SKILL.md",
-      "computedHash": "ecb77b398e277259838b560fa9d1478a5cf92b7cf6ce5f5e637dc83db80e2cac"
+      "computedHash": "9c968a5bcb153ccdac1edbe014145ae37d6e6dac06846bfad7b2faaf890d88f0"
     },
     "expo-observe": {
       "source": "expo/skills",
@@ -449,13 +449,13 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-tailwind-setup/SKILL.md",
-      "computedHash": "dc063bbbc49d87cd68e681a8af2104ce08c52a8b507c90c8549e4a8a3ac24715"
+      "computedHash": "fe7cb21735243b2701a3a1e35be6fbfd7cff6a146447200d4b14d225b619a46d"
     },
     "expo-ui": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-ui/SKILL.md",
-      "computedHash": "47fe6f34daa6392f3e1ab42248fe6e08f5997b1c602f47fb822619d8e38d92de"
+      "computedHash": "5cbb2f0049e4d3a51cf6450b2d0032684e0881681a8f3dcea21b94164352fe61"
     },
     "exporting-rds-to-s3": {
       "source": "aws/agent-toolkit-for-aws",
@@ -467,7 +467,7 @@
       "source": "feature-sliced/skills",
       "sourceType": "github",
       "skillPath": "feature-sliced-design/SKILL.md",
-      "computedHash": "c57a32d524addae35b41b07bbfdd35eea3d85b3d0bd8f4779032eb31b62e5ce9"
+      "computedHash": "775a8ee42f32b12d33478eaf2416c0c1c394fac61b98805c6cf0f228cc2c9b34"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
@@ -497,13 +497,13 @@
       "source": "google-gemini/gemini-skills",
       "sourceType": "github",
       "skillPath": "skills/gemini-api-dev/SKILL.md",
-      "computedHash": "d3503bd642acd53b54594d214a1a0c2ed67a615832398c7c9e2f53d49a085fc2"
+      "computedHash": "5af2d3c9e37f02cfb4e480ab8bf10f398988a8ef2565276ca2e29046a20361d0"
     },
     "gemini-interactions-api": {
       "source": "google-gemini/gemini-skills",
       "sourceType": "github",
       "skillPath": "skills/gemini-interactions-api/SKILL.md",
-      "computedHash": "d823975c4eb6d5a65525025d47386ee6008c11132e794c16935687f7ce85e10f"
+      "computedHash": "3b1bccd4f131f749a3d0d19b0e734941fdaf799b7bb0689086ce10e1c3ebf380"
     },
     "gemini-live-api-dev": {
       "source": "google-gemini/gemini-skills",
@@ -629,19 +629,19 @@
       "source": "langchain-ai/langchain-skills",
       "sourceType": "github",
       "skillPath": "config/skills/managed-deep-agents/SKILL.md",
-      "computedHash": "6a2be0785d4e042947d27e0a67abb75f4a705de443d1f372c53970e37cd0fd2a"
+      "computedHash": "37afd87c6895844a4ca2d14095730b128aa3510accf3bdc69863f618c31208a9"
     },
     "managing-amazon-msk": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/analytics-skills/managing-amazon-msk/SKILL.md",
-      "computedHash": "7151b3cb362b17144164fe903f3378c359b09200bd6d196442d61df62e6d2435"
+      "computedHash": "3991f40de9a00f286428cf907c6bfd5b910cb82f7cd08c822f31ec25401b0507"
     },
     "migrate-to-msk": {
       "source": "aws/agent-toolkit-for-aws",
       "sourceType": "github",
       "skillPath": "skills/specialized-skills/analytics-skills/migrate-to-msk/SKILL.md",
-      "computedHash": "0e87837ff840121e9028b20424facfa37a3ca463a7dff50ece953815cc52b9ca"
+      "computedHash": "7bf896aaa0972e0d3e79edd9fc2859fcdcdbb2813167dd5ccac6e97186a2b9f4"
     },
     "migrate-to-v5": {
       "source": "gluestack/agent-skills",
@@ -653,7 +653,7 @@
       "source": "GoogleChrome/modern-web-guidance",
       "sourceType": "github",
       "skillPath": "skills/modern-web-guidance/SKILL.md",
-      "computedHash": "1a45fb9dddfa8d0331afc412ae80c4a99f0bb35e7db5646727edcb174ff53b0f"
+      "computedHash": "cf4101aff5b4f8959d9b89497b3a28e8941031591f7ff0a5783297d6b37ba8c3"
     },
     "native-data-fetching": {
       "source": "expo/skills",
@@ -731,13 +731,13 @@
       "source": "resend/resend-skills",
       "sourceType": "github",
       "skillPath": "skills/resend/SKILL.md",
-      "computedHash": "b246db7265df47250a7a55efb02778c2870d18e8030164a23e26a6324e4f4f8b"
+      "computedHash": "be9d48930a10b28358abd6afe1ac851d4feb72aed301373870d7c09cb64f5970"
     },
     "resend-cli": {
       "source": "resend/resend-skills",
       "sourceType": "github",
       "skillPath": "skills/resend-cli/SKILL.md",
-      "computedHash": "6337555d6b37e01aa580deb39c126eee817d9cc4c812defbbc225c9da6570ac2"
+      "computedHash": "e4ae86cedd1cf797637cea0465d4081970a4a332f822adff4cc4b2c5ab470218"
     },
     "routing-traffic-with-route53-and-cloudfront": {
       "source": "aws/agent-toolkit-for-aws",
@@ -773,7 +773,7 @@
       "source": "shadcn/ui",
       "sourceType": "github",
       "skillPath": "skills/shadcn/SKILL.md",
-      "computedHash": "d81caa0f86aabab65b25e302d454f23a3328760386ed9078345584c0d5c8058e"
+      "computedHash": "c1a68ee06a668aced9ab2b5fbdea5f989864123794eb2e056b339a072dbb7f10"
     },
     "signing-in-to-aws": {
       "source": "aws/agent-toolkit-for-aws",
@@ -797,7 +797,7 @@
       "source": "stripe/ai",
       "sourceType": "github",
       "skillPath": "skills/stripe-best-practices/SKILL.md",
-      "computedHash": "47b21ed8662be5dbad43239ca99f77326a73c2d0c691fb15dc028871fe4c3569"
+      "computedHash": "6b71690c78cec9e053f9a842337f85976704c7b1901a895cf795e37f5b03ea17"
     },
     "swarm": {
       "source": "langchain-ai/langchain-skills",
@@ -827,7 +827,7 @@
       "source": "vercel/turborepo",
       "sourceType": "github",
       "skillPath": "skills/turborepo/SKILL.md",
-      "computedHash": "cf7257636b669099d5c845f5a6526c167f9cec0c340b876bf77e33adb5053a7d"
+      "computedHash": "585826f6ba1aed4abfdd7553b19f586ac35925072e5d4208c73e96e3203807a6"
     },
     "two-factor-authentication-best-practices": {
       "source": "better-auth/skills",
@@ -875,7 +875,7 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-view-transitions/SKILL.md",
-      "computedHash": "4fea9144f604256d0a21faaea904b7e205e7676e316721ba5fdd68c2600c7d42"
+      "computedHash": "7336975cd031be2fabc262724dc44a38222c74c07f967d39258d635b3fba7146"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
@@ -887,7 +887,7 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/writing-guidelines/SKILL.md",
-      "computedHash": "25aa3a33a97bddbcb1847ce4a6169106ec25e5b19b15b99c66e75ab383866ef2"
+      "computedHash": "e90462d4f801d823603b12c345ad0ff91a7489415274432681d21c7129123c26"
     }
   }
 }
