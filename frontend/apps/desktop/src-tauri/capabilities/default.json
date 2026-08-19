@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "メインウィンドウに与える既定の権限。必要になったものだけをここに足すこと（Tauri v2 は v1 の allowlist と違い、ウィンドウ単位で権限を絞る）。",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

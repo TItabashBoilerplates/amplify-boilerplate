@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Tauri は OS の WebView に描画するのでズーム抑止は不要（かつ WCAG 1.4.4 の観点でも書かない）。
+      `.claude/rules/mobile-uiux.md` §4.1 と同じ方針。
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

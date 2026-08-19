@@ -1,0 +1,38 @@
+{
+  "name": "@workspace/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 1420 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 1420 --strictPort",
+    "type-check": "tsc --noEmit",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "lint:fsd": "eslint . --max-warnings 0 --rule 'boundaries/element-types: error'"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@workspace/tokens": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "lucide-react": "^1.28.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/parser": "^8.65.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "@workspace/eslint-config": "workspace:*",
+    "eslint": "^9",
+    "eslint-import-resolver-typescript": "^3.10.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.2",
+    "vite": "7.3.1"
+  }
+}

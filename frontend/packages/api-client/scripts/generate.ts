@@ -67,7 +67,7 @@ async function generate(): Promise<void> {
 
   if (!isAvailable) {
     console.warn('⚠️  Backend is not available. Skipping client generation.')
-    console.warn('   Make sure the backend is running: make run')
+    console.warn('   Make sure the backend is running: dev-api (or devenv up backend)')
 
     // 既存の生成ファイルがあればそれを使用
     if (existsSync(join(outputDir, 'types.gen.ts'))) {

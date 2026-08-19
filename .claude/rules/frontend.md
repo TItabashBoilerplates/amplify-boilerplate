@@ -34,7 +34,8 @@ paths: frontend/**/*.{ts,tsx,js,jsx}
 frontend/
 ├── apps/
 │   ├── web/              # Next.js Web アプリ
-│   └── mobile/           # Expo React Native アプリ
+│   ├── mobile/           # Expo React Native アプリ
+│   └── desktop/          # Tauri v2 + Vite デスクトップアプリ（UI は @workspace/ui を共有）
 └── packages/
     ├── ui/
     │   ├── web/          # shadcn/ui + MagicUI (Web専用)

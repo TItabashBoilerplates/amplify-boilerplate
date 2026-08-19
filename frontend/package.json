@@ -18,7 +18,8 @@
     "ui:add:mobile": "cd packages/native-ui && pnpm dlx gluestack-ui@latest add",
     "tokens:build": "tsx packages/tokens/scripts/generate-css.ts",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "lint:fsd": "turbo lint:fsd"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

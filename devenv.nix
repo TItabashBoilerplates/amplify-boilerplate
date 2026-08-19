@@ -78,6 +78,15 @@
     # ---------- Dev servers ----------
     dev-web.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run --filter @workspace/web dev "$@"'';
     dev-mobile.exec = ''cd "$DEVENV_ROOT/frontend/apps/mobile" && pnpm run start "$@"'';
+    # デスクトップ（Tauri v2）。**`dev-desktop` は Vite だけを起動する**ので Rust も
+    # WebKitGTK も要らない（ブラウザで UI を確認する用途）。ネイティブウィンドウを出す /
+    # 配布物を作るほうは Linux で WebKitGTK が要るため `-P desktop` が必須
+    # （macOS / Windows は OS 側の前提だけで足りる）。
+    #   devenv shell -P desktop -- tauri-desktop     # tauri dev
+    #   devenv shell -P desktop -- build-desktop     # tauri build
+    dev-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run dev "$@"'';
+    tauri-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run tauri:dev "$@"'';
+    build-desktop.exec = ''cd "$DEVENV_ROOT/frontend/apps/desktop" && pnpm run tauri:build "$@"'';
     storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run storybook'';
     build-storybook.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run build-storybook'';
 
@@ -96,6 +105,10 @@
 
     # ---------- Quality: frontend ----------
     lint-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run lint'';
+    # FSD のレイヤー境界検査（eslint-plugin-boundaries）。web / mobile / desktop を横断する。
+    # Biome は境界を見ないので、`lint-frontend` が通っても
+    # 「下位レイヤーが上位を import している」は検出されない。
+    lint-fsd.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run lint:fsd'';
     format-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run format'';
     type-check-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run type-check'';
     test-frontend.exec = ''cd "$DEVENV_ROOT/frontend" && pnpm run test'';
@@ -234,9 +247,64 @@
     skills-restore.exec = ''cd "$DEVENV_ROOT" && pnpm dlx skills experimental_install'';
 
     # ---------- Aggregate ----------
-    lint.exec = ''lint-frontend && lint-backend-py'';
+    lint.exec = ''lint-frontend && lint-fsd && lint-backend-py'';
     format.exec = ''format-frontend && format-backend-py'';
     unit-test.exec = ''test-frontend && test-backend-py'';
+  };
+
+  # ===== desktop: Tauri v2（apps/desktop）のネイティブビルド toolchain =====
+  #
+  # **opt-in profile にしている理由**: Linux で Tauri をビルドするには WebKitGTK と
+  # GTK3 の開発ヘッダが要り、closure が数 GB になる。web / mobile しか触らない開発者と
+  # CI に負わせる理由が無いので、デスクトップを触るときだけ有効化する。
+  #
+  #   devenv shell -P desktop -- dev-desktop     # tauri dev
+  #   devenv shell -P desktop -- build-desktop   # tauri build
+  #
+  # **macOS / Windows ではこの profile は不要**（Xcode Command Line Tools / MSVC +
+  # WebView2 という OS 側の前提だけで足りる）。ここで入れているのは
+  # **Linux の WebKitGTK 依存**であり、Tauri 公式の Linux 前提条件に対応する。
+  # @see https://v2.tauri.app/start/prerequisites/
+  #
+  # ⚠️ これらが無いと `cargo check` の時点で
+  #    「HINT: you may need to install a package such as glib-2.0」等で落ちる
+  #    （Rust さえあればビルドできる、ではない）。
+  profiles.desktop.module = { pkgs, ... }: {
+    packages = with pkgs; [
+      # Tauri 本体（wry / tao）がリンクする WebView とウィンドウ系。
+      # webkitgtk は **abi=4.1 の派生**を使う（4.0 は EOL で Tauri 2 が要求しない）。
+      webkitgtk_4_1
+      gtk3
+      libsoup_3
+      glib-networking
+
+      # ⚠️ gtk3 / webkitgtk からの伝播に頼らず **明示的に並べる**。
+      # `cargo check` は `glib-2.0.pc` `cairo.pc` 等を pkg-config で直接引くため、
+      # 伝播が効かない構成に変わった瞬間に
+      #   「HINT: you may need to install a package such as glib-2.0」
+      # で落ちる。
+      glib
+      cairo
+      pango
+      gdk-pixbuf
+      atk
+
+      # ビルド時に pkg-config でヘッダを探すため必須
+      pkg-config
+
+      # Tauri 公式の Linux 前提（https://v2.tauri.app/start/prerequisites/）:
+      #   libayatana-appindicator3 … システムトレイ
+      #   libxdo(xdotool)          … ウィンドウ操作
+      libayatana-appindicator
+      xdotool
+
+      # AppImage / deb / rpm のバンドルに使う
+      openssl
+      librsvg
+      patchelf
+    ];
+
+    languages.rust.enable = true;
   };
 
   # ===== Profiles（opt-in の重い toolchain）=====
@@ -260,7 +328,7 @@
     echo "amplify-boilerplate — devenv ready"
     echo "  bootstrap            deps (pnpm + uv)"
     echo "  sandbox              Amplify backend (ampx sandbox)"
-    echo "  dev-web / dev-mobile dev servers"
+    echo "  dev-web / dev-mobile dev servers（desktop は -P desktop -- dev-desktop）"
     echo "  lint / format / type-check-* / unit-test"
     echo "  mcp-sync             regenerate .cursor/mcp.json / .codex/config.toml"
     echo "  e2e / e2e-mobile / e2e-web   Maestro E2E"

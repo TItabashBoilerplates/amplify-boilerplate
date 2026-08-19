@@ -1,0 +1,16 @@
+{
+  "extends": "../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["node", "react", "react-dom", "vite/client"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@workspace/ui": ["../../packages/ui/src/components"],
+      "@workspace/ui/*": ["../../packages/ui/src/*"],
+      "@workspace/tokens": ["../../packages/tokens/src"],
+      "@workspace/tokens/*": ["../../packages/tokens/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", "src-tauri"]
+}

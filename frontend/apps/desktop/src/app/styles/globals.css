@@ -1,0 +1,10 @@
+/*
+ * デスクトップアプリの CSS エントリ（FSD app レイヤー）。
+ *
+ * 共有デザインシステム（@workspace/ui → @workspace/tokens）を読み込み、
+ * このアプリ固有のソースパスだけを `@source` で追加する。
+ * apps/web の globals.css と同じ形（クラス文字列をアプリ側に複製しない）。
+ */
+@import "@workspace/ui/styles/globals.css";
+
+@source "../../../src";

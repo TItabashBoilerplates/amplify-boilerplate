@@ -32,6 +32,9 @@
       "dependsOn": ["^lint"],
       "inputs": ["$TURBO_DEFAULT$", "eslint.config.*"]
     },
+    "lint:fsd": {
+      "inputs": ["$TURBO_DEFAULT$", "eslint.config.*"]
+    },
     "type-check": {
       "dependsOn": ["^type-check", "generate"],
       "outputs": []

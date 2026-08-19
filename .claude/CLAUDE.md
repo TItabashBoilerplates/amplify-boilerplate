@@ -26,7 +26,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 
 このボイラープレートの核は **Feature-Sliced Design (FSD)** と **モノレポ**。この2つは何があっても維持する。
 
-- **モノレポ**: `frontend/`（pnpm workspace + Turborepo）に web/mobile アプリと共有 `packages/*`。`backend-py/`（uv workspace）に Python。
+- **モノレポ**: `frontend/`（pnpm workspace + Turborepo）に web / mobile / desktop アプリと共有 `packages/*`。`backend-py/`（uv workspace）に Python。
 - **FSD**: 各アプリ `src/` は `app → views → widgets → features → entities → shared` のレイヤー階層。上位→下位の依存のみ。各スライスは `index.ts` で Public API を公開。
 - **配置判断**: Web/Mobile 共通ロジックは `packages/*`、アプリ固有は各 `apps/*/src` の FSD レイヤー。詳細は `.claude/rules/render-optimization.md`（state 所有権）/ `.claude/rules/frontend.md`。
 
@@ -53,13 +53,13 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 >
 > UI/UX・品質系（`ui-ux-pro-max` / `baseline-ui` / `improve-ui` / `accessibility` /
 > `core-web-vitals` / `performance` / `fixing-motion-performance`）と自作の
-> `mobile-uiux` / `mobile-release` / `store-screenshots` はインフラ非依存（または
-> ストア側の要件）なので shadcn-boilerplate と同じものを入れている。
+> `mobile-uiux` / `mobile-release` / `store-screenshots` / `tauri` はインフラ非依存
+> （またはストア / OS 側の要件）なので shadcn-boilerplate と同じものを入れている。
 > **公式配布の skill の追加・更新は `pnpm dlx skills add <owner>/<repo> --skill <name>` で行う**
 > （`skills-lock.json` に source と hash が記録され、`.agents/skills/` の実体へ
 > `.claude/skills/` からシンボリックリンクが張られる）。手でディレクトリをコピーしない。
-> **自作 skill（`mobile-uiux` / `mobile-release` / `store-screenshots`）は lock 管理外**で、
-> `.claude/skills/<name>/SKILL.md` に直接置く。
+> **自作 skill（`mobile-uiux` / `mobile-release` / `store-screenshots` / `tauri`）は
+> lock 管理外**で、`.claude/skills/<name>/SKILL.md` に直接置く。
 
 ## Architecture Overview
 
@@ -69,6 +69,7 @@ Supabase / Vercel / Railway / Doppler / Drizzle / Deno Edge Functions / OneSigna
 | --------------------- | ----------------------------------------------------- |
 | **Frontend (Web)**    | Next.js 16, React 19, TypeScript, pnpm                 |
 | **Frontend (Mobile)** | Expo 57, React Native 0.86, TypeScript                |
+| **Frontend (Desktop)**| Tauri v2 + Vite + React（`apps/desktop`。UI は Web と共有）|
 | **UI (Web)**          | shadcn/ui, Radix UI, TailwindCSS 4                    |
 | **UI (Mobile)**       | gluestack-ui v5（headless）, NativeWind 5             |
 | **State**             | TanStack Query (server), Zustand (global)             |
@@ -117,7 +118,12 @@ sandbox-delete                  # sandbox 破棄
 # Dev servers
 dev-web                         # Next.js (web)
 dev-mobile                      # Expo (mobile)
+dev-desktop                     # Tauri のフロント（Vite のみ。Rust 不要）
 storybook                       # Storybook
+
+# デスクトップのネイティブビルド（Linux は WebKitGTK が要るので profile を有効化）
+devenv shell -P desktop -- tauri-desktop    # ネイティブウィンドウを出す
+devenv shell -P desktop -- build-desktop    # 配布物を作る
 
 # Quality（必ず devenv のコマンドで）
 lint / format                   # 全体 lint / format
