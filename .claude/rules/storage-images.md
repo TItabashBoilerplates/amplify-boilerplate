@@ -83,17 +83,25 @@ Mobile 側の `StorageImage` は **`resolveUrl(pixelWidth)`** を受け取る（
 派生の path 規約は `buildDerivativePath(path, width)`（`media/u1/avatar.jpg` → `media/u1/avatar@128w.jpg`）が
 単一の正本で、**生成する側（Lambda）と読む側で同じ規則を 2 か所に書かない**。
 
-**サーバー側でリサイズする仕組みが必要**なので、次のどちらかを採る。
-**どちらも AWS 内で完結する**（`.claude/rules/aws-first.md`）が、**インフラが増えるので実装前に
-ユーザーへ確認する**:
+**サーバー側でリサイズする仕組みが必要**で、本リポジトリは **方式 A（アップロード時に派生を作る）を
+実装済み**（`amplify/functions/image-derivatives`）。**追加の設定なしに `ampx sandbox` で動く。**
 
-| 方式 | 内容 | 向いている場合 |
+| 方式 | 内容 | 本リポジトリ |
 |---|---|---|
-| **A: アップロード時に派生を作る（既定の推奨）** | S3 の作成イベントで Lambda（sharp）を起動し、`IMAGE_WIDTH_LADDER` の各幅の派生を書き出す | 幅の種類が少なく固定。リクエストごとの変換コストが不要。Web / Mobile で同じ派生を共有できる |
-| **B: Dynamic Image Transformation for Amazon CloudFront**（AWS Solution。旧 Serverless Image Handler） | CloudFront + Lambda(≤6MB) / ECS(≤100MB) でリクエスト時に変換。Rekognition による smart crop も可 | 幅・切り抜きが動的。原本が多く事前生成が無駄になる場合 |
+| **A: アップロード時に派生を作る** | S3 の作成イベントで Lambda を起動し、`IMAGE_WIDTH_LADDER` の各幅の派生を書き出す | ✅ **採用・実装済み** |
+| **B: Dynamic Image Transformation for Amazon CloudFront**（AWS Solution。旧 Serverless Image Handler） | CloudFront + Lambda(≤6MB) / ECS(≤100MB) でリクエスト時に変換。Rekognition の smart crop も可 | 幅・切り抜きが**動的**に要るとき、または原本が多く事前生成が無駄になるときに乗り換える |
 
-**どちらも導入していない段階で、原本をそのまま配るのは禁止**。
-その場合は「アップロード時に表示上限サイズへ縮小して保存する」（＝原本を持たない）が最低ラインになる。
+**A を選んだ理由**: 幅の段は固定（`IMAGE_WIDTH_LADDER`）なのでリクエストごとの変換コストが要らず、
+Web / Mobile が同じ派生を共有でき、別スタック（AWS Solution）の運用が増えない。
+
+**画像ライブラリに sharp ではなく jimp を使っている**のは、sharp がネイティブバイナリを含み
+esbuild でバンドルできず、デプロイに **Docker かレイヤー**が要るため。boilerplate は
+`ampx sandbox` だけで動く状態を保ちたい。アップロード時に固定の段を数枚作るだけなので
+スループット差は制約にならず、必要になったら **handler 1 ファイルを差し替える**だけでよい
+（path 規約は `@workspace/storage-image/ladder` が持つので他は変わらない）。
+
+> **無限ループに注意**: 派生の書き戻しも同じ S3 作成イベントを起こす。handler は
+> `isDerivativePath()` で自分の出力を弾いている。**外すと料金だけが増え続ける。**
 
 ---
 
@@ -187,7 +195,7 @@ width={containerWidth * devicePixelRatio}
 |---|---|
 | 1 | Storage の画像を `StorageImage` 以外で表示していないか |
 | 2 | Web は `next/image` を通っているか（`unoptimized` で逃げていないか） |
-| 3 | Mobile 側のリサイズ手段（§1.2 の A or B）が決まっているか。未決なら**ユーザーに確認したか** |
+| 3 | Mobile 向けの派生が生成される path に置いているか（`image-derivatives` の対象拡張子か） |
 | 4 | 非公開画像の署名は**サーバー側**か。一覧に大量の署名 URL を並べていないか |
 | 5 | `width` / `height` は表示サイズに基づいているか（元サイズを丸投げしていないか） |
 | 6 | 幅を自前計算せず `snapImageWidth` / `StorageImage` に任せているか |
@@ -215,10 +223,16 @@ frontend/apps/mobile/src/shared/ui/storage-image/StorageImage.tsx  # resolveUrl(
 frontend/apps/web/next.config.ts                                   # imageSizes/deviceSizes を段から導出
 ```
 
-> **現状（boilerplate）**: Mobile の派生生成（§1.2 の A / B）は**まだ導入していない**。
-> したがって Mobile で画像を出す機能を実装するときは、A / B のどちらを採るかを
-> **ユーザーに確認**し、決まるまでは「アップロード時に `MAX_IMAGE_WIDTH` 以下へ縮小して
-> 保存する（＝原本を持たない）」最低ラインで運用する。
+```
+frontend/packages/backend/amplify/functions/image-derivatives/
+├── resource.ts   # defineFunction（S3 作成イベントで起動）
+└── handler.ts    # jimp で IMAGE_WIDTH_LADDER の各幅を書き出す
+frontend/packages/backend/amplify/backend.ts   # bucket.addEventNotification + grantReadWrite
+```
+
+> **`src/ladder.ts` は `aws-amplify` に依存しない**。派生を生成する Lambda が
+> ブラウザ SDK を持ち込まずに同じ規約を import できるようにするため
+> （生成側と読む側で規則を 2 か所に書かない）。
 
 ---
 
@@ -229,8 +243,9 @@ frontend/apps/web/next.config.ts                                   # imageSizes/
 - **S3 の画像を元サイズで表示する実装はレビューで却下**する。
 - **`storage-image.policy.test.ts` の無効化・削除も却下**する（この不具合は静的検査でしか止まらない）。
 - 「開発者から指示が無かった」は理由にならない。**指示を待たずに最初からサイズを合わせる**。
-- Mobile 用のリサイズ基盤（§1.2 の A / B）が未導入の状態で画像機能を実装する場合は、
-  黙って原本配信にせず**ユーザーに判断をあおぐ**。
+- **`image-derivatives` の無限ループ防止（`isDerivativePath`）を外す変更は却下**する。
+- 方式 B（CloudFront の Dynamic Image Transformation）へ乗り換える場合は、別スタックの
+  運用が増えるので**実装前にユーザーへ確認**する。
 
 ## 参考
 

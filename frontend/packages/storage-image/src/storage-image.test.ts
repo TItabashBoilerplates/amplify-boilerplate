@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buildDerivativePath, IMAGE_WIDTH_LADDER, MAX_IMAGE_WIDTH, snapImageWidth } from './index'
+import {
+  buildDerivativePath,
+  IMAGE_WIDTH_LADDER,
+  isDerivativePath,
+  MAX_IMAGE_WIDTH,
+  snapImageWidth,
+} from './ladder'
 
 describe('IMAGE_WIDTH_LADDER', () => {
   it('is strictly ascending（段が昇順でないと丸めが壊れる）', () => {
@@ -52,5 +58,27 @@ describe('buildDerivativePath', () => {
 
   it('snaps the width itself（呼び出し側の生の幅をそのまま埋め込まない）', () => {
     expect(buildDerivativePath('a/b.png', 33)).toBe('a/b@48w.png')
+  })
+})
+
+describe('isDerivativePath', () => {
+  /**
+   * 派生の書き戻しが再び S3 イベントを起こすので、生成側はこれで自分の出力を弾く。
+   * 弾かないと**無限ループになり料金だけが増え続ける**。
+   */
+  it('recognises generated derivatives', () => {
+    expect(isDerivativePath('media/u1/avatar@128w.jpg')).toBe(true)
+    expect(isDerivativePath('media/u1/avatar@16w')).toBe(true)
+  })
+
+  it('does not flag originals', () => {
+    expect(isDerivativePath('media/u1/avatar.jpg')).toBe(false)
+    expect(isDerivativePath('media/u1/avatar')).toBe(false)
+    // 途中に `@…w` があってもファイル名末尾でなければ派生ではない
+    expect(isDerivativePath('media/@128w/avatar.jpg')).toBe(false)
+  })
+
+  it('round-trips with buildDerivativePath', () => {
+    expect(isDerivativePath(buildDerivativePath('media/u1/avatar.jpg', 40))).toBe(true)
   })
 })

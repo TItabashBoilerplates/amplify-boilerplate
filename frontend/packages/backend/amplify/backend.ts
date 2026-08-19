@@ -8,10 +8,13 @@ import {
   FunctionUrlAuthType,
   HttpMethod,
 } from 'aws-cdk-lib/aws-lambda'
+import { EventType } from 'aws-cdk-lib/aws-s3'
+import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications'
 import { Topic } from 'aws-cdk-lib/aws-sns'
 import { auth } from './auth/resource'
 import { data } from './data/resource'
 import { api } from './functions/api/resource'
+import { imageDerivatives } from './functions/image-derivatives/resource'
 import { mcp } from './functions/mcp/resource'
 import { otpCapture } from './functions/otp-capture/resource'
 import { restApi } from './functions/rest-api/resource'
@@ -37,6 +40,7 @@ const backend = defineBackend({
   api,
   restApi,
   mcp,
+  imageDerivatives,
   // E2E OTP キャプチャ関数は opt-in のときだけ含める（通常デプロイには現れない）
   ...(e2eOtpCapture ? { otpCapture } : {}),
 })
@@ -144,12 +148,35 @@ cfnUserPool.addPropertyOverride(
 // @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pool-managing-errors.html
 backend.auth.resources.cfnResources.cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED'
 
+// --- 画像の派生生成（アップロード時に幅の段ごとのリサイズを書き出す）-----------
+// `.claude/rules/storage-images.md` §1.2 の方式 A。Mobile には srcset が無いので、
+// 「その幅の実体」がバケットに無いと表示サイズに合わせた配信ができない。
+//
+// ⚠️ 派生の書き戻しも同じ作成イベントを起こす。無限ループは handler 側の
+// `isDerivativePath` で止めている（フィルタだけに頼らない）。
+const derivativesFn = backend.imageDerivatives.resources.lambda as CdkFunction
+const { bucket } = backend.storage.resources
+
+bucket.grantReadWrite(derivativesFn)
+bucket.addEventNotification(
+  EventType.OBJECT_CREATED,
+  new LambdaDestination(derivativesFn),
+  // 派生は `...@128w.jpg` の形なので、接尾辞フィルタでは弾けない（拡張子は同じ）。
+  // ここでは対象の拡張子だけに絞り、派生かどうかの判定は handler が行う。
+  { suffix: '.jpg' },
+  { suffix: '.jpeg' },
+  { suffix: '.png' },
+  { suffix: '.webp' }
+)
+
 // フロントエンドが参照できるよう amplify_outputs.json の custom に出力
 const customOutputs: Record<string, string> = {
   backendApiUrl: apiUrl.url, // FastAPI(Python) Lambda
   restApiUrl: restApiUrl.url, // REST API(TypeScript/Hono) Lambda
   mcpUrl: mcpUrl.url, // MCP(TypeScript) Lambda（/mcp）
   notificationsTopicArn: notificationsTopic.topicArn,
+  // Mobile の StorageImage が派生 URL を組み立てるのに使う
+  storageBucketName: bucket.bucketName,
 }
 
 // --- E2E 専用: Cognito CustomEmailSender で Email OTP を DynamoDB にキャプチャ -------

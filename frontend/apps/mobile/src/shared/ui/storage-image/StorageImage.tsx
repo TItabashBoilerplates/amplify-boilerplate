@@ -1,5 +1,6 @@
 import { snapImageWidth } from '@workspace/storage-image'
 import { Image } from 'expo-image'
+import { useEffect, useState } from 'react'
 import { PixelRatio } from 'react-native'
 
 /**
@@ -14,23 +15,25 @@ import { PixelRatio } from 'react-native'
  * ## URL は誰が作るか
  *
  * S3 には Supabase のようなリクエスト時変換 API が無いので、URL を組み立てるのは
- * このコンポーネントの仕事ではない。**呼び出し側が「その幅の画像 URL」を渡す**:
+ * このコンポーネントの仕事ではない。**呼び出し側が「その幅の画像 URL」を返す**:
  *
- * - 公開パス → `resolveUrl(width)` で `buildDerivativePath` 済みの URL を返す
- * - 非公開 → サーバー側で `createSignedImageUrl({ path, width })` を発行して渡す
+ * - 公開パス → `buildDerivativePath` の URL を同期で返す
+ * - 非公開（既定） → `createSignedImageUrl({ path, width })` を返す（**Promise 可**）
  *
- * ⚠️ **派生を生成する仕組み（S3 イベントの Lambda など）が未導入の場合**、
- * アップロード時に `MAX_IMAGE_WIDTH` 以下へ縮小して保存する運用（＝原本を持たない）が
- * 最低ラインになる（`.claude/rules/storage-images.md` §1.2 / §3）。
+ * 丸めた幅が決まるのは描画時なので、署名は同期では書けない。`resolveUrl` は
+ * `Promise<string>` を返してよく、その間はプレースホルダを描画する。
+ *
+ * ⚠️ 幅ごとの実体（`...@128w.jpg`）は `amplify/functions/image-derivatives` が
+ * アップロード時に生成する（`.claude/rules/storage-images.md` §1.2 の方式 A）。
  */
 export interface StorageImageProps {
   /**
    * 実ピクセル幅から画像 URL を解決する。
    *
    * 丸めた幅が渡ってくるので、`buildDerivativePath(path, width)` の結果や
-   * サーバーで発行した署名 URL をそのまま返せばよい。
+   * `createSignedImageUrl({ path, width })` の戻り値をそのまま返せばよい。
    */
-  resolveUrl: (pixelWidth: number) => string
+  resolveUrl: (pixelWidth: number) => string | Promise<string>
   /** 表示幅（dp） */
   width: number
   /** 表示高さ（dp） */
@@ -50,10 +53,36 @@ export function StorageImage({
 }: StorageImageProps) {
   // dp → 実ピクセル。段に丸めてキャッシュを効かせる
   const pixelWidth = snapImageWidth(PixelRatio.getPixelSizeForLayoutSize(width))
+  const resolved = resolveUrl(pixelWidth)
+  const isSync = typeof resolved === 'string'
+
+  const [uri, setUri] = useState<string | null>(isSync ? resolved : null)
+
+  useEffect(() => {
+    if (typeof resolved === 'string') {
+      setUri(resolved)
+      return
+    }
+    let active = true
+    resolved
+      .then((value) => {
+        if (active) {
+          setUri(value)
+        }
+      })
+      .catch((error: unknown) => {
+        // 握りつぶさない（`.claude/rules/error-handling.md`）。
+        // 画像 1 枚のために画面全体を落とさないので、ログに残して空のまま描画する。
+        console.error('[StorageImage] failed to resolve the image URL:', error)
+      })
+    return () => {
+      active = false
+    }
+  }, [resolved])
 
   return (
     <Image
-      source={{ uri: resolveUrl(pixelWidth) }}
+      source={uri ? { uri } : undefined}
       style={{ width, height }}
       className={className}
       contentFit={contentFit}

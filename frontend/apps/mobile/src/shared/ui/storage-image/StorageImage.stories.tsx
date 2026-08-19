@@ -46,3 +46,11 @@ export const WideAspect: Story = {
 }
 
 export const ContainFit: Story = { args: { contentFit: 'contain' } }
+
+/**
+ * 非公開バケット（既定）の経路。署名は非同期なので `resolveUrl` は Promise を返す。
+ * 解決するまではプレースホルダのまま描画され、画面は落ちない。
+ */
+export const SignedUrlPending: Story = {
+  args: { resolveUrl: () => new Promise<string>(() => {}) },
+}
